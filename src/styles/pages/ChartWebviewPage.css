@@ -1,0 +1,19 @@
+/* Full bleed root for WebView embedding — avoids dashboard chrome clipping */
+.chart-webview-page {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--bg-primary, #0a0e17);
+}
+
+.chart-webview-page .dashboard-chart-root--embed .dashboard-chart-wrapper {
+  height: 100%;
+  min-height: inherit;
+}

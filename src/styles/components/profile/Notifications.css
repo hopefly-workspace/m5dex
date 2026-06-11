@@ -1,0 +1,810 @@
+/**
+ * Notifications Screen
+ * Modern, polished design with hero, pills, and refined cards
+ */
+
+.notificationsScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+
+.notificationsHero {
+  position: relative;
+  padding: calc(var(--space-lg) + 2px) var(--space-lg);
+  /* background:
+    radial-gradient(110% 120% at 90% -15%, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 88%, black) 0%, var(--bg-tertiary) 100%); */
+  /* background:
+    radial-gradient(110% 120% at 90% -15%, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 88%, rgb(255, 255, 255)) 0%, var(--bg-tertiary) 100%); */
+  border: 1px solid color-mix(in srgb, var(--border-light) 72%, var(--brand-primary) 28%);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-md);
+  margin-top: var(--space-md);
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.068);
+  backdrop-filter: blur(20px);
+  background: var(--bg-secondary);
+}
+
+body.dark-theme .notificationsHero {
+  background:
+    radial-gradient(110% 120% at 90% -15%, color-mix(in srgb, var(--brand-primary) 22%, transparent) 0%, transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 88%, black) 0%, var(--bg-tertiary) 100%);
+}
+
+.notificationsHeroGlow {
+  position: absolute;
+  top: -60%;
+  right: -20%;
+  width: 50%;
+  height: 120%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--brand-primary-glow) 72%, transparent) 0%, transparent 72%);
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.notificationsHeroContent {
+  position: relative;
+  display: flex;
+  align-items: start;
+  gap: var(--space-lg);
+}
+
+.notificationsHeroIcon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--badge-primary-bg), color-mix(in srgb, var(--badge-primary-bg) 76%, var(--brand-primary)));
+  border: 1px solid color-mix(in srgb, var(--badge-primary-border) 72%, var(--brand-primary));
+  border-radius: var(--radius-lg);
+  color: var(--brand-primary);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-primary) 24%, transparent) inset;
+}
+
+.notificationsHeroIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notificationsHeroText {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationsHeroTitle {
+  font-family: var(--font-primary);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs);
+  letter-spacing: -0.02em;
+}
+
+.notificationsHeroSub {
+  font-family: var(--font-primary);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.notificationsHeroStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.notificationsHeroStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 15px;
+  border-radius: var(--radius-full);
+  border: 1px solid color-mix(in srgb, var(--border-light) 86%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 76%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.notificationsHeroStat span {
+  margin-top: 2px;
+}
+
+.notificationsHeroStat strong {
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.notificationsHeroStat--unread {
+  border-color: color-mix(in srgb, var(--brand-primary) 56%, transparent);
+  color: color-mix(in srgb, var(--brand-primary) 72%, var(--text-secondary));
+}
+
+/* ============================================
+   BODY / CONTENT
+   ============================================ */
+
+.notificationsBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ============================================
+   TOOLBAR & FILTERS
+   ============================================ */
+
+.notificationsToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 2px;
+}
+
+.notificationsFilterPills {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px;
+  background: var(--bg-secondary);
+
+  border: 1px solid color-mix(in srgb, var(--border-light) 85%, transparent);
+  border-radius: var(--radius-full);
+}
+
+body.dark-theme .notificationsFilterPills {
+  background: color-mix(in srgb, var(--bg-tertiary) 80%, black);
+}
+
+.notificationsPill {
+  padding: 7px 25px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 0.79rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notificationsPill:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.notificationsPill.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 90%, #ffffff 10%), var(--brand-primary));
+  color: black;
+  font-weight: 600;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+.notificationsPillBadge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.notificationsToolbarActions {
+  position: relative;
+}
+
+.notificationsToolbarBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid color-mix(in srgb, var(--border-light) 82%, transparent);
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body.dark-theme .notificationsToolbarBtn {
+  background: color-mix(in srgb, var(--bg-tertiary) 84%, black);
+}
+
+.notificationsToolbarBtn:hover {
+  /* background: color-mix(in srgb, var(--bg-hover) 90%, black); */
+  background: var(--bg-hover);
+  border-color: color-mix(in srgb, var(--brand-primary) 40%, var(--border-medium));
+  transform: translateY(-1px);
+}
+
+.notificationsToolbarBtn svg {
+  flex-shrink: 0;
+}
+
+.notificationsDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  z-index: 100;
+  animation: notificationsDropdownIn 0.15s ease;
+}
+
+@keyframes notificationsDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notificationsDropdown button {
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notificationsDropdown button:hover {
+  background: var(--bg-hover);
+}
+
+.notificationsDropdownDanger:hover {
+  color: var(--color-danger);
+}
+
+/* ============================================
+   NOTIFICATION CARDS
+   ============================================ */
+
+.notificationsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.notificationsContentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(1fr, 0.65fr);
+  gap: var(--space-md);
+}
+
+.notificationsCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: 15px;
+  background:white;
+  border: 1px solid color-mix(in srgb, var(--border-light) 85%, transparent);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease, transform 0.2s ease;
+  position: relative;
+}
+
+.notificationsCard:hover {
+  background: rgba(243, 243, 243, 0.548);
+  border-color: color-mix(in srgb, var(--border-medium) 72%, var(--brand-primary));
+  box-shadow: 0 10px 26px rgba(243, 243, 243, 0.18) inset;
+  transform: translateY(-1px);
+}
+
+body.dark-theme .notificationsCard {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 95%, black), var(--bg-secondary));
+}
+
+body.dark-theme .notificationsCard:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, #1e233066 92%, #000000), #1e233063);
+  border-color: color-mix(in srgb, var(--border-medium) 72%, var(--brand-primary));
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18) inset;
+  transform: translateY(-1px);
+}
+
+.notificationsCard.unread {
+  background: linear-gradient(130deg, color-mix(in srgb, rgb(0 102 255 / 8%) 85%, rgb(245, 245, 245)), var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--brand-primary) 38%, transparent);
+  border-left: 3px solid var(--brand-primary);
+}
+
+body.dark-theme .notificationsCard.unread {
+  background: linear-gradient(130deg, color-mix(in srgb, var(--badge-primary-bg) 85%, rgb(31, 31, 31)), var(--bg-secondary));
+
+}
+
+.notificationsCard.unread:hover {
+  background: linear-gradient(130deg, color-mix(in srgb, var(--badge-primary-bg) 95%, var(--brand-primary)), var(--bg-tertiary));
+}
+
+.notificationsCard.selected {
+  border: 1px solid var(--brand-primary);
+  /* box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 55%, transparent); */
+}
+
+.notificationsCardIcon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--badge-primary-bg);
+  color: var(--brand-primary);
+}
+
+.notificationsCardIcon--security {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--color-success);
+}
+
+.notificationsCardIcon--deposit {
+  background: rgba(255, 179, 0, 0.15);
+  color: var(--color-warning);
+}
+
+.notificationsCardIcon--depositSuccess {
+  background: rgba(0, 200, 83, 0.15);
+  color: var(--color-success);
+}
+
+.notificationsCardIcon--withdrawal {
+  background: rgba(0, 184, 212, 0.15);
+  color: var(--color-info);
+}
+
+.notificationsCardIcon--trade {
+  background: var(--badge-primary-bg);
+  color: var(--brand-primary);
+}
+
+.notificationsCardIcon--default {
+  background: var(--badge-primary-bg);
+  color: var(--brand-primary);
+}
+
+.notificationsCardIconEmoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.notificationsCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationsCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 4px;
+}
+
+.notificationsCardTitle {
+  font-family: var(--font-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.notificationsCardUnread {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  animation: notificationsPulse 2s ease-in-out infinite;
+}
+
+@keyframes notificationsPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.notificationsCardMessage {
+  font-family: var(--font-primary);
+  font-size: 0.79rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+  word-wrap: break-word;
+}
+
+.notificationsCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.notificationsCardTime {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.01em;
+}
+
+.notificationsCardType {
+  font-family: var(--font-primary);
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--text-secondary) 80%, var(--brand-primary));
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--bg-tertiary) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 76%, transparent);
+  border-radius: var(--radius-full);
+}
+
+.notificationsCardAction {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 80%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.notificationsCardAction:hover {
+  background: color-mix(in srgb, var(--bg-hover) 86%, black);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--brand-primary) 45%, var(--border-medium));
+}
+
+.notificationsDetailCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  position: sticky;
+  top: 16px;
+  height: fit-content;
+}
+
+.notificationsDetailHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.notificationsDetailTitleWrap h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.notificationsDetailTitleWrap span {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+}
+
+.notificationsDetailMessage {
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0 0 var(--space-md);
+}
+
+.notificationsDetailMeta {
+  display: grid;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.notificationsDetailActions {
+  display: flex;
+  gap: 8px;
+}
+
+.notificationsDetailActions button {
+  border: 1px solid var(--border-light);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.notificationsDetailActions .danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.notificationsEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4xl) var(--space-xl);
+  text-align: center;
+  background: var(--bg-secondary);
+  /* background: linear-gradient(160deg, color-mix(in srgb, var(--bg-secondary) 94%, black), var(--bg-secondary)); */
+  border: 1px dashed color-mix(in srgb, var(--border-light) 82%, transparent);
+  border-radius: var(--radius-xl);
+}
+
+.notificationsEmptyIcon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.notificationsEmptyIcon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.notificationsEmptyTitle {
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm);
+}
+
+.notificationsEmptyText {
+  font-family: var(--font-primary);
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.notificationsContainer .mexcOverviewDescription {
+  font-size: var(--text-body-lg);
+  color: var(--ark-text-tertiary);
+}
+
+/* ============================================
+   LOADING SKELETON
+   ============================================ */
+
+.notificationsSkeleton {
+  background: linear-gradient(90deg,
+      var(--bg-tertiary) 25%,
+      var(--border-light) 50%,
+      var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: notificationsSkeletonShimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes notificationsSkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.notificationsHeroContent .notificationsSkeleton {
+  height: 56px;
+  width: 56px;
+  min-width: 56px;
+}
+
+.notificationsSkeletonTitle {
+  height: 24px;
+  width: 180px;
+  margin-bottom: 8px;
+}
+
+.notificationsSkeletonSub {
+  height: 16px;
+  width: 280px;
+}
+
+.notificationsFiltersSkeleton {
+  height: 44px;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(90deg,
+      var(--bg-tertiary) 25%,
+      var(--border-light) 50%,
+      var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: notificationsSkeletonShimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius-full);
+}
+
+.notificationsListSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.notificationCardSkeleton {
+  height: 88px;
+  width: 100%;
+  background: linear-gradient(90deg,
+      var(--bg-secondary) 25%,
+      var(--border-light) 50%,
+      var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: notificationsSkeletonShimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 767px) {
+  .notificationsContentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .notificationsDetailCard {
+    position: static;
+  }
+
+  .notificationsHero {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  .notificationsHeroIcon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .notificationsHeroIcon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .notificationsHeroTitle {
+    font-size: 1.25rem;
+  }
+
+  .notificationsHeroSub {
+    font-size: 0.875rem;
+  }
+
+  .notificationsToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notificationsHeroStats {
+    margin-top: 8px;
+  }
+
+  .notificationsFilterPills {
+    justify-content: center;
+  }
+
+  .notificationsToolbarActions {
+    align-self: flex-end;
+  }
+
+  .notificationsCard {
+    padding: 10px;
+    gap: var(--space-sm);
+  }
+
+  .notificationsCardIcon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .notificationsCardIconEmoji {
+    font-size: 0.9rem;
+  }
+
+  .notificationsEmpty {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+
+  .notificationsEmptyIcon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--space-md);
+  }
+
+  .notificationsEmptyIcon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .notificationsEmptyTitle {
+    font-size: 1.125rem;
+  }
+
+  .notificationsEmptyText {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .notificationsFilterPills {
+    flex-wrap: wrap;
+  }
+
+  .notificationsPill {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+}

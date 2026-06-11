@@ -1,0 +1,113 @@
+/**
+ * NotificationPopup - Toast-style popup for new notifications
+ */
+
+.notificationPopup {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  max-width: 360px;
+  min-width: 300px;
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  cursor: pointer;
+  z-index: 9999;
+  animation: notificationPopupIn 0.3s ease;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.notificationPopup:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+@keyframes notificationPopupIn {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notificationPopupClose {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.notificationPopupClose:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.notificationPopupIcon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--badge-primary-bg);
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.notificationPopupBody {
+  flex: 1;
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.notificationPopupTitle {
+  font-family: var(--font-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.notificationPopupMessage {
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.notificationPopupHint {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  color: var(--brand-primary);
+  margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+  .notificationPopup {
+    left: var(--space-md);
+    right: var(--space-md);
+    bottom: var(--space-md);
+    min-width: auto;
+    max-width: none;
+  }
+}

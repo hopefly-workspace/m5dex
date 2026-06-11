@@ -1,0 +1,187 @@
+/**
+ * Profile Page Styles
+ * Styles for Profile & Settings page
+ * Industry-level responsive design
+ */
+
+.profilePage {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileLayout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  height: calc(100vh - 64px); /* Full height minus header */
+  align-items: stretch; /* Ensure children stretch to full height */
+  position: relative;
+  margin-bottom: var(--space-lg);
+}
+
+.profileContent {
+  flex: 1;
+  padding: var(--space-xl) var(--space-2xl);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  background-color: var(--bg-primary);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Custom Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) var(--bg-tertiary);
+}
+
+.profileContent > * {
+  max-width: 100%;
+}
+
+.profileContent > * {
+  max-width: 100%;
+}
+
+.profileContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profileContent::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.profileContent::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileContent::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+.profileContainer {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  max-width: 100%;
+  margin: 0;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileContainer h2 {
+  font-family: var(--font-primary);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md) 0;
+  line-height: var(--leading-tight);
+  padding: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileContainer p {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  margin: 0;
+  padding: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .profileContent {
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  .profileContainer {
+    padding: var(--space-xl);
+  }
+}
+
+@media (max-width: 1024px) {
+  .profileLayout {
+    flex-direction: row; /* Keep sidebar on left for tablet */
+    height: calc(100vh - 64px);
+  }
+
+  .profileContent {
+    padding: var(--space-lg) var(--space-xl);
+    height: 100%;
+  }
+
+  .profileContainer {
+    padding: var(--space-xl);
+  }
+}
+
+@media (max-width: 1023px) {
+  .profileLayout {
+    flex-direction: column;
+    height: calc(100vh - 56px); /* Mobile header height */
+    position: relative;
+    padding-bottom: 0;
+  }
+
+  .profileContent {
+    padding: var(--space-md);
+    padding-bottom: calc(clamp(80px, 18vw, 90px) + env(safe-area-inset-bottom)); /* Space for bottom tab bar + safe area */
+    height: 100%;
+    min-height: calc(100vh - 56px - clamp(64px, 12vw, 80px)); /* Full height minus header and sidebar */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .profileContainer {
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+  }
+
+  .profileContainer h2 {
+    font-size: var(--text-h3);
+    margin-bottom: var(--space-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .profileContent {
+    padding: var(--space-md) var(--space-md);
+    padding-bottom: calc(clamp(72px, 16vw, 80px) + env(safe-area-inset-bottom));
+  }
+
+  .profileContainer {
+    padding: var(--space-md);
+  }
+}
+
+/* Extra Small Mobile - 360px and below */
+@media (max-width: 360px) {
+  .profileContent {
+    padding: var(--space-md) var(--space-sm);
+    padding-bottom: calc(clamp(68px, 15vw, 76px) + env(safe-area-inset-bottom));
+  }
+
+  .profileContainer {
+    padding: var(--space-sm);
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .profileContent {
+    padding-bottom: clamp(64px, 12vh, 72px);
+    padding-bottom: calc(clamp(64px, 12vh, 72px) + env(safe-area-inset-bottom));
+  }
+}
+

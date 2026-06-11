@@ -1,0 +1,46 @@
+.brand-logo-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.brand-logo-mark .header-logo-svg {
+  display: block;
+  width: auto;
+  height: clamp(28px, 5vw, 40px);
+  max-width: min(90vw, 280px);
+  aspect-ratio: 804 / 233;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.brand-logo-mark .header-logo-svg .header-logo-divider {
+  color: var(--border-medium);
+}
+
+html.light-theme .brand-logo-mark .header-logo-svg .header-logo-divider,
+body.light-theme .brand-logo-mark .header-logo-svg .header-logo-divider,
+[data-theme="light"] .brand-logo-mark .header-logo-svg .header-logo-divider {
+  color: var(--border-heavy);
+}
+
+.ark-auth-logo {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: var(--ark-space-xl);
+}
+
+.ark-auth-logo .header-logo-svg {
+  height: clamp(32px, 6vw, 44px);
+  max-width: min(92vw, 300px);
+}
+
+@media (max-width: 480px) {
+  .ark-auth-logo .header-logo-svg {
+    height: clamp(28px, 7vw, 36px);
+    max-width: min(88vw, 260px);
+  }
+}

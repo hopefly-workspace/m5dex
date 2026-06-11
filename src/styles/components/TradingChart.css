@@ -1,0 +1,484 @@
+/**
+ * Trading Chart Component Styles
+ * Custom CSS with Global Trading Theme Variables
+ * Fully responsive design for all devices
+ */
+
+.trading-chart-container {
+    padding: var(--ark-space-md);
+    background: var(--ark-bg-card);
+    border-radius: var(--ark-radius-md);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ark-space-md);
+}
+
+.trading-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--ark-space-md);
+    gap: var(--ark-space-md);
+    flex-wrap: wrap;
+}
+
+.trading-chart-intervals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ark-space-sm);
+}
+
+.trading-chart-status {
+    display: flex;
+    align-items: center;
+    gap: var(--ark-space-xs);
+    font-size: var(--ark-font-size-xs);
+    color: var(--ark-text-secondary);
+    font-family: var(--ark-font-family);
+}
+
+.trading-chart-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ark-text-tertiary);
+    display: inline-block;
+}
+
+.trading-chart-status-indicator.connected {
+    background: var(--ark-success);
+    box-shadow: 0 0 4px var(--ark-success);
+}
+
+.trading-chart-status-indicator.connecting {
+    background: var(--ark-warning);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.trading-chart-status-indicator.error {
+    background: var(--ark-error);
+}
+
+.trading-chart-status-text {
+    font-size: var(--ark-font-size-xs);
+    color: var(--ark-text-secondary);
+}
+
+.trading-chart-error-text {
+    color: var(--ark-error);
+    font-size: var(--ark-font-size-sm);
+    cursor: help;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.trading-chart-interval-btn {
+    padding: var(--ark-space-xs) var(--ark-space-md);
+    background: transparent;
+    border: 1px solid var(--ark-border);
+    border-radius: var(--ark-radius-md);
+    color: var(--ark-text-secondary);
+    font-size: var(--ark-font-size-sm);
+    font-weight: var(--ark-weight-medium);
+    font-family: var(--ark-font-family);
+    cursor: pointer;
+    transition: all var(--ark-transition-base);
+    min-width: 48px;
+    text-align: center;
+}
+
+.trading-chart-interval-btn:hover {
+    color: var(--ark-text-primary);
+    border-color: var(--ark-border-hover);
+    background: var(--ark-bg-tertiary);
+}
+
+.trading-chart-interval-btn.active {
+    background: var(--ark-primary);
+    color: white;
+    border-color: var(--ark-primary);
+    font-weight: var(--ark-weight-semibold);
+}
+
+.trading-chart-interval-btn.active:hover {
+    background: var(--ark-primary-light);
+    border-color: var(--ark-primary-light);
+}
+
+.trading-chart-canvas {
+    width: 100%;
+    height: 500px;
+    min-height: 400px;
+    border-radius: var(--ark-radius-md);
+    overflow: hidden;
+    background: var(--ark-bg-primary);
+    position: relative;
+    cursor: crosshair;
+    user-select: none;
+    /* Prevent text selection */
+    /* Default cursor for chart */
+}
+
+/* Ensure chart container has proper dimensions and can receive clicks */
+.trading-chart-canvas-wrapper {
+    position: relative;
+    cursor: inherit;
+    user-select: none;
+}
+
+/* Ensure chart container has proper dimensions */
+.trading-chart-canvas>div {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.trading-chart-empty {
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--ark-bg-primary);
+    border-radius: var(--ark-radius-md);
+}
+
+.trading-chart-empty-text {
+    color: var(--ark-text-tertiary);
+    font-size: var(--ark-font-size-lg);
+    font-family: var(--ark-font-family);
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .trading-chart-container {
+        padding: var(--ark-space-sm);
+    }
+
+    .trading-chart-canvas {
+        height: 450px;
+        min-height: 400px;
+    }
+
+    .trading-chart-empty {
+        min-height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .trading-chart-container {
+        padding: var(--ark-space-sm);
+        gap: var(--ark-space-sm);
+    }
+
+    .trading-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--ark-space-sm);
+    }
+
+    .trading-chart-intervals {
+        width: 100%;
+        justify-content: flex-start;
+        gap: var(--ark-space-xs);
+    }
+
+    .trading-chart-interval-btn {
+        padding: var(--ark-space-xs) var(--ark-space-sm);
+        font-size: var(--ark-font-size-xs);
+        min-width: 44px;
+    }
+
+    .trading-chart-canvas {
+        height: 400px;
+        min-height: 350px;
+    }
+
+    .trading-chart-empty {
+        min-height: 350px;
+    }
+
+    .trading-chart-empty-text {
+        font-size: var(--ark-font-size-base);
+    }
+}
+
+@media (max-width: 480px) {
+    .trading-chart-container {
+        padding: var(--ark-space-xs);
+        gap: var(--ark-space-xs);
+    }
+
+    .trading-chart-header {
+        margin-bottom: var(--ark-space-xs);
+    }
+
+    .trading-chart-intervals {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .trading-chart-interval-btn {
+        padding: 6px var(--ark-space-xs);
+        font-size: 11px;
+        min-width: 40px;
+    }
+
+    .trading-chart-canvas {
+        height: 350px;
+        min-height: 300px;
+    }
+
+    .trading-chart-empty {
+        min-height: 300px;
+    }
+
+    .trading-chart-empty-text {
+        font-size: var(--ark-font-size-sm);
+    }
+}
+
+@media (max-width: 360px) {
+    .trading-chart-container {
+        padding: 8px;
+    }
+
+    .trading-chart-interval-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+        min-width: 36px;
+    }
+
+    .trading-chart-canvas {
+        height: 300px;
+        min-height: 280px;
+    }
+
+    .trading-chart-empty {
+        min-height: 280px;
+    }
+}
+
+/* Large screens */
+@media (min-width: 1440px) {
+    .trading-chart-canvas {
+        height: 600px;
+        min-height: 550px;
+    }
+
+    .trading-chart-empty {
+        min-height: 550px;
+    }
+}
+
+/* Extra large screens */
+@media (min-width: 1920px) {
+    .trading-chart-canvas {
+        height: 700px;
+        min-height: 650px;
+    }
+
+    .trading-chart-empty {
+        min-height: 650px;
+    }
+}
+
+.trading-chart-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    min-height: 500px;
+    border-radius: var(--ark-radius-md);
+    overflow: visible;
+    background: var(--ark-bg-primary);
+}
+
+.trading-chart-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.tv-legend {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    z-index: 10;
+    font-size: 13px;
+    color: #e5e7eb;
+    pointer-events: none;
+}
+
+
+/* chart type */
+.chart-type-switcher {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+/* Base button */
+.chart-type-btn {
+    padding: var(--ark-space-xs) var(--ark-space-md);
+    background: transparent;
+    border: 1px solid var(--ark-border);
+    border-radius: var(--ark-radius-md);
+    color: var(--ark-text-secondary);
+    font-size: var(--ark-font-size-sm);
+    font-weight: var(--ark-weight-medium);
+    font-family: var(--ark-font-family);
+    cursor: pointer;
+    transition: all var(--ark-transition-base);
+    min-width: 90px;
+    text-align: center;
+}
+
+/* Hover */
+.chart-type-btn:hover {
+    color: var(--ark-text-primary);
+    border-color: var(--ark-border-hover);
+    background: var(--ark-bg-tertiary);
+}
+
+/* Active */
+.chart-type-btn.active {
+    background: var(--ark-primary);
+    color: white;
+    border-color: var(--ark-primary);
+    font-weight: var(--ark-weight-semibold);
+}
+
+/* Active hover */
+.chart-type-btn.active:hover {
+    background: var(--ark-primary-light);
+    border-color: var(--ark-primary-light);
+}
+
+
+
+/* timer */
+.price-timer-label {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #22c55e;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+    z-index: 20;
+    line-height: 1.1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+
+/* Toolbar Styles */
+.trading-chart-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ark-space-md);
+    padding: var(--ark-space-sm);
+    background: var(--ark-bg-secondary);
+    border-radius: var(--ark-radius-sm);
+    margin-bottom: var(--ark-space-md);
+    align-items: center;
+}
+
+.toolbar-section {
+    display: flex;
+    align-items: center;
+    gap: var(--ark-space-sm);
+    position: relative;
+}
+
+.toolbar-dropdown-btn {
+    background: var(--ark-bg-tertiary);
+    color: var(--ark-text-primary);
+    border: 1px solid var(--ark-border-color);
+    border-radius: var(--ark-radius-sm);
+    padding: var(--ark-space-xs) var(--ark-space-sm);
+    font-size: var(--ark-font-size-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toolbar-dropdown-btn:hover {
+    background: var(--ark-bg-hover);
+}
+
+.toolbar-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--ark-bg-card);
+    border: 1px solid var(--ark-border-color);
+    border-radius: var(--ark-radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar-btn {
+    background: none;
+    border: none;
+    color: var(--ark-text-primary);
+    padding: var(--ark-space-xs) var(--ark-space-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: var(--ark-font-size-sm);
+}
+
+.toolbar-btn:hover {
+    background: var(--ark-bg-hover);
+}
+
+.toolbar-btn.active {
+    background: var(--ark-accent-primary);
+    color: white;
+}
+
+.toolbar-btn.test-btn:hover {
+    background: var(--ark-success);
+    color: white;
+}
+
+.trading-chart-container.drawing-active .trading-chart-canvas {
+    cursor: crosshair;
+}
+
+.trading-chart-container.drawing-active .trading-chart-canvas-wrapper::after {
+    content: "Drawing Mode Active - Click to place points";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ark-accent-primary);
+    color: white;
+    padding: var(--ark-space-xs) var(--ark-space-sm);
+    border-radius: var(--ark-radius-sm);
+    font-size: var(--ark-font-size-sm);
+    z-index: 1000;
+    pointer-events: none;
+}

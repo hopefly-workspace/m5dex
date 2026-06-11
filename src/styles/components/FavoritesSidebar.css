@@ -1,0 +1,361 @@
+.favoritesSidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  max-width: 464px;
+  box-sizing: border-box;
+  background: var(--bg-secondary, #0b0e11);
+  opacity: 0;
+  transform: translate3d(-14px, 0, 0);
+  pointer-events: none;
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.favoritesSidebar--open {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favoritesSidebar {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+    transform: none;
+  }
+
+  .favoritesSidebar--open {
+    opacity: 1;
+  }
+}
+
+.favoritesSidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 8px;
+}
+
+.favoritesSidebarTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.favoritesSidebarClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.favoritesSidebarClose:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+}
+
+.favoritesSidebarBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0 12px;
+}
+
+.favoritesSidebarEmpty {
+  padding: 20px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.favoritesSidebarGroup {
+  margin-bottom: 4px;
+}
+
+.favoritesSidebarGroupTitle {
+  margin: 0;
+  padding: 8px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.favoritesSidebarTableWrap {
+  margin: 0 10px 12px;
+  padding: 2px 0 6px;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.favoritesSidebarTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: var(--font-primary, inherit);
+  font-size: 11px;
+  border: none;
+}
+
+.favoritesSidebarTable thead th,
+.favoritesSidebarTable tbody td {
+  border: none;
+}
+
+.favoritesSidebarTh {
+  padding: 8px 10px 10px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.favoritesSidebarTh--pair {
+  width: 40%;
+  padding-left: 12px;
+}
+
+.favoritesSidebarTh--num {
+  width: 20%;
+  text-align: right;
+  padding-right: 12px;
+}
+
+.favoritesSidebarTr {
+  cursor: pointer;
+  transition: background 0.12s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.favoritesSidebarTr:focus-visible {
+  outline: 2px solid var(--brand-primary, #0066ff);
+  outline-offset: -2px;
+}
+
+.favoritesSidebarTr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.favoritesSidebarTr--active {
+  background: color-mix(in srgb, var(--brand-primary, #0066ff) 16%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--brand-primary, #0066ff);
+}
+
+.favoritesSidebarTr--active:hover {
+  background: color-mix(in srgb, var(--brand-primary, #0066ff) 20%, transparent);
+}
+
+.favoritesSidebar tbody tr:nth-child(even):not(:hover):not(.favoritesSidebarTr--active) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.favoritesSidebarTd {
+  padding: 9px 10px;
+  vertical-align: middle;
+  border: none;
+  box-sizing: border-box;
+}
+
+.favoritesSidebarTd--pair {
+  padding-left: 12px;
+  min-width: 0;
+}
+
+.favoritesSidebarTd--num {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.favoritesSidebarTd--bid {
+  color: var(--color-positive, #10b981);
+}
+
+.favoritesSidebarTd--ask {
+  color: var(--color-negative, #ef4444);
+}
+
+.favoritesSidebarLtp--up {
+  color: var(--color-positive, #10b981);
+}
+
+.favoritesSidebarLtp--down {
+  color: var(--color-negative, #ef4444);
+}
+
+.favoritesSidebarLtp--flat {
+  color: var(--text-secondary);
+}
+
+.favoritesSidebarPairCell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.favoritesSidebarRowTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+  font-size: 11.5px !important;
+}
+
+.favoritesSidebarInstTag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  font-size: 9px !important;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  margin-top: -1px;
+}
+
+.favoritesSidebarInstTag--ce {
+  color: #00c853;
+  background: color-mix(in srgb, #10b981 18%, transparent);
+  border-color: color-mix(in srgb, #10b981 35%, transparent);
+}
+
+.favoritesSidebarInstTag--pe {
+  color: #ef4444;
+  background: color-mix(in srgb, #ef4444 18%, transparent);
+  border-color: color-mix(in srgb, #ef4444 35%, transparent);
+}
+
+.favoritesSidebarInstTag--fut {
+  color: #004a9d;
+  background: color-mix(in srgb, #3b82f6 18%, transparent);
+  border-color: color-mix(in srgb, #3b82f6 35%, transparent);
+}
+
+.favoritesSidebarSymbol {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favoritesSidebarMeta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: capitalize;
+}
+
+.favoritesSidebarPairId {
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+}
+
+.favoritesSidebarSpark {
+  width: 44px;
+  height: 14px;
+  opacity: 0.85;
+}
+
+.favoritesSidebarSpark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.favoritesSidebarSpark polyline {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.favoritesSidebarSpark-up polyline {
+  stroke: var(--color-positive, #10b981);
+}
+
+.favoritesSidebarSpark-down polyline {
+  stroke: var(--color-negative, #ef4444);
+}
+
+.favoritesSidebarSpark-flat polyline {
+  stroke: var(--text-tertiary);
+}
+
+@media (max-width: 1023px) {
+  .favoritesSidebar {
+    max-width: none;
+    max-height: min(320px, 46vh);
+    transform: translate3d(0, -10px, 0);
+  }
+
+  .favoritesSidebar--open {
+    transform: translate3d(0, 0, 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .favoritesSidebar {
+      transform: none;
+    }
+  }
+
+  .favoritesSidebarBody {
+    padding-bottom: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .favoritesSidebar {
+    max-width: 100%;
+    max-height: min(320px, 46vh);
+    transform: translate3d(0, -10px, 0);
+    /* position: absolute;
+    top: 100%;
+    left: 100%;
+    z-index: 9999; */
+  }
+
+}

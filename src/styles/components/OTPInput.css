@@ -1,0 +1,140 @@
+/**
+ * OTP Input Component
+ * Responsive 6-digit OTP input - Always in one line
+ * Matches Global Trading AuthPremium design system
+ */
+
+.otp-input-container {
+  display: flex;
+  gap: var(--ark-space-sm);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--ark-space-lg);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-wrap: nowrap; /* Always keep in one line */
+  overflow: hidden; /* Prevent wrapping */
+}
+
+.otp-input-field {
+  width: 56px;
+  height: 56px;
+  min-width: 0; /* Allow shrinking */
+  flex: 0 0 auto; /* Don't grow or shrink by default */
+  text-align: center;
+  font-size: var(--ark-font-size-2xl);
+  font-weight: var(--ark-weight-semibold);
+  font-family: var(--ark-font-family);
+  background-color: var(--ark-bg-tertiary);
+  border: 2px solid var(--ark-border);
+  border-radius: var(--ark-radius-md);
+  color: var(--ark-text-primary);
+  outline: none;
+  transition: all var(--ark-transition-base);
+  cursor: text;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.otp-input-field:focus {
+  border-color: var(--ark-primary);
+  box-shadow: 0 0 0 3px var(--ark-primary-glow);
+}
+
+.otp-input-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.otp-input-field.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--ark-error);
+}
+
+.otp-input-field.error:focus {
+  border-color: var(--ark-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Mobile - 768px and below */
+@media (max-width: 768px) {
+  .otp-input-container {
+    gap: clamp(4px, 1.2vw, var(--ark-space-sm));
+    margin-bottom: var(--ark-space-md);
+    padding: 0 var(--ark-space-xs); /* Add small padding to prevent edge cutoff */
+  }
+
+  .otp-input-field {
+    width: clamp(44px, 11vw, 48px);
+    height: clamp(44px, 11vw, 48px);
+    font-size: clamp(var(--ark-font-size-lg), 4vw, var(--ark-font-size-xl));
+    min-width: 0; /* Allow further shrinking */
+    flex-shrink: 1; /* Allow shrinking */
+  }
+}
+
+/* Small Mobile - 480px and below */
+@media (max-width: 480px) {
+  .otp-input-container {
+    gap: clamp(3px, 1vw, 6px);
+    margin-bottom: var(--ark-space-md);
+    padding: 0 var(--ark-space-xs);
+  }
+
+  .otp-input-field {
+    /* width: clamp(36px, 9vw, 44px); */
+    height: clamp(44px, 11vw, 48px);
+    font-size: clamp(var(--ark-font-size-base), 3.5vw, var(--ark-font-size-lg));
+    min-width: 0;
+    flex-shrink: 1;
+    border-width: 1.5px;
+  }
+}
+
+/* Extra Small Mobile - 360px and below */
+@media (max-width: 360px) {
+  .otp-input-container {
+    gap: clamp(2px, 0.8vw, var(--ark-space-xs));
+    padding: 0 2px; /* Minimal padding */
+  }
+
+  .otp-input-field {
+    width: clamp(32px, 8.5vw, 40px);
+    height: clamp(40px, 10vw, 44px);
+    font-size: clamp(var(--ark-font-size-sm), 3vw, var(--ark-font-size-base));
+    min-width: 0;
+    flex-shrink: 1;
+    border-width: 1.5px;
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .otp-input-container {
+    gap: clamp(4px, 1vw, var(--ark-space-sm));
+    padding: 0 var(--ark-space-xs);
+  }
+
+  .otp-input-field {
+    width: clamp(40px, 10vw, 44px);
+    height: clamp(40px, 10vw, 44px);
+    font-size: clamp(var(--ark-font-size-lg), 3.5vw, var(--ark-font-size-xl));
+    min-width: 0;
+    flex-shrink: 1;
+  }
+}
+
+/* Accessibility */
+.otp-input-field:focus-visible {
+  outline: 2px solid var(--ark-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-input-field {
+    transition: none;
+  }
+}
+

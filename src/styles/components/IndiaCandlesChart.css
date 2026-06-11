@@ -1,0 +1,295 @@
+.india-candles-chart {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.india-candles-chart__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle, #2a2e39) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #12161f) 92%, transparent);
+  flex-shrink: 0;
+  padding-right: 42px;
+}
+
+.india-candles-chart__symbol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.india-candles-chart__symbol-label {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #787b86);
+}
+
+.india-candles-chart__symbol-code {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.india-candles-chart__tfs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.india-candles-chart__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.india-candles-chart__menu-wrap {
+  position: relative;
+}
+
+.india-candles-chart__menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle, #363a45) 80%, transparent);
+  /* background: color-mix(in srgb, var(--bg-base, #0a0e17) 65%, transparent); */
+  background: var(--bg-secondary);
+  color: var(--text-secondary, #b2b5be);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.india-candles-chart__menu-trigger:hover {
+  color: var(--text-primary, #fff);
+  border-color: color-mix(in srgb, var(--text-muted, #787b86) 60%, transparent);
+}
+
+.india-candles-chart__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 15;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle, #363a45) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #12161f) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.india-candles-chart__menu--wide {
+  min-width: 180px;
+}
+
+.india-candles-chart__menu-item {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #b2b5be);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.india-candles-chart__menu-item:hover,
+.india-candles-chart__menu-item.active {
+  color: var(--text-primary, #fff);
+  background: color-mix(in srgb, var(--accent, #2962ff) 22%, transparent);
+}
+
+.india-candles-chart__menu-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary, #b2b5be);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 7px 8px;
+}
+
+.india-candles-chart__menu-check:hover {
+  color: var(--text-primary, #fff);
+  background: color-mix(in srgb, var(--accent, #2962ff) 18%, transparent);
+}
+
+.india-candles-chart__menu-check input {
+  width: 14px;
+  height: 14px;
+}
+
+.india-candles-chart__tf {
+  border: 1px solid color-mix(in srgb, var(--border-subtle, #363a45) 80%, transparent);
+  background: transparent;
+  color: var(--text-secondary, #b2b5be);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.india-candles-chart__tf:hover {
+  color: var(--text-primary, #fff);
+  border-color: color-mix(in srgb, var(--text-muted, #787b86) 60%, transparent);
+}
+
+.india-candles-chart__tf--active {
+  color: var(--text-primary, #fff);
+  background: color-mix(in srgb, var(--accent, #2962ff) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #2962ff) 45%, transparent);
+}
+
+.india-candles-chart__reload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-hover, rgba(255, 255, 255, 0.06)) 100%, transparent);
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+}
+
+.india-candles-chart__reload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.india-candles-chart__reload:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary, #fff) 12%, transparent);
+}
+
+.india-candles-chart__spin {
+  animation: india-chart-spin 0.8s linear infinite;
+}
+
+@keyframes india-chart-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.india-candles-chart__banner {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border-bottom: 1px solid rgba(248, 113, 113, 0.25);
+  flex-shrink: 0;
+}
+
+.india-candles-chart__pane {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.india-lw-chart-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.india-candles-chart__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-secondary, #b2b5be);
+  background: color-mix(in srgb, var(--bg-base, #0a0e17) 75%, transparent);
+  pointer-events: none;
+}
+
+.india-candles-chart__loading-more {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 3;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #b2b5be);
+  background: color-mix(in srgb, var(--bg-elevated, #1a1f2e) 92%, transparent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.india-candles-chart__spinner {
+  animation: india-chart-spin 0.9s linear infinite;
+  opacity: 0.85;
+}
+
+.india-candles-chart__legend {
+  position: absolute;
+  left: 10px;
+  bottom: 28px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--bg-elevated, #1a1f2e) 92%, transparent);
+  color: var(--text-primary, #fff);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.india-candles-chart__legend-item {
+  color: var(--text-secondary, #b2b5be);
+}
+
+@media (max-width: 520px) {
+  .india-candles-chart__symbol-code {
+    max-width: 140px;
+  }
+
+  .india-candles-chart__legend {
+    left: 6px;
+    right: 6px;
+    bottom: 22px;
+    font-size: 11px;
+    gap: 6px 10px;
+  }
+}

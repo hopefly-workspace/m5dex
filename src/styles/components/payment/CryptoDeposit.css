@@ -1,0 +1,605 @@
+/* ============================================================
+   1. CORE MODAL & OVERLAY (Combined)
+   ============================================================ */
+.payment-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    display: block;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-scroll-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    width: 100%;
+}
+
+.payment-card-container {
+    width: 100%;
+    max-width: 460px;
+    background: var(--bg-tertiary);
+    border-radius: 24px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.timer-wrapper svg circle,
+.timer-wrapper svg path {
+    stroke: #ffa500;
+}
+
+.payment_input {
+    overflow: hidden !important;
+    color: var(--text-primary);
+
+}
+
+/* ============================================================
+   2. SHARED HEADER (Blue Section)
+   ============================================================ */
+.payment-header {
+    background: white;
+    color: var(--text-primary);
+    padding: 25px 20px 45px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.brand-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-logo {
+    width: 35px;
+    height: 35px;
+    background: white;
+    border-radius: 8px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.brand-name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+
+}
+
+.verified-check {
+    color: #4ade80;
+    margin-left: 4px;
+}
+
+.invoice-id {
+    margin: 0;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.modal-close-x {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    transition: background 0.2s;
+}
+
+.modal-close-x:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================
+   3. SHARED BODY (Common Layout)
+   ============================================================ */
+.payment-body {
+    background: var(--bg-tertiary);
+    margin-top: -25px;
+    /* Pulls body into blue header */
+    border-radius: 25px 25px 0 0;
+    padding: 25px 20px;
+    text-align: center;
+    color: white;
+}
+
+.amount-section {
+    margin-bottom: 20px;
+}
+
+.label {
+    font-size: 0.7rem;
+    color: #888;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.amount-display {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+/* ============================================================
+   4. STEP 1: COIN LIST & SEARCH
+   ============================================================ */
+.search-bar-wrapper {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.modal-search-input {
+    width: 100%;
+    background: #282e3e;
+    border: 1px solid #363c4e;
+    padding: 12px 12px 12px 40px;
+    border-radius: 12px;
+    color: white;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.search-icon-modal {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+}
+
+.coin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.coin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    background: var(--bg-elevated);
+    border: 1px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-primary);
+}
+
+.coin-item:hover {
+    background: var(--bg-secondary);
+    transform: translateY(-2px);
+}
+
+.coin-icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.coin-info-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.coin-info-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #888;
+}
+
+.coin-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+
+/* Highlight the selected coin */
+.coin-item.selected-coin {
+    border-color: #0062ff;
+    background: var(--bg-hover);
+    box-shadow: 0 0 10px rgba(0, 98, 255, 0.2);
+}
+
+/* Pay Button Container */
+.pay-button-container {
+    margin-top: 25px;
+}
+
+.main-pay-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: white;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.main-pay-btn:hover:not(:disabled) {
+    background: #0052d9;
+    transform: translateY(-1px);
+}
+
+.main-pay-btn:disabled {
+    background: #cbcbcb;
+    color: #ffffff;
+    cursor: not-allowed;
+    border: 1px solid #888888;
+}
+
+body.dark-theme .main-pay-btn:disabled {
+    background: #282e3e;
+    color: #666;
+    cursor: not-allowed;
+    border: 1px solid #363c4e;
+}
+
+.main-pay-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ============================================================
+   5. STEP 2: NETWORK LIST
+   ============================================================ */
+.selection-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 10px 0 15px 0;
+    font-size: 1.1rem;
+    text-align: left;
+}
+
+.network-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.network-item-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--bg-elevated);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.network-item-card:hover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: white;
+}
+
+body.dark-theme .network-item-card:hover {
+    background: #32394d;
+    border-color: white;
+}
+
+.network-item-card svg path {
+    stroke: var(--text-primary);
+}
+
+.network-name {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.network-desc {
+    margin: 2px 0 0 0;
+    color: #888;
+    font-size: 0.75rem;
+}
+
+/* Highlight the selected network card */
+.network-item-card.active {
+    border-color: white;
+    background: #32394d;
+    position: relative;
+}
+
+.network-item-card.active::after {
+    content: "✓";
+    position: absolute;
+    right: 40px;
+    color: white;
+    font-weight: bold;
+}
+
+/* Ensure the button looks consistent across steps */
+.pay-button-container {
+    margin-top: 20px;
+}
+
+/* ============================================================
+   6. STEP 3: QR & COPY SECTION
+   ============================================================ */
+.qr-container {
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 16px;
+    display: inline-block;
+    margin: 15px 0 25px 0;
+}
+
+.qr-container img {
+    display: block;
+    width: 150px;
+    height: 150px;
+}
+
+.network-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #282e3e;
+    padding: 12px 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.input-group-copy {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.input-group-copy label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    background: var(--bg-elevated);
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--bg-elevated);
+    gap: 10px;
+}
+
+.truncate-text {
+    border: none;
+    background: transparent;
+    width: 100%;
+    color: var(--text-primary);
+    outline: none;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.copy-btn-new {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: white;
+    flex-shrink: 0;
+    display: flex;
+}
+
+/* ============================================================
+   7. SHARED FOOTER (Ticket & Notes)
+   ============================================================ */
+
+.payment-footer-shared {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    padding-bottom: 20px;
+}
+
+.footer-note {
+    color: var(--text-secondary) !important;
+    font-size: 12px;
+    text-align: center;
+    font-weight: 400;
+    margin: 0;
+    padding: 0 20px;
+    letter-spacing: 0.2px;
+}
+
+.ticket-divider {
+    position: relative;
+    border-top: 1px dashed #363c4e;
+    margin: 25px -20px 15px -20px;
+}
+
+.cutout {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #000;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.cutout.left {
+    left: -8px;
+}
+
+.cutout.right {
+    right: -8px;
+}
+
+.cancel-container {
+    margin-top: 20px;
+}
+
+.cancel-payment-btn {
+    padding: 8px 24px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.cancel-payment-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* ============================================================
+   8. ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.shake-animation {
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+
+.timer-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255, 165, 0, 0.1);
+    color: #ffa500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    width: fit-content;
+    margin-inline: auto;
+}
+
+.timer-count {
+    font-family: monospace;
+    font-size: 1rem;
+}
+
+.network-badge {
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    display: inline-block;
+    margin-top: 5px;
+    color: #1e222d;
+}
+
+
+/* Ensure the info container stacks text vertically */
+.network-info {
+    display: flex;
+    flex-direction: column;
+    /* This puts the amount below the name */
+    justify-content: center;
+    gap: 4px;
+    /* Space between Name and Amount */
+    flex-grow: 1;
+}
+
+.network-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-desc-value {
+    font-size: 14px;
+    color: #94a3b8;
+    /* Grayish color for the amount */
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Blue border and checkmark for the active state */
+.network-item-card.active {
+    border: 2px solid #3b82f6;
+    /* Bright blue border */
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.selected-check {
+    color: #3b82f6;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Ensure the arrow turns blue when active */
+.network-item-card.active .arrow-icon {
+    color: #3b82f6;
+}
+
+
+.copy-btn-new:hover svg {
+    color: #3b82f6;
+    /* Subtle blue on hover */
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}

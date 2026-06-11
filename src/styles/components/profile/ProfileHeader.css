@@ -1,0 +1,366 @@
+/**
+ * Profile Header Component Styles
+ * Sticky header for Profile & Settings pages
+ */
+
+.profileHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* logo */
+.profileHeader-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  min-width: fit-content;
+  z-index: 1;
+}
+
+.profileHeader-logo .header-logo-mark {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profileHeader-logo .header-logo-svg {
+  display: block;
+  width: auto;
+  height: clamp(26px, 2.8vw, 28px);
+  max-width: min(40vw, 200px);
+  aspect-ratio: 804 / 233;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.profileHeader-logo .header-logo-svg .header-logo-divider {
+  color: var(--border-medium);
+}
+
+html.light-theme .profileHeader-logo .header-logo-svg .header-logo-divider,
+body.light-theme .profileHeader-logo .header-logo-svg .header-logo-divider,
+[data-theme="light"] .profileHeader-logo .header-logo-svg .header-logo-divider {
+  color: var(--border-heavy);
+}
+
+/* .profileHeaderLeftGroup {
+  display: flex;
+  align-items: center;
+  gap: 170px;
+}
+
+.profileHeaderRight {
+  margin-left: auto;
+}
+
+*/
+
+/* Left Section - Back Button */
+.profileHeaderLeft {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.profileBackButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  /* padding: var(--space-xs) var(--space-sm); */
+  /* background: none; */
+  background-color: var(--bg-tertiary);
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* margin-left: 175px; */
+  width: 40px;
+  height: 40px;
+}
+
+.profileBackButton:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.profileBackButton:active {
+  transform: translateX(-2px);
+}
+
+.profileBackButton svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.profileBackButton:hover svg {
+  transform: translateX(-2px);
+}
+
+.backButtonText {
+  white-space: nowrap;
+}
+
+/* Center Section - Title and Breadcrumb */
+.profileHeaderCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-xs);
+}
+
+.profileHeaderTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  color: var(--text-tertiary);
+}
+
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.breadcrumbSeparator {
+  color: var(--text-tertiary);
+  margin: 0 var(--space-xs);
+}
+
+.breadcrumbLink {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.breadcrumbLink:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.breadcrumbCurrent {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* Right Section - Support Button */
+.profileHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.profileHeaderRight .notificationBell {
+  background: var(--bg-tertiary);
+}
+
+.profileSupportButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  /* font-size: var(--text-body-md); */
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 40px;
+}
+
+.profileSupportButton:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+  border-color: var(--border-medium);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.profileSupportButton:active {
+  transform: translateY(0);
+}
+
+.profileSupportButton svg {
+  flex-shrink: 0;
+}
+
+.supportButtonText {
+  white-space: nowrap;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .profileBackButton {
+    /* margin-left: 115px; */
+  }
+
+  .profileSupportButton {
+    height: 40px;
+  }
+}
+
+@media (max-width: 991px) {
+  .profileBackButton {
+    margin-left: 0px;
+  }
+
+  .profileSupportButton {
+    height: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .profileHeader {
+    padding: 0 var(--space-md);
+    height:60px;
+  }
+
+  /* .profileHeader-logo .header-logo-svg {
+    height: clamp(20px, 3.2vw, 26px);
+    max-width: min(46vw, 190px);
+  } */
+
+  .profileHeaderTitle {
+    font-size: var(--text-h3);
+  }
+
+  .backButtonText,
+  .supportButtonText {
+    display: none;
+  }
+
+  .profileBackButton,
+  .profileSupportButton {
+    padding: var(--space-xs);
+    min-width: 40px;
+    justify-content: center;
+    height: 40px;
+  }
+
+  .profileBreadcrumb {
+    font-size: var(--text-body-xs);
+  }
+
+
+
+}
+
+@media (max-width: 480px) {
+  .profileHeader {
+    padding: 0 var(--space-sm);
+  }
+
+  .profileHeaderTitle {
+    font-size: var(--text-h4);
+  }
+
+  .profileBreadcrumb {
+    display: none;
+  }
+
+  /* logo */
+  .profileHeader-logo {
+    gap: clamp(4px, 1.5vw, var(--space-xs));
+  }
+
+  /* .profileHeader-logo .header-logo-svg {
+    height: clamp(24px, 4vw, 24px);
+    max-width: min(52vw, 220px);
+  } */
+
+  .logo-icon {
+    width: clamp(24px, 7vw, 28px);
+    height: clamp(24px, 7vw, 28px);
+    min-width: clamp(24px, 7vw, 28px);
+    min-height: clamp(24px, 7vw, 28px);
+  }
+
+  .logo-icon svg {
+    width: clamp(14px, 4vw, 16px);
+    height: clamp(14px, 4vw, 16px);
+  }
+}
+
+@media (max-width: 1023px) {
+
+  /* Logo */
+  .profileHeader-logo {
+    gap: clamp(var(--space-xs), 1.5vw, var(--space-sm));
+  }
+
+  /* .profileHeader-logo .header-logo-svg {
+    height: clamp(20px, 3.5vw, 26px);
+    max-width: min(48vw, 175px);
+  } */
+
+  .logo-icon {
+    width: clamp(28px, 8vw, 38px);
+    height: clamp(28px, 7.2vw, 38px);
+    min-width: clamp(28px, 6vw, 32px);
+    min-height: clamp(28px, 6vw, 32px);
+  }
+
+  .logo-icon svg {
+    width: clamp(16px, 3.5vw, 18px);
+    height: clamp(16px, 3.5vw, 18px);
+  }
+
+  .logo-text {
+    display: none;
+    /* Hide logo text on mobile */
+  }
+
+  /* Hide desktop navigation */
+  .header-nav {
+    display: none;
+  }
+
+  /* Right Section - Mobile */
+  .header-right {
+    gap: clamp(4px, 1.5vw, var(--space-xs));
+  }
+}
+
+@media (min-width: 1440px) {
+  .profileHeader-logo .header-logo-svg {
+    height: clamp(22px, 2vw, 30px);
+    max-width: min(28vw, 240px);
+  }
+}

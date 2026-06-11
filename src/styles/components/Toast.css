@@ -1,0 +1,163 @@
+/**
+ * Universal Toast Notification Component Styles
+ * Reusable toast component for success, error, warning, and info messages
+ */
+
+.ark-toast {
+  position: fixed;
+  top: var(--space-xl);
+  right: var(--space-xl);
+  z-index: 12050;
+  animation: slideInRight 0.3s ease-out;
+  max-width: 400px;
+  min-width: 300px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ark-toast-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ark-toast-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ark-toast-icon-success {
+  background-color: var(--badge-success-bg);
+  color: var(--text-success);
+}
+
+.ark-toast-icon-error {
+  background-color: var(--badge-danger-bg);
+  color: var(--text-danger);
+}
+
+.ark-toast-icon-warning {
+  background-color: var(--badge-warning-bg);
+  color: var(--text-warning);
+}
+
+.ark-toast-icon-info {
+  background-color: var(--badge-info-bg);
+  color: var(--text-info);
+}
+
+.ark-toast-message {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.ark-toast-message strong {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ark-toast-message span {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  color: var(--text-secondary);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ark-toast-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ark-toast-close:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Success Toast Border */
+.ark-toast-success .ark-toast-content {
+  border: 1px solid var(--badge-success-border);
+}
+
+/* Error Toast Border */
+.ark-toast-error .ark-toast-content {
+  border: 1px solid var(--badge-danger-border);
+}
+
+/* Warning Toast Border */
+.ark-toast-warning .ark-toast-content {
+  border: 1px solid var(--badge-warning-border);
+}
+
+/* Info Toast Border */
+.ark-toast-info .ark-toast-content {
+  border: 1px solid var(--badge-info-border);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .ark-toast {
+    top: var(--space-md);
+    right: var(--space-md);
+    left: var(--space-md);
+    max-width: none;
+    min-width: auto;
+  }
+
+  .ark-toast-content {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .ark-toast-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ark-toast-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ark-toast-message strong {
+    font-size: var(--text-body-sm);
+  }
+
+  .ark-toast-message span {
+    font-size: var(--text-body-xs);
+  }
+}

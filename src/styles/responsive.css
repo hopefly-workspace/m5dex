@@ -1,0 +1,136 @@
+/**
+ * Responsive Utilities
+ * Media queries and responsive helpers
+ */
+
+/* Responsive Container */
+.responsive-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    max-width: 640px;
+    padding: 0 var(--space-lg);
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-container {
+    max-width: 1280px;
+  }
+}
+
+/* Responsive Grid */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Responsive Flex */
+.responsive-flex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .responsive-flex {
+    flex-direction: row;
+  }
+}
+
+/* Hide on Mobile */
+.hide-mobile {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hide-mobile {
+    display: block;
+  }
+}
+
+/* Hide on Desktop */
+.hide-desktop {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none;
+  }
+}
+
+/* Responsive Text Sizes */
+@media (max-width: 768px) {
+  .text-display-xl {
+    font-size: var(--text-display-lg) !important;
+  }
+  
+  .text-display-lg {
+    font-size: var(--text-display-md) !important;
+  }
+  
+  .text-display-md {
+    font-size: var(--text-h1) !important;
+  }
+  
+  .text-h1 {
+    font-size: var(--text-h2) !important;
+  }
+  
+  .text-h2 {
+    font-size: var(--text-h3) !important;
+  }
+}
+
+/* Responsive Spacing */
+@media (max-width: 768px) {
+  .responsive-padding {
+    padding: var(--space-md) !important;
+  }
+  
+  .responsive-margin {
+    margin: var(--space-md) !important;
+  }
+}
+
+@media (max-width: 576px) { 
+  .text-display-md {
+    font-size: var(--ark-font-size-xl) !important;
+  }
+}
+
+@media (max-width: 360px) { 
+  .text-display-md {
+    font-size: var(--ark-font-size-lg) !important;
+  }
+}

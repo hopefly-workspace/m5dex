@@ -1,0 +1,76 @@
+/**
+ * Tailwind CSS Extensions
+ * Additional utilities and custom classes for Tailwind
+ */
+
+/* Custom color utilities using CSS variables */
+@layer utilities {
+  .bg-brand-primary {
+    background-color: var(--brand-primary);
+  }
+  
+  .bg-brand-primary-light {
+    background-color: var(--brand-primary-light);
+  }
+  
+  .bg-brand-primary-dark {
+    background-color: var(--brand-primary-dark);
+  }
+  
+  .text-brand-primary {
+    color: var(--brand-primary);
+  }
+  
+  .border-brand-primary {
+    border-color: var(--brand-primary);
+  }
+  
+  .bg-success {
+    background-color: var(--color-success);
+  }
+  
+  .bg-danger {
+    background-color: var(--color-danger);
+  }
+  
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+  
+  .bg-info {
+    background-color: var(--color-info);
+  }
+  
+  .text-success {
+    color: var(--color-success);
+  }
+  
+  .text-danger {
+    color: var(--color-danger);
+  }
+  
+  .text-warning {
+    color: var(--color-warning);
+  }
+  
+  .text-info {
+    color: var(--color-info);
+  }
+  
+  .border-success {
+    border-color: var(--color-success);
+  }
+  
+  .border-danger {
+    border-color: var(--color-danger);
+  }
+  
+  .border-warning {
+    border-color: var(--color-warning);
+  }
+  
+  .border-info {
+    border-color: var(--color-info);
+  }
+}
+

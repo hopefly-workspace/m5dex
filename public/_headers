@@ -1,0 +1,12 @@
+# Security Headers for Production (Netlify/Vercel)
+# Add these headers in your hosting platform
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' /api ws://192.168.0.78:5000 wss://192.168.0.78:5000 ws://192.168.0.78:5001 wss://192.168.0.78:5001 ws://192.168.0.78:8000 wss://192.168.0.78:8000 ws://192.168.0.78:8010 wss://192.168.0.78:8010; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+

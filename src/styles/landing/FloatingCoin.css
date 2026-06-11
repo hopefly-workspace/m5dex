@@ -1,0 +1,73 @@
+/* Floating Coin Styles */
+.floating-coin {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.coin-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.4;
+  z-index: -1;
+}
+
+.floating-coin.bitcoin .coin-glow {
+  background: radial-gradient(circle, rgba(0, 102, 255, 0.4), transparent);
+}
+
+.floating-coin.ethereum .coin-glow {
+  background: radial-gradient(circle, rgba(0, 200, 83, 0.4), transparent);
+}
+
+.coin-icon {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.coin-svg {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.floating-coin.bitcoin .coin-svg {
+  color: var(--brand-primary);
+}
+
+.floating-coin.ethereum .coin-svg {
+  color: var(--color-success);
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+  .coin-icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  .coin-glow {
+    width: 120px;
+    height: 120px;
+  }
+
+  .coin-svg {
+    width: 60px !important;
+    height: 60px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .floating-coin {
+    display: none;
+  }
+}
+

@@ -1,0 +1,114 @@
+.tradingview-widget-copyright {
+  display: none !important;
+}
+
+.dashboard-chart-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Full-viewport embedding (Flutter WebView, etc.) */
+.dashboard-chart-root.dashboard-chart-root--embed {
+  position: relative;
+  flex: none;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.dashboard-chart-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-chart-fs-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--bg-elevated, #1a1f2e) 88%, transparent);
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-chart-fs-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+/* Portable TradingViewLightChart — fill dashboard panel instead of 100vh */
+.dashboard-chart-wrapper .dashboard-trading-chart.trading-chart {
+  min-height: 0;
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart .trading-chart__canvas-wrap {
+  min-height: 0;
+  contain: layout style paint;
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart .trading-chart__canvas {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart.trading-chart--ready .trading-chart__canvas {
+  opacity: 1;
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart .trading-chart__loading {
+  transition: opacity 0.15s ease-out;
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart.trading-chart--ready .trading-chart__loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dashboard-trading-chart .trading-chart__platform-hint {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.dashboard-chart-root--light .dashboard-chart-wrapper {
+  background: var(--bg-primary);
+}
+
+.dashboard-chart-root--dark .dashboard-chart-wrapper {
+  background: var(--bg-primary);
+}
+
+.dashboard-chart-wrapper .dashboard-trading-chart .trading-chart__orderbar {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .dashboard-chart-fs-btn {
+    top: 5px;
+  }
+}

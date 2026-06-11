@@ -1,0 +1,472 @@
+/**
+ * Profile Sidebar Component Styles
+ * Vertical navigation sidebar for Profile & Settings pages
+ * Industry-level responsive design
+ */
+
+.profileSidebar {
+  width: 270px;
+  /* width: 240px; */
+  background-color: var(--bg-secondary);
+  padding: var(--space-md) var(--space-sm);
+  border-right: 1px solid var(--border-light);
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Custom Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) var(--bg-tertiary);
+}
+
+.profileSidebarHeader {
+  padding: 8px 12px 10px;
+  margin-bottom: 6px;
+  /* border-bottom: 1px solid var(--border-light); */
+}
+
+.profileSidebarTitle {
+  /* font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+  text-transform: none; */
+  /* keep like screenshot */
+  font-size: clamp(9px, 2.2vw, 11px);
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  max-width: 100%;
+  /* font-weight: var(--weight-medium); */
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-semibold);
+
+}
+
+.profileSidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profileSidebar::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.profileSidebar::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 3px;
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileSidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+.profileSidebarList {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-xs) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.profileSidebarItem {
+  margin: 0;
+  padding: 0;
+}
+
+.profileSidebarButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-regular);
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border-left: 3px solid transparent;
+  min-height: 44px;
+  line-height: 1.4;
+}
+
+.profileSidebarButton:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.profileSidebarButton:active {
+  transform: translateX(1px);
+}
+
+.profileSidebarButton.active {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  border-left-color: var(--brand-primary);
+  /* box-shadow: inset 0 0 0 1px var(--border-focus); */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profileSidebarButton.active:hover {
+  background-color: var(--bg-active);
+  transform: translateX(2px);
+}
+
+.sidebarIcon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  margin-right: 2px;
+}
+
+.profileSidebarButton:hover .sidebarIcon {
+  transform: scale(1.1);
+}
+
+.sidebarLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: var(--tracking-small);
+  padding-right: var(--space-xs);
+  font-size: var(--text-label-md);
+}
+
+.sidebarBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background-color: var(--brand-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  border-radius: 10px;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-glow);
+  animation: pulse 2s ease-in-out infinite;
+  margin-left: auto;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.profileSidebarButton.active .sidebarBadge {
+  background-color: var(--brand-primary-light);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Responsive Styles - Tablet */
+@media (max-width: 1024px) {
+  .profileSidebar {
+    width: 220px;
+    padding: var(--space-md) var(--space-sm);
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+  }
+
+  .profileSidebarButton {
+    padding: var(--space-sm) var(--space-md);
+    min-height: 42px;
+  }
+}
+
+/* Responsive Styles - Mobile Bottom Tab Bar */
+@media (max-width: 1023px) {
+  .profileSidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: clamp(64px, 12vw, 80px);
+    min-height: clamp(64px, 12vw, 80px);
+    max-height: clamp(64px, 12vw, 80px);
+    padding: var(--space-xs) var(--space-sm);
+    padding-bottom: calc(var(--space-xs) + env(safe-area-inset-bottom));
+    border-right: none;
+    border-top: 1px solid var(--border-light);
+    z-index: 100;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background-color: var(--bg-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .profileSidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profileSidebarList {
+    flex-direction: row;
+    gap: clamp(2px, 0.5vw, 6px);
+    padding: 0 clamp(4px, 1vw, 8px);
+    align-items: center;
+    height: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .profileSidebarList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profileSidebarItem {
+    flex-shrink: 0;
+  }
+
+  .profileSidebarButton {
+    flex-direction: column;
+    gap: clamp(2px, 0.5vw, 4px);
+    padding: clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 12px);
+    /* min-width: clamp(60px, 15vw, 80px); */
+    /* max-width: clamp(70px, 18vw, 90px); */
+    width: auto;
+    border-left: none;
+    border-top: 3px solid transparent;
+    min-height: 100%;
+    max-height: 100%;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .profileSidebarButton:active {
+    transform: scale(0.95);
+    background-color: var(--bg-hover);
+  }
+
+  .profileSidebarButton.active {
+    border-left: none;
+    border-top-color: var(--brand-primary);
+    background-color: var(--bg-hover);
+    color: var(--brand-primary);
+  }
+
+  .profileSidebarButton.active:active {
+    transform: scale(0.95);
+  }
+
+  .sidebarIcon {
+    font-size: clamp(16px, 4vw, 20px);
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .sidebarLabel {
+    font-size: clamp(9px, 2.2vw, 11px);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    max-width: 100%;
+    font-weight: var(--weight-medium);
+  }
+
+  .profileSidebarButton.active .sidebarLabel {
+    font-weight: var(--weight-semibold);
+    color: var(--brand-primary);
+  }
+
+  .sidebarBadge {
+    position: absolute;
+    top: clamp(2px, 0.5vw, 4px);
+    right: clamp(2px, 0.5vw, 4px);
+    min-width: clamp(14px, 3.5vw, 18px);
+    height: clamp(14px, 3.5vw, 18px);
+    font-size: clamp(8px, 2vw, 10px);
+    padding: 0 clamp(3px, 0.8vw, 5px);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .profileSidebarButton .sidebarLabel {
+    display: none;
+  }
+
+    .sidebarIcon {
+    font-size: clamp(20px, 3.5vw, 18px) !important;
+    width: clamp(20px, 3.5vw, 18px) !important;
+    height: clamp(14px, 10vw, 40px) !important;
+  }
+}
+
+/* Small Mobile - 480px and below */
+@media (max-width: 480px) {
+  .profileSidebar {
+    height: clamp(60px, 14vw, 72px);
+    min-height: clamp(60px, 14vw, 72px);
+    max-height: clamp(60px, 14vw, 72px);
+    padding: clamp(4px, 1vw, 8px) clamp(4px, 1vw, 8px);
+    padding-bottom: calc(clamp(4px, 1vw, 8px) + env(safe-area-inset-bottom));
+  }
+
+  .profileSidebarList {
+    gap: clamp(1px, 0.3vw, 4px);
+    padding: 0 clamp(2px, 0.5vw, 6px);
+  }
+
+  .profileSidebarButton {
+    min-width: clamp(56px, 14vw, 70px);
+    max-width: clamp(64px, 16vw, 78px);
+    padding: clamp(4px, 1vw, 6px) clamp(4px, 1vw, 8px);
+    gap: clamp(1px, 0.3vw, 3px);
+  }
+
+  .sidebarLabel {
+    font-size: clamp(10px, 2vw, 10px);
+    line-height: 1.1;
+  }
+
+  .sidebarIcon {
+    font-size: clamp(20px, 3.5vw, 18px) !important;
+    width: clamp(20px, 3.5vw, 18px) !important;
+    height: clamp(14px, 10vw, 40px) !important;
+  }
+
+  .sidebarBadge {
+    min-width: clamp(12px, 3vw, 16px);
+    height: clamp(12px, 3vw, 16px);
+    font-size: clamp(7px, 1.8vw, 9px);
+    top: clamp(1px, 3vw, 8px);
+    right: clamp(1px, 3vw, 5px);
+    padding: 0 clamp(2px, 0.5vw, 4px);
+  }
+}
+
+/* Extra Small Mobile - 360px and below */
+@media (max-width: 360px) {
+  .profileSidebar {
+    height: clamp(70px, 15vw, 68px);
+    min-height: clamp(75px, 15vw, 68px);
+    max-height: clamp(56px, 15vw, 68px);
+    padding: clamp(3px, 0.8vw, 6px);
+    padding-bottom: calc(clamp(3px, 0.8vw, 6px) + env(safe-area-inset-bottom));
+  }
+
+  .profileSidebarList {
+    gap: clamp(1px, 0.2vw, 3px);
+    padding: 0 clamp(1px, 0.3vw, 4px);
+  }
+
+  .profileSidebarButton {
+    min-width: clamp(70px, 13vw, 64px);
+    max-width: clamp(58px, 15vw, 72px);
+    padding: clamp(3px, 0.8vw, 5px) clamp(3px, 0.8vw, 6px);
+    gap: clamp(1px, 0.2vw, 2px);
+  }
+
+  .sidebarLabel {
+    font-size: clamp(10px, 1.8vw, 9px);
+  }
+
+  .sidebarIcon {
+    font-size: clamp(13px, 3.2vw, 16px) !important;
+    width: clamp(20px, 3.2vw, 16px) !important;
+    height: clamp(45px, 6vw, 16px) !important;
+  }
+
+  .sidebarBadge {
+    min-width: clamp(11px, 2.8vw, 14px);
+    height: clamp(11px, 2.8vw, 14px);
+    font-size: clamp(6px, 1.5vw, 8px);
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .profileSidebar {
+    height: clamp(56px, 10vh, 64px);
+    min-height: clamp(56px, 10vh, 64px);
+    max-height: clamp(56px, 10vh, 64px);
+    padding: clamp(3px, 0.6vh, 6px) var(--space-sm);
+    padding-bottom: calc(clamp(3px, 0.6vh, 6px) + env(safe-area-inset-bottom));
+  }
+
+  .profileSidebarButton {
+    min-width: max-content;
+    max-width: max-content;
+    gap: clamp(1px, 0.2vh, 3px);
+  }
+
+  .sidebarIcon {
+    font-size: clamp(14px, 3vh, 18px);
+    width: clamp(14px, 3vh, 18px);
+    height: clamp(14px, 3vh, 18px);
+  }
+
+  .sidebarLabel {
+    font-size: clamp(8px, 1.8vh, 10px);
+  }
+
+  .profileSidebarHeader {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .profileSidebarHeader {
+    display: none;
+  }
+}

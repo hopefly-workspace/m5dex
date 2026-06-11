@@ -1,0 +1,72 @@
+/**
+ * NotificationBell - Header notification indicator
+ */
+
+.notificationBell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s linear;
+}
+
+.language_icon,
+.notificationBell,
+.theme_icon {
+  transition: all 0.3s linear;
+}
+
+[data-theme="dark"] .language_icon:hover {
+  color: #fff !important;
+}
+
+.language_icon:hover,
+.theme_icon:hover {
+  background: var(--light-theme) !important;
+  border: 1px solid var(--border-focus) !important;
+}
+
+.notificationBell:hover {
+
+  background: var(--light-theme);
+  border: 1px solid var(--border-focus);
+}
+
+.notificationBellIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.notificationBellBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  border: 2px solid var(--bg-secondary);
+  animation: notificationBellPulse 2s ease-in-out infinite;
+}
+
+@keyframes notificationBellPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}

@@ -1,0 +1,827 @@
+/**
+ * Order Book Component Styles
+ * Real-time order book with depth visualization
+ */
+
+.orderBook {
+  background-color: var(--bg-secondary);
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.orderBookBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.orderBookHeaderEnhanced {
+  padding: 8px 10px;
+}
+
+.orderBookControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groupLabel {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.groupButton,
+.autoButton {
+  border: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.groupButton:hover,
+.autoButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.groupButton.active {
+  background: color-mix(in srgb, var(--color-brand) 24%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--color-brand) 40%, var(--border-focus));
+  color: var(--text-primary);
+}
+
+.autoButton.active {
+  background: color-mix(in srgb, var(--color-success) 22%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--color-success) 40%, var(--border-focus));
+  color: var(--text-primary);
+}
+
+/* Mobile/Tablet: No scrolling, fit all content */
+@media (max-width: 1023px) {
+  .orderBook {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .orderBookBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Header */
+.orderBookHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  min-height: 36px;
+  overflow: visible;
+}
+
+/* Mobile/Tablet: Touch-optimized header */
+@media (max-width: 1023px) {
+  .orderBookHeader {
+    padding: 12px 16px;
+    min-height: 48px;
+  }
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* View Mode Buttons */
+.viewModeButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: var(--bg-primary);
+  padding: 2px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.viewModeButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.viewModeButton:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.viewModeButton.active {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Mobile/Tablet: Touch-optimized */
+@media (max-width: 1023px) {
+  .viewModeButton {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 40px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .viewModeButton:active {
+    transform: scale(0.95);
+  }
+}
+
+.viewModeIcon {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.viewModeIcon.red {
+  color: var(--color-danger);
+}
+
+.viewModeIcon.green {
+  color: var(--color-success);
+}
+
+.viewModeIcon.both {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.8;
+  gap: 2px;
+}
+
+.viewModeIcon.both .green {
+  color: var(--color-success);
+}
+
+.viewModeIcon.both .red {
+  color: var(--color-danger);
+}
+
+.viewModeLabel {
+  font-size: 11px;
+}
+
+/* Column Headers */
+.orderBookColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* Mobile/Tablet: Compact headers */
+@media (max-width: 1023px) {
+  .orderBookColumns {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+}
+
+.priceColumn {
+  text-align: center;
+}
+
+.quantityColumn {
+  text-align: center;
+}
+
+.totalColumn {
+  text-align: right;
+}
+
+/* Order Book Content */
+.orderBookContent {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 8px;
+  /* Firefox Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) var(--bg-tertiary);
+}
+
+/* Mobile/Tablet: Enable scrolling if content exceeds */
+@media (max-width: 1023px) {
+  .orderBookContent {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: var(--space-sm);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-medium) transparent;
+  }
+  
+  .orderBookContent::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .orderBookContent::-webkit-scrollbar-thumb {
+    background-color: var(--border-medium);
+    border-radius: 2px;
+  }
+}
+
+/* Custom Scrollbar Styling - Webkit browsers */
+.orderBookContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.orderBookContent::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.orderBookContent::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.orderBookContent::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+/* Asks Section */
+.asksSection {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.orderBookList {
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.orderBookList.noScroll {
+  max-height: none;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .orderBookBody > .orderBookList {
+    max-height: none;
+  }
+
+  .orderBookBody > .asksList {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow-y: auto;
+  }
+
+  .orderBookBody > .asksList.noScroll {
+    overflow-y: hidden;
+  }
+
+  .orderBookBody > .spreadSection {
+    flex-shrink: 0;
+  }
+
+  .orderBookBody > .bidsList {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+
+  .orderBookBody > .bidsList.noScroll {
+    overflow-y: hidden;
+  }
+
+  .orderBookBody > .asksList:only-child,
+  .orderBookBody > .bidsList:only-child {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+}
+
+.asksList::-webkit-scrollbar,
+.bidsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.asksList::-webkit-scrollbar-thumb,
+.bidsList::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 3px;
+}
+
+/* Mobile/Tablet: No scrolling, fit all content */
+@media (max-width: 1023px) {
+  .asksSection {
+    flex: 0 0 auto;
+  }
+}
+
+.askRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  border-bottom: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.orderRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 3px 12px;
+  min-height: 20px;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Mobile/Tablet: Optimized row height */
+@media (max-width: 1023px) {
+  .askRow {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+}
+
+/* Mobile/Tablet: Touch-optimized rows */
+@media (max-width: 1023px) {
+  .askRow {
+    padding: 10px 16px;
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .orderCell {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.askRow:hover {
+  background-color: rgba(255, 61, 0, 0.05);
+}
+
+.askRow.hovered {
+  background-color: rgba(255, 61, 0, 0.1);
+  border-bottom-color: var(--border-light);
+}
+
+.askRow.updated {
+  animation: flashUpdate 0.3s ease;
+}
+
+@keyframes flashUpdate {
+  0% {
+    background-color: rgba(255, 61, 0, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Depth Bar */
+.depthBar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  opacity: 0.18;
+  pointer-events: none;
+  transition: width 0.22s ease;
+}
+
+.askDepthBar {
+  background: linear-gradient(to left, rgba(255, 61, 0, 0.3), rgba(255, 61, 0, 0.1));
+}
+
+.bidDepthBar {
+  background: linear-gradient(to left, rgba(0, 200, 83, 0.3), rgba(0, 200, 83, 0.1));
+}
+
+/* Order Cells */
+.orderCell {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile/Tablet: Optimized font sizes */
+@media (max-width: 1023px) {
+  .orderCell {
+    font-size: 11px;
+    padding: 4px 0;
+  }
+}
+
+.priceCell {
+  font-weight: 600;
+  justify-content: center;
+}
+
+.askPrice {
+  color: var(--color-danger);
+}
+
+.bidPrice {
+  color: var(--color-success);
+}
+
+.quantityCell {
+  justify-content: center;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.totalCell {
+  justify-content: flex-end;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.spreadSection {
+  padding: 7px 12px;
+  border-top: 1px solid var(--border-medium);
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+}
+
+.spreadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.bestBidValue {
+  color: var(--color-success);
+}
+
+.bestAskValue {
+  color: var(--color-danger);
+}
+
+.spreadValue {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.lastTradeBuy {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-success) 80%, transparent);
+}
+
+.lastTradeSell {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-danger) 80%, transparent);
+}
+
+.rowFlashNewAsk {
+  animation: askFlashPulse 0.4s ease-out;
+}
+
+.rowFlashNewBid {
+  animation: bidFlashPulse 0.4s ease-out;
+}
+
+.rowFlashIncAsk {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.rowFlashIncBid {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+.rowFlashDec {
+  opacity: 0.72;
+}
+
+@keyframes askFlashPulse {
+  0% { background: rgba(255, 61, 0, 0.18); }
+  100% { background: transparent; }
+}
+
+@keyframes bidFlashPulse {
+  0% { background: rgba(0, 200, 83, 0.18); }
+  100% { background: transparent; }
+}
+
+/* Current Price Section */
+.currentPriceSection {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-medium);
+  border-bottom: 1px solid var(--border-medium);
+  background-color: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+/* Mobile/Tablet: Compact price section */
+@media (max-width: 1023px) {
+  .currentPriceSection {
+    padding: 8px 12px;
+  }
+  
+  .currentPriceValue {
+    font-size: 14px;
+  }
+}
+
+.currentPriceContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.currentPriceLabel {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.currentPriceValue {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.currentPriceValue.positive {
+  color: var(--color-success);
+}
+
+.currentPriceValue.negative {
+  color: var(--color-danger);
+}
+
+.currentPriceChange {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.currentPriceChange.positive {
+  color: var(--color-success);
+}
+
+.currentPriceChange.negative {
+  color: var(--color-danger);
+}
+
+.currentPriceInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.currentPriceEstimated {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+/* Bids Section */
+.bidsSection {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Mobile/Tablet: No scrolling, fit all content */
+@media (max-width: 1023px) {
+  .bidsSection {
+    flex: 0 0 auto;
+  }
+}
+
+.bidRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  border-bottom: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+/* Mobile/Tablet: Optimized row height */
+@media (max-width: 1023px) {
+  .bidRow {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+}
+
+/* Mobile/Tablet: Touch-optimized rows */
+@media (max-width: 1023px) {
+  .bidRow {
+    padding: 10px 16px;
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.bidRow:hover {
+  background-color: rgba(0, 200, 83, 0.05);
+}
+
+.bidRow.hovered {
+  background-color: rgba(0, 200, 83, 0.1);
+  border-bottom-color: var(--border-light);
+}
+
+.bidRow.updated {
+  animation: flashUpdateGreen 0.3s ease;
+}
+
+@keyframes flashUpdateGreen {
+  0% {
+    background-color: rgba(0, 200, 83, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Tooltip */
+.orderTooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  min-width: 180px;
+  pointer-events: none;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.tooltipRow:last-child {
+  margin-bottom: 0;
+}
+
+.tooltipLabel {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+  .tooltipValue {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+/* Empty State */
+.orderBookEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  min-height: 200px;
+  color: var(--text-tertiary);
+}
+
+.emptyMessage {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Responsive Styles — avoid fixed min-heights that inflate the order book column */
+@media (max-width: 1024px) {
+  .currentPriceValue {
+    font-size: 20px;
+  }
+
+  .orderCell {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .orderBookHeader {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .viewModeButtons {
+    flex-wrap: wrap;
+  }
+
+  .currentPriceValue {
+    font-size: 18px;
+  }
+
+  .orderCell {
+    font-size: 11px;
+  }
+
+  .orderBookColumns {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .currentPriceValue {
+    font-size: 16px;
+  }
+
+  .orderCell {
+    font-size: 10px;
+  }
+
+  .viewModeLabel {
+    display: none;
+  }
+}
+

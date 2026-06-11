@@ -1,0 +1,1881 @@
+import { useState, useEffect, useMemo, useCallback, useRef, useId, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import Header from '../components/Header';
+import IndiaStockSearchWorker from '../workers/indiaStockSearch.worker.js?worker';
+import { useWebSocket } from '../contexts/WebSocketContext';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
+import IndiaMarkets from '../components/markets/IndiaMarkets';
+import {
+  addFavourite,
+  removeFavourite,
+  addWishlist,
+  removeWishlist,
+  getFavourites,
+  getWishlist,
+  itemKey,
+  parseIndiaFavouriteName,
+} from '../services/favouritesWishlistApi';
+import '../styles/pages/Markets.css';
+import { formatIndianOrderPairDisplay } from '../utils/helper';
+import { tokenStorage } from '../utils/storage';
+
+const sortOptions = [
+  { id: 'volume', label: 'Volume' },
+  { id: 'price', label: 'Price' },
+  { id: 'change', label: '24h Change' },
+  { id: 'name', label: 'Name' },
+];
+
+const normalizeFavSymbol = (value) =>
+  String(value || '').toUpperCase().trim().replace(/[/\-\s_.:]/g, '');
+
+const normalizeMarketSymbol = (value) =>
+  String(value || '').toUpperCase().trim().replace(/[/\-\s_.:]/g, '');
+
+const SEARCH_TEXT_MIN_LEN = 1;
+const MAX_OPTION_CHAINS = 40;
+const MAX_STRIKES_PER_CHAIN = 120;
+/** Cap rows fed into grouping / chain builder so UI stays smooth on huge hit sets */
+const MAX_HITS_FOR_UI_AGG = 5000;
+const MAX_CHAIN_SOURCE_ITEMS = 12000;
+const SEARCH_DEBOUNCE_MS = 100;
+const CLASSIC_GROUPS_PAGE = 80;
+const INDIA_PAIRID_NAV_STATE_KEY = 'dashboard:indiaPairIdByMarket';
+
+function expiryKeyFromItem(item) {
+  const e = item?.expirydate;
+  if (e == null || String(e).trim() === '') return '—';
+  return String(e).split(/[ T]/)[0];
+}
+
+function formatExpiryLabel(key) {
+  if (key == null || key === '' || key === '—') return '—';
+  const d = new Date(`${key}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return String(key);
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Styled listbox for Indian search modal (native select option menus cannot be themed). */
+function MarketsSearchCustomSelect({
+  value,
+  onChange,
+  options,
+  allValue = 'all',
+  allLabel,
+  withAll = true,
+  disabled = false,
+  menuTall = false,
+  className = '',
+  ariaLabel,
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+  const [menuPos, setMenuPos] = useState(null);
+  const listId = useId();
+
+  const items = useMemo(() => {
+    if (!withAll) return options;
+    return [{ value: allValue, label: allLabel }, ...options];
+  }, [withAll, allValue, allLabel, options]);
+
+  const selectedLabel = useMemo(() => {
+    const f = items.find((o) => String(o.value) === String(value));
+    return f ? f.label : String(value);
+  }, [items, value]);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setMenuPos(null);
+      return;
+    }
+    const r = triggerRef.current.getBoundingClientRect();
+    setMenuPos({ top: r.bottom + 6, left: r.left, width: r.width });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const isInside = (root, node) => {
+      if (!root || !node || !(node instanceof Node)) return false;
+      return node === root || root.contains(node);
+    };
+    /** Scrollbar / shadow-DOM hits sometimes skip contains(target); composedPath fixes that. */
+    const eventPathIncludes = (root, e) => {
+      if (!root) return false;
+      const path =
+        typeof e.composedPath === 'function' ? e.composedPath() : [e.target].filter(Boolean);
+      for (const n of path) {
+        if (isInside(root, n)) return true;
+      }
+      return false;
+    };
+    /** Scrollbar drags sometimes omit the list from composedPath; hit-test the menu box. */
+    const pointInsideEl = (el, e) => {
+      if (!el || e.clientX == null || e.clientY == null) return false;
+      const r = el.getBoundingClientRect();
+      return (
+        e.clientX >= r.left &&
+        e.clientX <= r.right &&
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom
+      );
+    };
+    const onDoc = (e) => {
+      if (eventPathIncludes(rootRef.current, e) || eventPathIncludes(menuRef.current, e)) return;
+      if (pointInsideEl(menuRef.current, e)) return;
+      setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const onResize = () => setOpen(false);
+    document.addEventListener('mousedown', onDoc, true);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('mousedown', onDoc, true);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [open]);
+
+  const menuEl =
+    open && menuPos ? (
+      <ul
+        ref={menuRef}
+        id={listId}
+        className={`marketsSearchCustomSelectMenu marketsSearchCustomSelectMenu--portal ${menuTall ? 'marketsSearchCustomSelectMenu--tall' : ''}`.trim()}
+        role="listbox"
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        style={{
+          position: 'fixed',
+          top: menuPos.top,
+          left: menuPos.left,
+          width: menuPos.width,
+          /* Above .marketsSearchModalOverlay (10200) so the list is visible */
+          zIndex: 11000,
+        }}
+      >
+        {items.map((opt) => (
+          <li key={`${String(opt.value)}-${opt.label}`} role="none">
+            <button
+              type="button"
+              role="option"
+              aria-selected={String(opt.value) === String(value)}
+              className={`marketsSearchCustomSelectOption ${String(opt.value) === String(value) ? 'marketsSearchCustomSelectOption--active' : ''}`.trim()}
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+            >
+              {opt.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : null;
+
+  return (
+    <div
+      className={`marketsSearchCustomSelect ${open ? 'marketsSearchCustomSelect--open' : ''} ${className}`.trim()}
+      ref={rootRef}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className="marketsSearchCustomSelectTrigger"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-label={ariaLabel}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="marketsSearchCustomSelectValue">{selectedLabel}</span>
+        <span className="marketsSearchCustomSelectChevron" aria-hidden="true" />
+      </button>
+      {menuEl && typeof document !== 'undefined' ? createPortal(menuEl, document.body) : null}
+    </div>
+  );
+}
+
+function getStrikeNumber(item) {
+  const n = Number(item?.strike);
+  if (Number.isFinite(n) && n > 0) return n;
+  const sym = String(item?.pairsymbol || '').toUpperCase();
+  const m = sym.match(/(\d{3,})(CE|PE)$/);
+  return m ? Number(m[1]) : null;
+}
+
+function getOptionSideFromItem(item) {
+  const sym = String(item?.pairsymbol || '').toUpperCase();
+  if (sym.endsWith('CE')) return 'CE';
+  if (sym.endsWith('PE')) return 'PE';
+  const inst = String(item?.instrumentType || '').toUpperCase();
+  if (inst.includes('CALL') || inst.includes('CE')) return 'CE';
+  if (inst.includes('PUT') || inst.includes('PE')) return 'PE';
+  return null;
+}
+
+function isOptionLikeItem(item) {
+  return getOptionSideFromItem(item) != null || /OPT/i.test(String(item?.instrumentType || ''));
+}
+
+function isFutureLikeItem(item) {
+  const inst = String(item?.instrumentType || '').toUpperCase();
+  if (inst.includes('FUT')) return true;
+  const sym = String(item?.pairsymbol || '').toUpperCase();
+  return /FUT/i.test(sym) && !isOptionLikeItem(item);
+}
+
+function matchesProductKindFilter(item, kind) {
+  if (kind === 'all') return true;
+  const opt = isOptionLikeItem(item);
+  const fut = isFutureLikeItem(item);
+  if (kind === 'options') return opt;
+  if (kind === 'futures') return fut && !opt;
+  if (kind === 'equity') return !opt && !fut;
+  return true;
+}
+
+/** Worker bucket must match `matchesProductKindFilter` logic */
+function productKindBucket(item) {
+  if (isOptionLikeItem(item)) return 'options';
+  if (isFutureLikeItem(item)) return 'futures';
+  return 'equity';
+}
+
+function underlyingLabelFromItem(item) {
+  const name = String(item?.pairname || '').trim();
+  if (name) {
+    const tok = name.split(/\s+/)[0].replace(/\s+/g, '');
+    if (tok) return tok.replace(/(CE|PE)$/i, '').toUpperCase();
+  }
+  const sym = String(item?.pairsymbol || '').toUpperCase();
+  if (!sym) return '—';
+  const side = getOptionSideFromItem(item);
+  if (!side) return sym;
+  let base = sym.slice(0, -2);
+  const strike = getStrikeNumber(item);
+  if (strike != null) {
+    const suf = String(Math.floor(strike));
+    if (base.endsWith(suf)) base = base.slice(0, -suf.length);
+  }
+  return base.replace(/(\d+)$/, '').trim() || base || sym;
+}
+
+function buildOptionChainsFromItems(items, strikeSort) {
+  const groups = new Map();
+  for (const item of items) {
+    if (!isOptionLikeItem(item)) continue;
+    const side = getOptionSideFromItem(item);
+    const strike = getStrikeNumber(item);
+    if (!side || strike == null || strike <= 0) continue;
+    const und = underlyingLabelFromItem(item);
+    const expK = expiryKeyFromItem(item);
+    const gk = `${und}__${expK}`;
+    if (!groups.has(gk)) {
+      groups.set(gk, {
+        key: gk,
+        underlying: und,
+        expiryKey: expK,
+        expiryLabel: formatExpiryLabel(expK),
+        segment: item.segment,
+        exchange: item.exchange,
+        instrumentType: item.instrumentType,
+        strikes: new Map(),
+      });
+    }
+    const g = groups.get(gk);
+    const row = g.strikes.get(strike) || { call: null, put: null };
+    if (side === 'CE' && !row.call) row.call = item;
+    if (side === 'PE' && !row.put) row.put = item;
+    g.strikes.set(strike, row);
+  }
+  const chains = Array.from(groups.values()).map((g) => {
+    let rows = [...g.strikes.entries()].map(([strike, sides]) => ({ strike, ...sides }));
+    rows.sort((a, b) => (strikeSort === 'desc' ? b.strike - a.strike : a.strike - b.strike));
+    const truncated = rows.length > MAX_STRIKES_PER_CHAIN;
+    if (truncated) rows = rows.slice(0, MAX_STRIKES_PER_CHAIN);
+    return { ...g, rows, truncated };
+  });
+  chains.sort((a, b) => a.underlying.localeCompare(b.underlying) || a.expiryKey.localeCompare(b.expiryKey));
+  return chains.slice(0, MAX_OPTION_CHAINS);
+}
+
+const IndianMarketsPage = () => {
+  const { isAuthenticated } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const {
+    isConnected,
+    isConnecting,
+    isReconnecting,
+    state,
+    error
+  } = useWebSocket();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('volume');
+  // Show favorites list by default (no user click).
+  const [loading, setLoading] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(true);
+  const [showWatchlist, setShowWatchlist] = useState(false);
+  const [favouritesList, setFavouritesList] = useState([]);
+  const [watchlistList, setWatchlistList] = useState([]);
+  const [togglingKey, setTogglingKey] = useState(null);
+  const [type, setType] = useState("");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [searchProductKind, setSearchProductKind] = useState('all');
+  const [searchSegment, setSearchSegment] = useState('all');
+  const [searchExchange, setSearchExchange] = useState('all');
+  const [searchExpiry, setSearchExpiry] = useState('all');
+  const [searchInstrumentType, setSearchInstrumentType] = useState('all');
+  const [searchStrikeSort, setSearchStrikeSort] = useState('asc');
+  const [searchViewMode, setSearchViewMode] = useState('chain');
+  const [stockList, setStockList] = useState([]);
+  const [stockListLoading, setStockListLoading] = useState(false);
+  const [stockListLoaded, setStockListLoaded] = useState(false);
+
+  const stockListRef = useRef(stockList);
+  const stockListLoadedRef = useRef(stockListLoaded);
+  const stockListLoadingRef = useRef(stockListLoading);
+  stockListRef.current = stockList;
+  stockListLoadedRef.current = stockListLoaded;
+  stockListLoadingRef.current = stockListLoading;
+
+  const [debouncedModalSearchQuery, setDebouncedModalSearchQuery] = useState('');
+  const [workerIndexed, setWorkerIndexed] = useState(false);
+  const [workerFailed, setWorkerFailed] = useState(false);
+  const [workerHitIndices, setWorkerHitIndices] = useState(null);
+  const [lastSearchMs, setLastSearchMs] = useState(null);
+  const [classicGroupLimit, setClassicGroupLimit] = useState(CLASSIC_GROUPS_PAGE);
+  const [searchSelectedByKey, setSearchSelectedByKey] = useState({});
+  const [bulkFavBusy, setBulkFavBusy] = useState(false);
+  const workerRef = useRef(null);
+  const searchSeqRef = useRef(0);
+
+  // Keeps track of which pairIds we already asked the backend to subscribe.
+  // This ensures `/ws/subscribed` starts streaming ticks for ALL favorites/watchlist rows,
+  // not only the one the user navigates to.
+  const subscribedPairIdsRef = useRef(new Set());
+
+  const favoritesSet = useMemo(() => {
+    const out = new Set();
+    for (const { name, type } of favouritesList) {
+      const rawType = String(type || '').trim().toLowerCase();
+      if (rawType === 'india') {
+        // Backend stores "pairSymbol_pairid". UI stars should match pairSymbol.
+        const { symbol } = parseIndiaFavouriteName(name);
+        const symbolOnly = symbol || '';
+        if (!symbolOnly) continue;
+        out.add(itemKey(symbolOnly, type));
+        out.add(itemKey(normalizeFavSymbol(symbolOnly), type));
+      } else {
+        out.add(itemKey(name, type));
+      }
+    }
+    return out;
+  }, [favouritesList]);
+
+  const watchlistSet = useMemo(() => {
+    const out = new Set();
+    for (const { name, type } of watchlistList) {
+      const rawType = String(type || '').trim().toLowerCase();
+      if (rawType === 'india') {
+        out.add(itemKey(name, type));
+        out.add(itemKey(normalizeFavSymbol(name), type));
+      } else {
+        out.add(itemKey(name, type));
+      }
+    }
+    return out;
+  }, [watchlistList]);
+
+  const indiaFavouritesCount = useMemo(
+    () =>
+      favouritesList.filter(
+        ({ type }) => String(type || '').trim().toLowerCase() === 'india'
+      ).length,
+    [favouritesList]
+  );
+
+  const indiaFavoriteSymbolsSet = useMemo(
+    () =>
+      new Set(
+        favouritesList
+          .filter(({ type }) => String(type || '').trim().toLowerCase() === 'india')
+          .map(({ name }) => normalizeFavSymbol(parseIndiaFavouriteName(name).symbol))
+          .filter(Boolean)
+      ),
+    [favouritesList]
+  );
+
+  const fetchFavWatch = useCallback(async () => {
+    if (!isAuthenticated) {
+      setFavouritesList([]);
+      setWatchlistList([]);
+      return;
+    }
+    try {
+      const [favs, wish] = await Promise.all([getFavourites(), getWishlist()]);
+      setFavouritesList(Array.isArray(favs) ? favs : []);
+      setWatchlistList(Array.isArray(wish) ? wish : []);
+    } catch {
+      setFavouritesList([]);
+      setWatchlistList([]);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchFavWatch();
+  }, [fetchFavWatch]);
+
+  const fetchStockList = useCallback(async ({ force = false, silent = false } = {}) => {
+    if ((stockListLoadedRef.current || stockListLoadingRef.current) && !force) {
+      return stockListRef.current;
+    }
+    stockListLoadingRef.current = true;
+    setStockListLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://192.168.0.109:3000/v1';
+      const url = `${baseUrl.replace(/\/+$/, '')}/trading/stocklist`;
+      const res = await fetch(url);
+      const json = await res.json().catch(() => null);
+      const list = Array.isArray(json?.data) ? json.data : [];
+      const normalizedList = list
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null;
+          const pairsymbol = String(item.pairsymbol || '').trim();
+          const pairname = String(item.pairname || '').trim();
+          if (!pairsymbol && !pairname) return null;
+          const exchange = String(item.exchange || '').trim();
+          const segment = String(item.segment || '').trim();
+          const instrumentType = String(item.instrumentType || '').trim();
+          const strike = String(item.strike || '').trim();
+          const searchText = [
+            pairsymbol,
+            pairname,
+            exchange,
+            segment,
+            instrumentType,
+            strike,
+          ]
+            .join(' ')
+            .toLowerCase();
+          return {
+            pairid: String(item.pairid || ''),
+            pairsymbol,
+            pairname,
+            exchange,
+            segment,
+            instrumentType,
+            lotsize: item.lotsize,
+            strike: item.strike,
+            expirydate: item.expirydate,
+            isactive: item.isactive,
+            searchText,
+          };
+        })
+        .filter(Boolean);
+      stockListRef.current = normalizedList;
+      stockListLoadedRef.current = true;
+      setStockList(normalizedList);
+      setStockListLoaded(true);
+      return normalizedList;
+    } catch {
+      stockListRef.current = [];
+      stockListLoadedRef.current = true;
+      setStockList([]);
+      setStockListLoaded(true);
+      if (!silent) {
+        showError('Failed to load stock list');
+      }
+      return [];
+    } finally {
+      stockListLoadingRef.current = false;
+      setStockListLoading(false);
+    }
+  }, [showError]);
+
+  const openSearchModal = useCallback(() => {
+    setIsSearchModalOpen(true);
+    setModalSearchQuery('');
+    setDebouncedModalSearchQuery('');
+    setClassicGroupLimit(CLASSIC_GROUPS_PAGE);
+    setSearchProductKind('all');
+    setSearchSegment('all');
+    setSearchExchange('all');
+    setSearchExpiry('all');
+    setSearchInstrumentType('all');
+    setSearchStrikeSort('asc');
+    setSearchViewMode('chain');
+    fetchStockList({ silent: true });
+  }, [fetchStockList]);
+
+  const closeSearchModal = useCallback(() => {
+    setIsSearchModalOpen(false);
+    setModalSearchQuery('');
+    setDebouncedModalSearchQuery('');
+    setSearchProductKind('all');
+    setSearchSegment('all');
+    setSearchExchange('all');
+    setSearchExpiry('all');
+    setSearchInstrumentType('all');
+    setSearchStrikeSort('asc');
+    setSearchViewMode('chain');
+    setClassicGroupLimit(CLASSIC_GROUPS_PAGE);
+    setWorkerHitIndices(null);
+    setLastSearchMs(null);
+    setSearchSelectedByKey({});
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchModalOpen) return undefined;
+    setDebouncedModalSearchQuery(modalSearchQuery);
+    const t = window.setTimeout(() => {
+      setDebouncedModalSearchQuery(modalSearchQuery);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [modalSearchQuery, isSearchModalOpen]);
+
+  const workerFilters = useMemo(
+    () => ({
+      productKind: searchProductKind,
+      segment: searchSegment,
+      exchange: searchExchange,
+      expiry: searchExpiry,
+      instrumentType: searchInstrumentType,
+    }),
+    [searchProductKind, searchSegment, searchExchange, searchExpiry, searchInstrumentType]
+  );
+
+  const compactSearchRows = useMemo(
+    () =>
+      stockList.map((item) => ({
+        t: String(item.searchText || '').toLowerCase(),
+        seg: String(item.segment || '').trim(),
+        ex: String(item.exchange || '').trim(),
+        exp: (() => {
+          const ek = expiryKeyFromItem(item);
+          return ek === '—' ? '' : ek;
+        })(),
+        inst: String(item.instrumentType || '').trim(),
+        p: String(item.pairid || '').trim(),
+        k: productKindBucket(item),
+      })),
+    [stockList]
+  );
+
+  useEffect(() => {
+    let w;
+    try {
+      w = new IndiaStockSearchWorker();
+    } catch {
+      setWorkerFailed(true);
+      return undefined;
+    }
+    workerRef.current = w;
+    w.onmessage = (ev) => {
+      const data = ev.data || {};
+      if (data.type === 'READY') {
+        setWorkerIndexed(true);
+        setWorkerHitIndices(null);
+        return;
+      }
+      if (data.type === 'RESULT') {
+        if (data.seq !== searchSeqRef.current) return;
+        setWorkerHitIndices(Array.isArray(data.indices) ? data.indices : []);
+        setLastSearchMs(typeof data.ms === 'number' ? data.ms : null);
+      }
+    };
+    return () => {
+      w.terminate();
+      workerRef.current = null;
+      setWorkerIndexed(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    const w = workerRef.current;
+    if (!w || workerFailed || compactSearchRows.length === 0) return;
+    w.postMessage({ type: 'REINDEX', payload: { rows: compactSearchRows } });
+  }, [compactSearchRows, workerFailed]);
+
+  const fireWorkerSearch = useCallback(() => {
+    const w = workerRef.current;
+    if (!w || workerFailed || !workerIndexed) return;
+    searchSeqRef.current += 1;
+    const seq = searchSeqRef.current;
+    w.postMessage({
+      type: 'SEARCH',
+      payload: {
+        query: debouncedModalSearchQuery,
+        filters: workerFilters,
+        seq,
+      },
+    });
+  }, [debouncedModalSearchQuery, workerFilters, workerFailed, workerIndexed]);
+
+  useEffect(() => {
+    if (!isSearchModalOpen || workerFailed || !workerIndexed) return;
+    fireWorkerSearch();
+  }, [isSearchModalOpen, workerFailed, workerIndexed, fireWorkerSearch]);
+
+  const searchFilterOptions = useMemo(() => {
+    const segments = new Set();
+    const exchanges = new Set();
+    const expiries = new Set();
+    const inst = new Set();
+    for (const s of stockList) {
+      if (!s) continue;
+      if (s.segment) segments.add(String(s.segment).trim());
+      if (s.exchange) exchanges.add(String(s.exchange).trim());
+      const ek = expiryKeyFromItem(s);
+      if (ek && ek !== '—') expiries.add(ek);
+      if (s.instrumentType) inst.add(String(s.instrumentType).trim());
+    }
+    return {
+      segments: [...segments].sort((a, b) => a.localeCompare(b)),
+      exchanges: [...exchanges].sort((a, b) => a.localeCompare(b)),
+      expiries: [...expiries].sort((a, b) => a.localeCompare(b)),
+      instrumentTypes: [...inst].sort((a, b) => a.localeCompare(b)),
+    };
+  }, [stockList]);
+
+  const modalSegmentOptions = useMemo(
+    () => searchFilterOptions.segments.map((s) => ({ value: s, label: s })),
+    [searchFilterOptions.segments]
+  );
+  const modalExchangeOptions = useMemo(
+    () => searchFilterOptions.exchanges.map((s) => ({ value: s, label: s })),
+    [searchFilterOptions.exchanges]
+  );
+  const modalExpiryOptions = useMemo(
+    () =>
+      searchFilterOptions.expiries.map((s) => ({
+        value: s,
+        label: formatExpiryLabel(s),
+      })),
+    [searchFilterOptions.expiries]
+  );
+  const modalInstrumentOptions = useMemo(
+    () => searchFilterOptions.instrumentTypes.map((s) => ({ value: s, label: s })),
+    [searchFilterOptions.instrumentTypes]
+  );
+  const modalStrikeSortOptions = useMemo(
+    () => [
+      { value: 'asc', label: 'Strike low → high' },
+      { value: 'desc', label: 'Strike high → low' },
+    ],
+    []
+  );
+
+  const syncFilteredStockList = useMemo(() => {
+    const q = debouncedModalSearchQuery.trim().toLowerCase();
+    const hasActiveFilters =
+      searchProductKind !== 'all' ||
+      searchSegment !== 'all' ||
+      searchExchange !== 'all' ||
+      searchExpiry !== 'all' ||
+      searchInstrumentType !== 'all';
+    if (q.length < SEARCH_TEXT_MIN_LEN && !hasActiveFilters) return [];
+    const pool =
+      q.length >= SEARCH_TEXT_MIN_LEN
+        ? stockList.filter((item) => {
+          if (!item) return false;
+          const searchText = String(item.searchText || '').toLowerCase();
+          return searchText && searchText.includes(q);
+        })
+        : [...stockList];
+    return pool.filter((item) => {
+      if (!item) return false;
+      if (!matchesProductKindFilter(item, searchProductKind)) return false;
+      if (searchSegment !== 'all' && String(item.segment || '').trim() !== searchSegment) return false;
+      if (searchExchange !== 'all' && String(item.exchange || '').trim() !== searchExchange) return false;
+      if (searchExpiry !== 'all' && expiryKeyFromItem(item) !== searchExpiry) return false;
+      if (searchInstrumentType !== 'all' && String(item.instrumentType || '').trim() !== searchInstrumentType) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    debouncedModalSearchQuery,
+    stockList,
+    searchProductKind,
+    searchSegment,
+    searchExchange,
+    searchExpiry,
+    searchInstrumentType,
+  ]);
+
+  const useWorkerHits = workerIndexed && !workerFailed && workerHitIndices !== null;
+
+  const filteredStockList = useMemo(() => {
+    if (useWorkerHits) {
+      const out = [];
+      for (let i = 0; i < workerHitIndices.length; i += 1) {
+        const idx = workerHitIndices[i];
+        const row = stockList[idx];
+        if (row) out.push(row);
+      }
+      return out;
+    }
+    return syncFilteredStockList;
+  }, [useWorkerHits, workerHitIndices, stockList, syncFilteredStockList]);
+
+  const hitsForAggregation = useMemo(() => {
+    if (filteredStockList.length <= MAX_HITS_FOR_UI_AGG) return filteredStockList;
+    return filteredStockList.slice(0, MAX_HITS_FOR_UI_AGG);
+  }, [filteredStockList]);
+
+  const totalMatchCount = filteredStockList.length;
+  const isHitSetTruncated = totalMatchCount > MAX_HITS_FOR_UI_AGG;
+
+  const optionChains = useMemo(
+    () =>
+      buildOptionChainsFromItems(
+        hitsForAggregation.slice(0, MAX_CHAIN_SOURCE_ITEMS),
+        searchStrikeSort
+      ),
+    [hitsForAggregation, searchStrikeSort]
+  );
+
+  const groupedSearchResults = useMemo(() => {
+    if (!hitsForAggregation || hitsForAggregation.length === 0) return [];
+
+    const groups = new Map();
+
+    const classifySide = (item) => {
+      const rawSymbol = String(item?.pairsymbol || item?.pairname || '').toUpperCase().trim();
+      let side = 'single';
+      let root = rawSymbol;
+      if (rawSymbol.endsWith('CE')) {
+        side = 'call';
+        root = rawSymbol.slice(0, -2);
+      } else if (rawSymbol.endsWith('PE')) {
+        side = 'put';
+        root = rawSymbol.slice(0, -2);
+      }
+      return { side, root, rawSymbol };
+    };
+
+    hitsForAggregation.forEach((item) => {
+      const { side, root } = classifySide(item);
+      const key = root || String(item.pairid || item.pairsymbol || item.pairname || Math.random());
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          key,
+          root,
+          baseLabel: item.pairname || item.pairsymbol || root,
+          call: null,
+          put: null,
+        };
+        groups.set(key, group);
+      }
+      if (side === 'call') {
+        if (!group.call) group.call = item;
+      } else if (side === 'put') {
+        if (!group.put) group.put = item;
+      } else {
+        if (!group.call) group.call = item;
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [hitsForAggregation]);
+
+  const groupedSearchResultsVisible = useMemo(
+    () => groupedSearchResults.slice(0, classicGroupLimit),
+    [groupedSearchResults, classicGroupLimit]
+  );
+
+  const hasMoreClassicGroups = groupedSearchResults.length > classicGroupLimit;
+
+  const handleSelectStock = useCallback((item) => {
+    const symbol = String(item?.pairsymbol || item?.pairname || '').trim();
+    setSearchQuery(symbol);
+    closeSearchModal();
+  }, [closeSearchModal]);
+
+  const resolvePairIdForSymbol = useCallback(
+    async (symbol) => {
+      const raw = String(symbol || '').trim();
+      if (!raw) return null;
+
+      const tryTargets = [];
+      tryTargets.push(normalizeMarketSymbol(raw));
+      // If symbol is like "MCX:GOLD26APR" then backend stocklist pairsymbol is usually "GOLD26APR"
+      if (raw.includes(':')) {
+        const afterColon = raw.split(':').slice(1).join(':').trim();
+        if (afterColon) tryTargets.push(normalizeMarketSymbol(afterColon));
+      }
+      const targets = Array.from(new Set(tryTargets)).filter(Boolean);
+      if (targets.length === 0) return null;
+
+      const findPairId = (list) => {
+        for (const item of list || []) {
+          const pairSymbol = normalizeMarketSymbol(item?.pairsymbol);
+          if (pairSymbol && targets.includes(pairSymbol)) {
+            return String(item?.pairid || '').trim() || null;
+          }
+        }
+        return null;
+      };
+
+      let pairId = findPairId(stockListRef.current);
+      if (pairId) return pairId;
+
+      // Avoid refetch loops on favourite/watchlist updates:
+      // if stock list is already loaded and still no match, treat as unresolved.
+      if (stockListLoadedRef.current) return null;
+
+      const latestStockList = await fetchStockList({ silent: true });
+      pairId = findPairId(latestStockList);
+      return pairId;
+    },
+    [fetchStockList]
+  );
+
+  const callSubscriptionsApi = useCallback(async (endpoint, pairIds) => {
+    const symbols = (Array.isArray(pairIds) ? pairIds : [pairIds])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+    const uniqueSymbols = Array.from(new Set(symbols));
+    if (uniqueSymbols.length === 0) {
+      throw new Error('Missing pair id(s)');
+    }
+    const token = tokenStorage.getToken();
+    if (!token) {
+      throw new Error('Please login to subscribe to market data.');
+    }
+
+    const baseUrl = import.meta.env.VITE_TICKS_BACKEND_URL;
+    const url = `${baseUrl.replace(/\/+$/, '')}${endpoint}`;
+
+    try {
+      setLoading(true);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ symbols: uniqueSymbols }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.status === false) {
+        throw new Error(data?.message || `Failed request: ${endpoint}`);
+      }
+      return data;
+    } catch (err) {
+      console.error('Subscriptions API Error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const pairIdFromStockItem = useCallback((item) => String(item?.pairid || '').trim(), []);
+
+  const symbolFromStockItem = useCallback(
+    (item) => String(item?.pairsymbol || item?.pairname || '').trim(),
+    []
+  );
+
+  const searchItemSelectKey = useCallback(
+    (item) => {
+      const pairId = pairIdFromStockItem(item);
+      if (pairId) return `id:${pairId}`;
+      const symbol = symbolFromStockItem(item);
+      return symbol ? `sym:${normalizeFavSymbol(symbol)}` : '';
+    },
+    [pairIdFromStockItem, symbolFromStockItem]
+  );
+
+  const searchSelectionCount = useMemo(
+    () => Object.keys(searchSelectedByKey).length,
+    [searchSelectedByKey]
+  );
+
+  const toggleSearchItemSelected = useCallback(
+    (item, checked) => {
+      const key = searchItemSelectKey(item);
+      if (!key) return;
+      setSearchSelectedByKey((prev) => {
+        const next = { ...prev };
+        if (checked) next[key] = item;
+        else delete next[key];
+        return next;
+      });
+    },
+    [searchItemSelectKey]
+  );
+
+  // Ensure existing favorites/watchlist are actually subscribed for live ticks.
+  // Without this, UI may show items, but only the pair navigated to (Dashboard /ws/ticks/{pairId})
+  // will have live price.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      const collectIndiaPairIds = (list) => {
+        const outKnown = new Set();
+        for (const item of list || []) {
+          const rawType = String(item?.type || '').trim().toLowerCase();
+          if (rawType !== 'india') continue;
+          const name = String(item?.name || '').trim();
+          if (!name) continue;
+          const parsed = parseIndiaFavouriteName(name);
+          if (parsed?.pairId) outKnown.add(String(parsed.pairId).trim());
+        }
+        return outKnown;
+      };
+
+      const currentKnownPairIds = new Set([
+        ...collectIndiaPairIds(favouritesList),
+        ...collectIndiaPairIds(watchlistList),
+      ]);
+
+      // Allow re-subscribe if user removed+added something again.
+      subscribedPairIdsRef.current.forEach((pid) => {
+        if (!currentKnownPairIds.has(pid)) subscribedPairIdsRef.current.delete(pid);
+      });
+
+      const toResolve = [];
+      const toSubscribe = new Set(currentKnownPairIds);
+
+      // If pairId isn't in stored name, resolve it from stock list.
+      const collectMissing = (list) => {
+        for (const item of list || []) {
+          const rawType = String(item?.type || '').trim().toLowerCase();
+          if (rawType !== 'india') continue;
+          const name = String(item?.name || '').trim();
+          if (!name) continue;
+          const parsed = parseIndiaFavouriteName(name);
+          if (!parsed) continue;
+          if (parsed.pairId) continue;
+          if (parsed.symbol) toResolve.push(parsed.symbol);
+        }
+      };
+
+      collectMissing(favouritesList);
+      collectMissing(watchlistList);
+
+      for (const sym of toResolve) {
+        if (cancelled) return;
+        const pairId = await resolvePairIdForSymbol(sym);
+        if (pairId) toSubscribe.add(String(pairId).trim());
+      }
+
+      const pendingSubscribe = [...toSubscribe].filter(
+        (pairId) => pairId && !subscribedPairIdsRef.current.has(pairId)
+      );
+      if (pendingSubscribe.length > 0) {
+        if (cancelled) return;
+        const res = await callSubscriptionsApi('/subscriptions/subscribe', pendingSubscribe);
+        if (res) {
+          pendingSubscribe.forEach((pairId) => subscribedPairIdsRef.current.add(pairId));
+        }
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, favouritesList, watchlistList, resolvePairIdForSymbol, callSubscriptionsApi]);
+
+  const toggleFavorite = useCallback(
+    async (name, type = 'india') => {
+      const trimmedName = String(name ?? '').trim();
+      const trimmedType = String(type || 'india').trim();
+      const isIndiaType = trimmedType.toLowerCase() === 'india';
+      if (!trimmedName) return;
+      if (!isAuthenticated) {
+        showError('Please login to add favorites.');
+        return;
+      }
+      const key = itemKey(trimmedName, trimmedType);
+      if (togglingKey) return;
+      setType(trimmedType);
+      setTogglingKey(key);
+      try {
+        const normalizedTarget = normalizeFavSymbol(trimmedName);
+        const existingIndiaFavorite = isIndiaType
+          ? favouritesList.find(
+            (entry) =>
+              String(entry?.type || '').trim().toLowerCase() === 'india' &&
+              normalizeFavSymbol(parseIndiaFavouriteName(entry?.name).symbol) === normalizedTarget
+          )
+          : null;
+        const isFav = isIndiaType ? Boolean(existingIndiaFavorite) : favoritesSet.has(key);
+        if (isFav) {
+          if (isIndiaType) {
+            const storedName = String(existingIndiaFavorite?.name || '').trim();
+            const parsedStored = storedName ? parseIndiaFavouriteName(storedName) : { symbol: '', pairId: '' };
+
+            const symbolForUnsubscribe = parsedStored.symbol || trimmedName;
+            const pairId =
+              parsedStored.pairId || (await resolvePairIdForSymbol(symbolForUnsubscribe));
+
+            if (!pairId) {
+              throw new Error('Pair id not found for unsubscribe');
+            }
+
+            await callSubscriptionsApi('/subscriptions/unsubscribe', [pairId]);
+            subscribedPairIdsRef.current.delete(String(pairId).trim());
+
+            await removeFavourite(
+              { id: String(pairId).trim(), name: symbolForUnsubscribe },
+              trimmedType
+            );
+
+            setFavouritesList((prev) =>
+              prev.filter((i) => {
+                if (String(i?.type || '').trim().toLowerCase() !== 'india') return true;
+                const parsed = parseIndiaFavouriteName(i?.name);
+                const nameMatches = normalizeFavSymbol(parsed.symbol) === normalizedTarget;
+                const pairMatches = parsed.pairId ? String(parsed.pairId).trim() === String(pairId).trim() : true;
+                return !(nameMatches && pairMatches);
+              })
+            );
+          } else {
+            await removeFavourite(trimmedName, trimmedType);
+            setFavouritesList((prev) => prev.filter((i) => itemKey(i.name, i.type) !== key));
+          }
+          showSuccess('Removed from script');
+        } else {
+          if (isIndiaType) {
+            const pairId = await resolvePairIdForSymbol(trimmedName);
+            if (!pairId) {
+              throw new Error('Pair id not found for subscribe');
+            }
+            await callSubscriptionsApi('/subscriptions/subscribe', [pairId]);
+            subscribedPairIdsRef.current.add(String(pairId).trim());
+            const apiFavoriteName = `${trimmedName}_${pairId}`;
+            await addFavourite({ id: String(pairId).trim(), name: trimmedName }, trimmedType);
+            setFavouritesList((prev) => [...prev, { name: apiFavoriteName, type: trimmedType }]);
+          } else {
+            await addFavourite(trimmedName, trimmedType);
+            setFavouritesList((prev) => [...prev, { name: trimmedName, type: trimmedType }]);
+          }
+          showSuccess('Added to script');
+        }
+      } catch (e) {
+        showError(e?.message || e?.data?.message || 'Failed to update favorite');
+      } finally {
+        setTogglingKey(null);
+      }
+    },
+    [
+      isAuthenticated,
+      favoritesSet,
+      togglingKey,
+      showSuccess,
+      showError,
+      resolvePairIdForSymbol,
+      callSubscriptionsApi,
+      favouritesList,
+    ]
+  );
+
+  const bulkToggleSearchFavorites = useCallback(
+    async (action) => {
+      const selectedItems = Object.values(searchSelectedByKey);
+      if (selectedItems.length === 0) return;
+      if (!isAuthenticated) {
+        showError('Please login to update favorites.');
+        return;
+      }
+      if (bulkFavBusy || togglingKey) return;
+
+      setBulkFavBusy(true);
+      try {
+        if (action === 'add') {
+          const toAdd = [];
+          for (const item of selectedItems) {
+            const symbol = symbolFromStockItem(item);
+            if (!symbol) continue;
+            if (indiaFavoriteSymbolsSet.has(normalizeFavSymbol(symbol))) continue;
+
+            let pairId = pairIdFromStockItem(item);
+            if (!pairId) {
+              pairId = await resolvePairIdForSymbol(symbol);
+            }
+            if (!pairId) continue;
+            toAdd.push({ symbol, pairId: String(pairId).trim() });
+          }
+
+          if (toAdd.length === 0) {
+            showError('Selected items are already in your list or pair id was not found.');
+            return;
+          }
+
+          const pairIds = toAdd.map((entry) => entry.pairId);
+          await callSubscriptionsApi('/subscriptions/subscribe', pairIds);
+          pairIds.forEach((pairId) => subscribedPairIdsRef.current.add(pairId));
+
+          await addFavourite(
+            toAdd.map(({ symbol, pairId }) => ({ id: pairId, name: symbol })),
+            'india'
+          );
+          const addedEntries = toAdd.map(({ symbol, pairId }) => ({
+            name: `${symbol}_${pairId}`,
+            type: 'india',
+          }));
+
+          setFavouritesList((prev) => {
+            const next = [...prev];
+            for (const entry of addedEntries) {
+              const exists = next.some(
+                (i) =>
+                  String(i?.type || '').trim().toLowerCase() === 'india' &&
+                  String(i?.name || '').trim() === String(entry.name).trim()
+              );
+              if (!exists) next.push(entry);
+            }
+            return next;
+          });
+          showSuccess(
+            `Added ${addedEntries.length} script${addedEntries.length === 1 ? '' : 's'} to your list`
+          );
+        } else {
+          const toRemove = [];
+          for (const item of selectedItems) {
+            const symbol = symbolFromStockItem(item);
+            if (!symbol) continue;
+            const normalizedTarget = normalizeFavSymbol(symbol);
+            const existingIndiaFavorite = favouritesList.find(
+              (entry) =>
+                String(entry?.type || '').trim().toLowerCase() === 'india' &&
+                normalizeFavSymbol(parseIndiaFavouriteName(entry?.name).symbol) === normalizedTarget
+            );
+            if (!existingIndiaFavorite) continue;
+
+            const storedName = String(existingIndiaFavorite?.name || '').trim();
+            const parsedStored = storedName
+              ? parseIndiaFavouriteName(storedName)
+              : { symbol: '', pairId: '' };
+            const symbolForUnsubscribe = parsedStored.symbol || symbol;
+            let pairId =
+              parsedStored.pairId || pairIdFromStockItem(item) || (await resolvePairIdForSymbol(symbolForUnsubscribe));
+            pairId = String(pairId || '').trim();
+            if (!pairId) continue;
+
+            toRemove.push({
+              symbol: symbolForUnsubscribe,
+              pairId,
+              normalizedTarget,
+            });
+          }
+
+          if (toRemove.length === 0) {
+            showError('None of the selected items are in your list.');
+            return;
+          }
+
+          const pairIds = toRemove.map((entry) => entry.pairId);
+          await callSubscriptionsApi('/subscriptions/unsubscribe', pairIds);
+          pairIds.forEach((pairId) => subscribedPairIdsRef.current.delete(pairId));
+
+          await removeFavourite(
+            toRemove.map(({ symbol, pairId }) => ({ id: pairId, name: symbol })),
+            'india'
+          );
+
+          const removeTargets = new Set(toRemove.map((entry) => entry.normalizedTarget));
+          const removePairIds = new Set(toRemove.map((entry) => entry.pairId));
+          setFavouritesList((prev) =>
+            prev.filter((i) => {
+              if (String(i?.type || '').trim().toLowerCase() !== 'india') return true;
+              const parsed = parseIndiaFavouriteName(i?.name);
+              const nameMatches = removeTargets.has(normalizeFavSymbol(parsed.symbol));
+              const pairMatches = parsed.pairId
+                ? removePairIds.has(String(parsed.pairId).trim())
+                : true;
+              return !(nameMatches && pairMatches);
+            })
+          );
+          showSuccess(
+            `Removed ${toRemove.length} script${toRemove.length === 1 ? '' : 's'} from your list`
+          );
+        }
+        setSearchSelectedByKey({});
+      } catch (e) {
+        showError(e?.message || e?.data?.message || 'Failed to update favorites');
+      } finally {
+        setBulkFavBusy(false);
+      }
+    },
+    [
+      searchSelectedByKey,
+      isAuthenticated,
+      bulkFavBusy,
+      togglingKey,
+      symbolFromStockItem,
+      pairIdFromStockItem,
+      indiaFavoriteSymbolsSet,
+      resolvePairIdForSymbol,
+      callSubscriptionsApi,
+      favouritesList,
+      showSuccess,
+      showError,
+    ]
+  );
+
+  const toggleWatchlist = useCallback(
+    async (name, type = 'india') => {
+      const trimmedName = String(name ?? '').trim();
+      const trimmedType = String(type || 'india').trim();
+      if (!trimmedName) return;
+      if (!isAuthenticated) {
+        showError('Please login to add to watchlist.');
+        return;
+      }
+      const key = itemKey(trimmedName, trimmedType);
+      if (togglingKey) return;
+      setTogglingKey(key);
+      try {
+        const isWatch = watchlistSet.has(key);
+        if (isWatch) {
+          await removeWishlist(trimmedName, trimmedType);
+          setWatchlistList((prev) => prev.filter((i) => itemKey(i.name, i.type) !== key));
+          showSuccess('Removed from watchlist');
+        } else {
+          await addWishlist(trimmedName, trimmedType);
+          setWatchlistList((prev) => [...prev, { name: trimmedName, type: trimmedType }]);
+          showSuccess('Added to watchlist');
+        }
+      } catch (e) {
+        showError(e?.message || e?.data?.message || 'Failed to update watchlist');
+      } finally {
+        setTogglingKey(null);
+      }
+    },
+    [isAuthenticated, watchlistSet, togglingKey, showSuccess, showError]
+  );
+
+  const handleModalToggleFavorite = useCallback(
+    async (item) => {
+      const symbol = String(item?.pairsymbol || item?.pairname || '').trim();
+      if (!symbol) return;
+      await toggleFavorite(symbol, 'india');
+    },
+    [toggleFavorite]
+  );
+
+  const handleMarketClick = useCallback(
+    async (marketId, marketType, explicitPairId = '') => {
+      const params = new URLSearchParams();
+
+      if (marketId) params.set('market', String(marketId));
+      if (marketType) params.set('type', String(marketType));
+
+      if (String(marketType || '').trim().toLowerCase() === 'india') {
+        let pairId = String(explicitPairId || '').trim();
+        if (!pairId) {
+          pairId = await resolvePairIdForSymbol(marketId);
+        }
+        if (pairId) {
+          params.set('pairid', String(pairId));
+          const marketKey = normalizeMarketSymbol(marketId);
+          if (marketKey) {
+            try {
+              const rawMap = sessionStorage.getItem(INDIA_PAIRID_NAV_STATE_KEY);
+              const parsedMap =
+                rawMap && typeof rawMap === 'string' ? JSON.parse(rawMap) : {};
+              const nextMap =
+                parsedMap && typeof parsedMap === 'object' ? parsedMap : {};
+              nextMap[marketKey] = String(pairId);
+              sessionStorage.setItem(INDIA_PAIRID_NAV_STATE_KEY, JSON.stringify(nextMap));
+            } catch {
+              // Ignore storage errors and continue with clean URL navigation.
+            }
+          }
+        }
+      }
+
+      const targetPath = `/dashboard?${params.toString()}`;
+      window.location.href = targetPath;
+    },
+    [resolvePairIdForSymbol]
+  );
+
+  const hasAdvancedFilters =
+    searchProductKind !== 'all' ||
+    searchSegment !== 'all' ||
+    searchExchange !== 'all' ||
+    searchExpiry !== 'all' ||
+    searchInstrumentType !== 'all';
+  const searchInputReady =
+    modalSearchQuery.trim().length >= SEARCH_TEXT_MIN_LEN || hasAdvancedFilters;
+  const showChainView = searchViewMode === 'chain' && optionChains.length > 0;
+
+  const renderSearchSelectCheckbox = (sideItem) => {
+    const selectKey = searchItemSelectKey(sideItem);
+    if (!selectKey) return null;
+    const isSelected = Boolean(searchSelectedByKey[selectKey]);
+    return (
+      <input
+        type="checkbox"
+        className="marketsSearchModalSelectCheckbox"
+        checked={isSelected}
+        disabled={bulkFavBusy}
+        onChange={(e) => {
+          e.stopPropagation();
+          toggleSearchItemSelected(sideItem, e.target.checked);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={isSelected ? 'Deselect instrument' : 'Select instrument for bulk add/remove'}
+      />
+    );
+  };
+
+  const renderChainSideCell = (sideItem, sideLabel) => {
+    const isCall = sideLabel === 'Call';
+    if (!sideItem) {
+      return (
+        <div
+          className={`marketsSearchModalChainCell marketsSearchModalChainCell--empty ${isCall ? 'marketsSearchModalChainCell--call' : 'marketsSearchModalChainCell--put'}`}
+        >
+          <span className="marketsSearchModalChainEmpty">—</span>
+        </div>
+      );
+    }
+    const symbol = String(sideItem.pairsymbol || sideItem.pairname || '').trim();
+    const favToggleKey = itemKey(symbol, 'india');
+    const isTogglingThis = togglingKey === favToggleKey;
+    const isFav = indiaFavoriteSymbolsSet.has(normalizeFavSymbol(symbol));
+    const pairLabel = formatIndianOrderPairDisplay(sideItem.pairsymbol) || symbol;
+    const lotStr =
+      sideItem.lotsize != null && sideItem.lotsize !== '' ? String(sideItem.lotsize) : '';
+    const mainBtn = (
+      <button
+        type="button"
+        className="marketsSearchModalChainMain"
+        onClick={() => handleSelectStock(sideItem)}
+        title={symbol || undefined}
+        aria-label={symbol ? `Select ${symbol}` : `Select ${pairLabel}`}
+      >
+        <span className="marketsSearchModalChainPairLine">{pairLabel}</span>
+        {/* {lotStr ? (
+          <span className="marketsSearchModalChainLotBadge">Lot {lotStr}</span>
+        ) : null} */}
+      </button>
+    );
+    const selectCheckbox = renderSearchSelectCheckbox(sideItem);
+    const favBtn = (
+      <button
+        type="button"
+        className={
+          isFav
+            ? 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--remove marketsSearchModalChainFavBtn'
+            : 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--add marketsSearchModalChainFavBtn'
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          handleModalToggleFavorite(sideItem);
+        }}
+        disabled={isTogglingThis || bulkFavBusy}
+        aria-busy={isTogglingThis}
+        aria-label={isFav ? 'Remove from list' : 'Add to list'}
+      >
+        {isTogglingThis ? (
+          <span className="marketsSearchModalBtnSpinner" aria-hidden="true" />
+        ) : isFav ? (
+          'Del'
+        ) : (
+          'Add'
+        )}
+      </button>
+    );
+    return (
+      <div
+        className={`marketsSearchModalChainCell ${isCall ? 'marketsSearchModalChainCell--call' : 'marketsSearchModalChainCell--put'} ${isFav ? 'fav' : ''}`}
+      >
+        {isCall ? (
+          <>
+            {mainBtn}
+            {selectCheckbox}
+            {favBtn}
+          </>
+        ) : (
+          <>
+            {selectCheckbox}
+            {favBtn}
+            {mainBtn}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="marketsPage marketsPage--indiaNoVScroll">
+      <Header />
+      <div className="marketsContainer">
+        <div className="marketsHeader">
+          <div className="marketsHeaderContent">
+            <div className="marketsHeaderText">
+              <h1 className="marketsTitle">Indian Markets</h1>
+              <p className="marketsSubtitle">Trade Indian stocks and indices</p>
+            </div>
+            {/* <div className="wsStatusContainer">
+              <div
+                className={`wsStatusIndicator ${isConnected ? 'connected' : isReconnecting ? 'reconnecting' : 'disconnected'}`}
+                title={`Markets WebSocket Status: ${state}`}
+              >
+                <div className="wsStatusDot" />
+                <span className="wsStatusText">
+                  Markets: {isConnected ? 'Live' : isReconnecting ? 'Reconnecting...' : isConnecting ? 'Connecting...' : 'Offline'}
+                </span>
+                {error && (
+                  <span className="wsStatusError" title={error?.message || String(error)}>
+                    ⚠
+                  </span>
+                )}
+              </div>
+            </div> */}
+          </div>
+        </div>
+
+        <div className="marketsFilters">
+          <div className="searchBox">
+            <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M23.75 13.75C23.75 18.7206 19.7206 22.75 14.75 22.75C12.7238 22.75 10.854 22.0804 9.34976 20.9505C9.32881 20.9783 9.30566 21.005 9.28033 21.0303L7.03033 23.2803C6.73744 23.5732 6.26256 23.5732 5.96967 23.2803C5.67678 22.9874 5.67678 22.5126 5.96967 22.2197L8.21967 19.9697C8.22399 19.9654 8.22835 19.9611 8.23275 19.9569C6.69439 18.3421 5.75 16.1563 5.75 13.75C5.75 8.77944 9.77944 4.75 14.75 4.75C19.7206 4.75 23.75 8.77944 23.75 13.75ZM22.25 13.75C22.25 17.8921 18.8921 21.25 14.75 21.25C10.6079 21.25 7.25 17.8921 7.25 13.75C7.25 9.60786 10.6079 6.25 14.75 6.25C18.8921 6.25 22.25 9.60786 22.25 13.75Z" fill="#73757A" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Click to search Indian markets..."
+              value={searchQuery}
+              onClick={openSearchModal}
+              readOnly
+              className="searchInput"
+            />
+          </div>
+
+          <div className="marketsFilterActions">
+            <button
+              className={`filterBtn ${showFavorites ? 'active' : ''}`}
+            // onClick={() => setShowFavorites(!showFavorites)}
+            >
+              {/* <svg width="18" height="18" viewBox="0 0 24 24" fill={showFavorites ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg> */}
+              My List ({indiaFavouritesCount})
+            </button>
+            {/* <div className="sortFilter">
+              <label className="sortLabel">Sort by:</label>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
+                {sortOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div> */}
+          </div>
+
+
+        </div>
+
+        <IndiaMarkets
+          searchQuery={searchQuery}
+          favoritesSet={favoritesSet}
+          watchlistSet={watchlistSet}
+          itemKey={itemKey}
+          onToggleFavorite={toggleFavorite}
+          onToggleWatchlist={toggleWatchlist}
+          onMarketClick={handleMarketClick}
+          showFavorites={showFavorites}
+          showWatchlist={showWatchlist}
+          sortBy={sortBy}
+        />
+      </div>
+
+      {isSearchModalOpen && (
+        <div className="marketsSearchModalOverlay" onClick={closeSearchModal}>
+          <div className="marketsSearchModal marketsSearchModal--advanced" onClick={(e) => e.stopPropagation()}>
+            <div className="marketsSearchModalHeader">
+              <div>
+                <h3>Indian Markets Search</h3>
+                <p className="marketsSearchModalSub">
+                  {stockListLoading
+                    ? 'Loading instruments…'
+                    : `${totalMatchCount.toLocaleString()} match${totalMatchCount === 1 ? '' : 'es'} · ${optionChains.length} chain${optionChains.length === 1 ? '' : 's'} · ${stockList.length.toLocaleString()} indexed${lastSearchMs != null ? ` · ${lastSearchMs.toFixed(2)} ms` : ''
+                    }${workerFailed ? ' · worker off (sync)' : ''}`}
+                </p>
+              </div>
+              <button type="button" className="marketsSearchModalClose" onClick={closeSearchModal} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="marketsSearchModalBody">
+              <input
+                type="text"
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                placeholder="Search symbol, strike, expiry, segment… (or use filters below)"
+                className="marketsSearchModalInput"
+                autoFocus
+              />
+
+              <div className="marketsSearchAdvToolbar">
+                <div className="marketsSearchChips" role="group" aria-label="Instrument type">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'options', label: 'Options (CE / PE)' },
+                    { id: 'futures', label: 'Futures' },
+                    { id: 'equity', label: 'Cash / others' },
+                  ].map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`marketsSearchChip ${searchProductKind === c.id ? 'marketsSearchChip--active' : ''}`}
+                      onClick={() => setSearchProductKind(c.id)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="marketsSearchAdvToolbarRight">
+                  <div className="marketsSearchViewToggle" role="group" aria-label="Layout">
+                    <button
+                      type="button"
+                      className={searchViewMode === 'chain' ? 'active' : ''}
+                      onClick={() => setSearchViewMode('chain')}
+                    >
+                      Option chain
+                    </button>
+                    <button
+                      type="button"
+                      className={searchViewMode === 'classic' ? 'active' : ''}
+                      onClick={() => setSearchViewMode('classic')}
+                    >
+                      Classic pairs
+                    </button>
+                  </div>
+                  {searchViewMode === 'chain' && (
+                    <MarketsSearchCustomSelect
+                      className="marketsSearchStrikeSortWrap"
+                      value={searchStrikeSort}
+                      onChange={setSearchStrikeSort}
+                      options={modalStrikeSortOptions}
+                      withAll={false}
+                      ariaLabel="Strike sort"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="marketsSearchFilterGrid">
+                <label className="marketsSearchFilterField">
+                  <span className="marketsSearchFilterLabel">Segment</span>
+                  <MarketsSearchCustomSelect
+                    value={searchSegment}
+                    onChange={setSearchSegment}
+                    options={modalSegmentOptions}
+                    allLabel="All segments"
+                    ariaLabel="Segment filter"
+                  />
+                </label>
+                <label className="marketsSearchFilterField">
+                  <span className="marketsSearchFilterLabel">Exchange</span>
+                  <MarketsSearchCustomSelect
+                    value={searchExchange}
+                    onChange={setSearchExchange}
+                    options={modalExchangeOptions}
+                    allLabel="All exchanges"
+                    ariaLabel="Exchange filter"
+                  />
+                </label>
+                <label className="marketsSearchFilterField">
+                  <span className="marketsSearchFilterLabel">Expiry</span>
+                  <MarketsSearchCustomSelect
+                    value={searchExpiry}
+                    onChange={setSearchExpiry}
+                    options={modalExpiryOptions}
+                    allLabel="All expiries"
+                    menuTall
+                    ariaLabel="Expiry filter"
+                  />
+                </label>
+                <label className="marketsSearchFilterField">
+                  <span className="marketsSearchFilterLabel">Instrument</span>
+                  <MarketsSearchCustomSelect
+                    value={searchInstrumentType}
+                    onChange={setSearchInstrumentType}
+                    options={modalInstrumentOptions}
+                    allLabel="All instrument types"
+                    ariaLabel="Instrument type filter"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="marketsSearchClearFilters"
+                  onClick={() => {
+                    setSearchProductKind('all');
+                    setSearchSegment('all');
+                    setSearchExchange('all');
+                    setSearchExpiry('all');
+                    setSearchInstrumentType('all');
+                  }}
+                >
+                  Clear filters
+                </button>
+              </div>
+
+              {searchSelectionCount > 0 ? (
+                <div className="marketsSearchBulkBar" role="toolbar" aria-label="Bulk list actions">
+                  <span className="marketsSearchBulkBarCount">
+                    {searchSelectionCount} selected
+                  </span>
+                  <button
+                    type="button"
+                    className="marketsSearchModalScriptBtn marketsSearchModalScriptBtn--add"
+                    disabled={bulkFavBusy}
+                    onClick={() => bulkToggleSearchFavorites('add')}
+                  >
+                    Add selected
+                  </button>
+                  <button
+                    type="button"
+                    className="marketsSearchModalScriptBtn marketsSearchModalScriptBtn--remove"
+                    disabled={bulkFavBusy}
+                    onClick={() => bulkToggleSearchFavorites('remove')}
+                  >
+                    Remove selected
+                  </button>
+                  <button
+                    type="button"
+                    className="marketsSearchClearFilters"
+                    disabled={bulkFavBusy}
+                    onClick={() => setSearchSelectedByKey({})}
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              ) : null}
+
+              {/* {isHitSetTruncated ? (
+                <p className="marketsSearchHitCap">
+                  Showing option-chain / grouping on the first {MAX_HITS_FOR_UI_AGG.toLocaleString()} matches of{' '}
+                  {totalMatchCount.toLocaleString()}. Narrow the query or filters for the full set.
+                </p>
+              ) : null} */}
+              <div style={{ paddingBottom: "20px"}}>
+                <div className="marketsSearchModalResults marketsSearchModalResults--scroll">
+                  {stockListLoading ? (
+                    <div className="marketsSearchModalState">Loading stock list…</div>
+                  ) : !searchInputReady ? (
+                    <div className="marketsSearchModalState">
+                      Type at least one character or choose filters (segment / expiry / etc.) to browse instruments.
+                      {workerIndexed && !workerFailed ? (
+                        <span className="marketsSearchModalStateHint">
+                          {' '}
+                          Large lists are indexed in a background thread — search stays fast.
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : totalMatchCount === 0 ? (
+                    <div className="marketsSearchModalState">No matching instruments — try a wider search or reset filters.</div>
+                  ) : searchViewMode === 'chain' && optionChains.length === 0 ? (
+                    <div className="marketsSearchModalState">
+                      <p style={{ margin: '0 0 12px' }}>
+                        No option-chain rows for this search. Chains need CE/PE symbols with a strike (try{' '}
+                        <strong>Options (CE / PE)</strong> filter or pick an expiry).
+                      </p>
+                      <button
+                        type="button"
+                        className="marketsSearchClearFilters"
+                        onClick={() => setSearchViewMode('classic')}
+                      >
+                        Switch to classic pairs view
+                      </button>
+                    </div>
+                  ) : showChainView ? (
+                    <div className="marketsSearchModalChainList">
+                      {optionChains.map((chain) => (
+                        <section key={chain.key} className="marketsSearchModalChain">
+                          <header className="marketsSearchModalChainBanner">
+                            <div className="marketsSearchModalChainBannerMain">
+                              <span className="marketsSearchModalChainUnd">{chain.underlying}</span>
+                              <span className="marketsSearchModalChainExp">{chain.expiryLabel}</span>
+                            </div>
+                            <div className="marketsSearchModalChainBannerMeta">
+                              {chain.exchange ? (
+                                <span className="marketsSearchModalChainPill">{chain.exchange}</span>
+                              ) : null}
+                              {chain.segment ? (
+                                <span className="marketsSearchModalChainPill">{chain.segment}</span>
+                              ) : null}
+                              {chain.instrumentType ? (
+                                <span className="marketsSearchModalChainPill">{chain.instrumentType}</span>
+                              ) : null}
+                            </div>
+                          </header>
+                          {chain.truncated ? (
+                            <p className="marketsSearchModalChainNote">
+                              Showing first {MAX_STRIKES_PER_CHAIN} strikes — narrow search to see more.
+                            </p>
+                          ) : null}
+                          <div className="marketsSearchModalChainTable" role="grid" aria-label={`Option chain ${chain.underlying}`}>
+                            <div className="marketsSearchModalChainTableHead" role="row">
+                              <span role="columnheader">Call (CE)</span>
+                              <span role="columnheader">Strike</span>
+                              <span role="columnheader">Put (PE)</span>
+                            </div>
+                            {chain.rows.map((row) => (
+                              <div key={`${chain.key}-${row.strike}`} className="marketsSearchModalChainRow" role="row">
+                                {renderChainSideCell(row.call, 'Call')}
+                                <div className="marketsSearchModalChainStrike" role="gridcell">
+                                  <span className="marketsSearchModalChainStrikeNum">{row.strike}</span>
+                                </div>
+                                {renderChainSideCell(row.put, 'Put')}
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                      {optionChains.length >= MAX_OPTION_CHAINS ? (
+                        <p className="marketsSearchModalChainFootnote">
+                          Showing top {MAX_OPTION_CHAINS} chains — refine search for a specific underlying or expiry.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="marketsSearchModalResultsHeader marketsSearchModalResultsHeader--classic">
+                        <span className="marketsSearchModalResultsHeaderLabel">CALL (CE)</span>
+                        <span className="marketsSearchModalResultsHeaderLabel">PUT (PE)</span>
+                      </div>
+                      <div className="marketsSearchModalResultsGrid">
+                        {groupedSearchResultsVisible.map((group) => {
+                          const renderSide = (sideItem, sideLabel) => {
+                            if (!sideItem) {
+                              return (
+                                <div className="marketsSearchModalResultItem marketsSearchModalResultItem--empty">
+                                  <div className="marketsSearchModalResultEmpty">No {sideLabel}</div>
+                                </div>
+                              );
+                            }
+                            const symbol = String(sideItem.pairsymbol || sideItem.pairname || '').trim();
+                            const favToggleKey = itemKey(symbol, 'india');
+                            const isTogglingThis = togglingKey === favToggleKey;
+                            const isFav = indiaFavoriteSymbolsSet.has(normalizeFavSymbol(symbol));
+                            const strike = sideItem.strike != null ? String(sideItem.strike) : '';
+                            const expiry = sideItem.expirydate
+                              ? String(sideItem.expirydate).split(/[ T]/)[0]
+                              : '';
+                            const optionType = sideLabel === 'Call' ? 'CE' : 'PE';
+                            const cleanUnderlying = String(
+                              group.baseLabel || sideItem.pairname || sideItem.pairsymbol || ''
+                            )
+                              .replace(/\s+(CE|PE)\b/i, '')
+                              .trim();
+                            return (
+                              <div
+                                key={sideItem.pairid || `${sideItem.pairsymbol}-${sideItem.pairname}-${sideLabel}`}
+                                className={`marketsSearchModalResultItem ${isFav ? 'fav' : ''}`}
+                              >
+                                {renderSearchSelectCheckbox(sideItem)}
+                                <button
+                                  type="button"
+                                  className="marketsSearchModalResultMain"
+                                  onClick={() => handleSelectStock(sideItem)}
+                                >
+                                  <div className="marketsSearchModalResultTitleRow">
+                                    <div className="marketsSearchModalResultTitleMain">
+                                      <span className="marketsSearchModalResultUnderlying">
+                                        {cleanUnderlying || sideItem.pairname || sideItem.pairsymbol}
+                                      </span>
+                                      {strike ? (
+                                        <span className="marketsSearchModalResultStrike">{strike}</span>
+                                      ) : null}
+                                      <span
+                                        className={
+                                          optionType === 'CE'
+                                            ? 'marketsSearchModalResultOptionTag marketsSearchModalResultOptionTag--ce'
+                                            : 'marketsSearchModalResultOptionTag marketsSearchModalResultOptionTag--pe'
+                                        }
+                                      >
+                                        {optionType}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="marketsSearchModalResultMeta">
+                                    <span className="marketsSearchModalResultSymbol">{sideItem.pairsymbol}</span>
+                                    {sideItem.segment ? (
+                                      <span className="marketsSearchModalResultMetaChunk">{sideItem.segment}</span>
+                                    ) : null}
+                                    {expiry ? (
+                                      <span className="marketsSearchModalResultMetaChunk">{expiry}</span>
+                                    ) : null}
+                                  </div>
+                                </button>
+                                <button
+                                  type="button"
+                                  className={
+                                    isFav
+                                      ? 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--remove'
+                                      : 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--add'
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleModalToggleFavorite(sideItem);
+                                  }}
+                                  disabled={isTogglingThis || bulkFavBusy}
+                                  aria-busy={isTogglingThis}
+                                  aria-label={isFav ? 'Del' : 'Add'}
+                                >
+                                  {isTogglingThis ? (
+                                    <span className="marketsSearchModalBtnSpinner" aria-hidden="true" />
+                                  ) : isFav ? (
+                                    'Del'
+                                  ) : (
+                                    'Add'
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          };
+
+                          return (
+                            <div key={group.key} className="marketsSearchModalResultRow">
+                              {renderSide(group.call, 'Call')}
+                              {renderSide(group.put, 'Put')}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {hasMoreClassicGroups ? (
+                        <div className="marketsSearchLoadMoreWrap">
+                          <button
+                            type="button"
+                            className="marketsSearchClearFilters"
+                            onClick={() => setClassicGroupLimit((n) => n + CLASSIC_GROUPS_PAGE)}
+                          >
+                            Load more (
+                            {(groupedSearchResults.length - classicGroupLimit).toLocaleString()} CE/PE rows left)
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default IndianMarketsPage;

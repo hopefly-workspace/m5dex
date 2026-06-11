@@ -1,0 +1,273 @@
+/**
+ * Account Activities View
+ * Page-style modal, responsive across all devices
+ */
+
+.activitiesViewOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.activitiesView {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 0;
+  width: 100%;
+  max-width: 640px;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.activitiesViewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.activitiesViewTitle {
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.activitiesViewClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.activitiesViewClose:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.activitiesViewDescription {
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.activitiesViewBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
+  -webkit-overflow-scrolling: touch;
+}
+
+.activitiesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.activityCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.activityCard:hover {
+  border-color: var(--border-medium);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.activityCardIcon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.activityCardIcon--login {
+  color: var(--color-success);
+  background: rgba(0, 200, 83, 0.1);
+  border-color: rgba(0, 200, 83, 0.25);
+}
+
+.activityCardIcon--logout {
+  color: var(--text-secondary);
+  background: rgba(128, 128, 128, 0.1);
+  border-color: var(--border-light);
+}
+
+.activityCardIcon--password,
+.activityCardIcon--2fa,
+.activityCardIcon--security {
+  color: var(--brand-primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+.activityCardMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityCardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-bottom: 4px;
+}
+
+.activityCardLabel {
+  font-family: var(--font-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activityCardMeta {
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.activityCardDescription {
+  font-family: var(--font-primary);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-xs);
+  line-height: 1.4;
+}
+
+.activityCardFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.activityCardDevice {
+  margin-right: var(--space-xs);
+}
+
+.activityCardIp {
+  opacity: 0.85;
+}
+
+/* Responsive: mobile-first */
+@media (max-width: 767px) {
+  .activitiesViewOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .activitiesView {
+    max-height: 90vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+  }
+
+  .activitiesViewHeader {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .activitiesViewTitle {
+    font-size: 1.125rem;
+  }
+
+  .activitiesViewClose {
+    width: 36px;
+    height: 36px;
+  }
+
+  .activitiesViewDescription {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 0.8125rem;
+  }
+
+  .activitiesViewBody {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .activityCard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+  }
+
+  .activityCardIcon {
+    align-self: flex-start;
+  }
+
+  .activityCardHead {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .activityCardMeta {
+    white-space: normal;
+  }
+}
+
+@media (min-width: 768px) {
+  .activitiesViewOverlay {
+    align-items: center;
+    padding: var(--space-xl);
+  }
+
+  .activitiesView {
+    max-height: 85vh;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .activitiesView {
+    max-width: 720px;
+  }
+}

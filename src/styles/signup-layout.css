@@ -1,0 +1,81 @@
+/**
+ * Sign Up Layout Responsive Styles
+ */
+
+.signup-layout-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.signup-layout-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-3xl);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.signup-layout-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background-color: var(--bg-primary);
+  overflow-y: auto;
+}
+
+.signup-layout-form-container {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Tablet - 1024px and below */
+@media (max-width: 1024px) {
+  .signup-layout-container {
+    flex-direction: column;
+  }
+  
+  .signup-layout-left {
+    padding: var(--space-2xl) var(--space-lg);
+    min-height: auto;
+  }
+  
+  .signup-layout-right {
+    padding: var(--space-lg) var(--space-md);
+  }
+}
+
+/* Mobile - 768px and below */
+@media (max-width: 768px) {
+  .signup-layout-left {
+    padding: var(--space-xl) var(--space-md);
+  }
+  
+  .signup-layout-right {
+    padding: var(--space-lg) var(--space-md);
+  }
+  
+  .signup-layout-form-container {
+    max-width: 100%;
+  }
+}
+
+/* Small Mobile - 480px and below */
+@media (max-width: 480px) {
+  .signup-layout-left {
+    padding: var(--space-lg) var(--space-md);
+  }
+  
+  .signup-layout-right {
+    padding: var(--space-md);
+  }
+}
+

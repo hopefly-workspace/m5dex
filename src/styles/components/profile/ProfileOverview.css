@@ -1,0 +1,1833 @@
+/**
+ * Profile Overview Component Styles
+ * Exact MEXC-style user profile design matching reference image
+ * Industry-level, pixel-perfect responsive design
+ */
+
+.mexcProfileOverview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  position: relative;
+  min-height: 100vh;
+  /* padding-bottom: 80px; */
+  /* Space for support icon */
+}
+
+/* ============================================
+   TOP SECTION - USER INFORMATION
+   ============================================ */
+
+.mexcTopSection {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcUserHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: var(--space-lg);
+}
+
+.mexcAvatarSection {
+  display: flex;
+  /* flex-direction: column; */
+  align-items: center;
+  gap: var(--space-lg);
+  flex-shrink: 0;
+}
+
+.mexcNicknameSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* align-items: center; */
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.mexcAvatarContainer {
+  position: relative;
+  width: 64px;
+  /* height: 64px; */
+}
+
+.mexcAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  /* background: linear-gradient(135deg,
+      var(--brand-primary) 0%,
+      var(--brand-primary-dark) 100%); */
+  background: var(--bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  border: 2px solid var(--border-light);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.mexcAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.mexcAvatarInitials {
+  font-family: var(--font-primary);
+  font-size: 24px;
+  font-weight: var(--weight-semibold);
+  color: white;
+  line-height: 1;
+  user-select: none;
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.mexcSetNicknameBtn {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.mexcSetNicknameText {
+  font-size: clamp(var(--text-body-lg), 2vw, var(--text-h3));
+  font-weight: var(--weight-semibold);
+}
+
+.mexcSetNicknameIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+
+.mexcSetNicknameBtn:hover .mexcSetNicknameText,
+.mexcSetNicknameBtn:hover .mexcSetNicknameIcon {
+  color: var(--brand-primary);
+}
+
+.mexcVerifiedBadge {
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.mexcVerifiedBadge.unverified {
+  background-color: var(--badge-warning-bg);
+  color: var(--text-warning);
+  border: 1px solid var(--badge-warning-border);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcVerifiedBadge.verified {
+  background-color: var(--badge-success-bg);
+  color: var(--text-success);
+  border: 1px solid var(--badge-success-border);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexUserDetailLabel {
+  font-size: var(--text-h4);
+  font-weight: var(--weight-medium);
+}
+
+.mexcUserDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+  /* padding-top: var(--space-md); */
+  border-top: 1px solid var(--border-light);
+  transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: none !important;
+}
+
+.mexcAccountRow,
+.mexcUIDRow,
+.mexcSignUpRow,
+.mexcLastLoginRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mexcAccountDropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcAccountLabel,
+.mexcUIDLabel,
+.mexcSignUpLabel,
+.mexcLastLoginLabel {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--text-secondary);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcAccountEmail,
+.mexcUIDValue,
+.mexcSignUpValue,
+.mexcLastLoginValue {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--text-primary);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcEditIconDisabled {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mexcCopyIconBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcCopyIconBtn:hover {
+  color: var(--brand-primary);
+}
+
+.mexcArrowIcon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   MAIN CONTENT - TWO COLUMN LAYOUT
+   ============================================ */
+
+.mexcMainContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+/* ============================================
+   LEFT COLUMN
+   ============================================ */
+
+.mexcLeftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Total Value Card */
+.mexcTotalValueCard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  position: relative;
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcTotalValueHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.mexcTotalValueTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcEyeIconBtn {
+  /* background: none; */
+  /* border: none; */
+  background-color: var(--badge-click-bg);
+  /* background-color: var(--badge-success-bg); */
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 5px;
+}
+
+.mexcEyeIconBtn svg {
+  width: clamp(14px, 3.5vw, 18px);
+  height: clamp(14px, 3.5vw, 18px);
+  color: var(--brand-primary-dark);
+}
+
+.mexcEyeIconBtn:hover {
+  color: var(--brand-primary);
+}
+
+.mexcAssetDetailsLink {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--brand-primary-dark);
+  /* color: var(--brand-primary); */
+  text-decoration: none;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcAssetDetailsLink:hover {
+  color: var(--brand-primary-light);
+}
+
+.mexcTotalValueContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mexcValueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: var(--space-sm) 0;
+  width: 100%;
+}
+
+/*  */
+.mexcValueMain {
+  font-family: var(--font-primary);
+  font-size: 20px;
+  /* font-size: 32px; */
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  line-height: 1.2;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcOverviewHeader {
+  font-family: var(--font-primary);
+  font-size: var(--text-display-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+@media (max-width: 767px) {
+  .mexcOverviewHeader {
+    font-size: var(--text-h1);
+  }
+}
+
+@media (max-width: 567px) {
+  .mexcOverviewHeader {
+    font-size: var(--text-h2);
+  }
+}
+
+.mexcOverviewDescription {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-lg);
+  color: var(--ark-text-tertiary);
+  margin: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcValueSub {
+  font-family: var(--font-primary);
+  font-size: var(--text-h4);
+  color: var(--text-secondary);
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcDepositBtn {
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg,
+      var(--brand-primary) 0%,
+      var(--brand-primary-light) 100%);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-lg);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: var(--space-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mexcDepositBtn:hover {
+  background: linear-gradient(135deg,
+      var(--brand-primary-light) 0%,
+      var(--brand-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    var(--shadow-glow);
+}
+
+.mexcDepositBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Hot Events Section */
+.mexcHotEventsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.mexcHotEventsTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcHotEventsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mexcEventCard {
+  /* background-color: var(--bg-secondary); */
+  /* border: 1px solid var(--border-light); */
+  /* border-radius: var(--radius-md); */
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcEventCard:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mexcEventCard:hover {
+  border-color: var(--brand-primary);
+  background-color: var(--bg-hover);
+  transform: translateY(-2px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcEventLogo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.mexcEventLogo::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, currentColor 0%, transparent 100%);
+  opacity: 0.3;
+  filter: blur(4px);
+  z-index: -1;
+}
+
+.mexcEventIcon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.mexcEventContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.mexcEventTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcEventStatus {
+  padding: 2px var(--space-sm);
+  background-color: var(--badge-primary-bg);
+  color: var(--brand-primary);
+  border: 1px solid var(--badge-primary-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-xs);
+  font-weight: var(--weight-medium);
+  display: inline-flex;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  align-self: flex-start;
+}
+
+/* ============================================
+   RIGHT COLUMN
+   ============================================ */
+
+.mexcRightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Referral Card */
+.mexcReferralCard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcReferralHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mexcReferralIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mexcReferralTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcReferralSubtitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-lg);
+  color: var(--text-secondary);
+  margin: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcReferralLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcValueContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcReferralInput {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcReferralInput::selection {
+  background-color: var(--brand-primary);
+}
+
+/* Learn Card */
+.mexcLearnCard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  /* gap: var(--space-md); */
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcHotEventCard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  transition:
+    background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcLearnHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mexcLearnIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mexcLearnTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mexcLearnSubtitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-lg);
+  color: var(--text-secondary);
+  margin: 0;
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   SUPPORT ICON - FIXED BOTTOM RIGHT
+   ============================================ */
+
+.mexcSupportIcon {
+  position: fixed;
+  bottom: var(--space-xl);
+  right: var(--space-xl);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--brand-primary);
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-glow);
+  transition: all 0.2s ease;
+  z-index: 100;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mexcSupportIcon:hover {
+  background-color: var(--brand-primary-light);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-glow);
+}
+
+.mexcSupportIcon:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   SUCCESS TOAST NOTIFICATION
+   ============================================ */
+
+.mexcSuccessToast {
+  position: fixed;
+  top: var(--space-xl);
+  right: var(--space-xl);
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+  max-width: 400px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mexcSuccessToastContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--badge-success-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mexcSuccessToastIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--badge-success-bg);
+  color: var(--text-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mexcSuccessToastMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.mexcSuccessToastMessage strong {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.mexcSuccessToastMessage span {
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  color: var(--text-secondary);
+}
+
+.mexcSuccessToastClose {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mexcSuccessToastClose:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Responsive Styles for Toast */
+@media (max-width: 768px) {
+  .mexcSuccessToast {
+    top: var(--space-md);
+    right: var(--space-md);
+    left: var(--space-md);
+    max-width: none;
+  }
+
+  .mexcSuccessToastContent {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .mexcSuccessToastIcon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mexcSuccessToastIcon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mexcSuccessToastMessage strong {
+    font-size: var(--text-body-sm);
+  }
+
+  .mexcSuccessToastMessage span {
+    font-size: var(--text-body-xs);
+  }
+}
+
+/* ============================================
+   PROFILE EDIT MODAL
+   ============================================ */
+
+.profileEditModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+  animation: profileEditModalFadeIn 0.2s ease;
+}
+
+@keyframes profileEditModalFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.profileEditModal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  animation: profileEditModalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes profileEditModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.profileEditModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xl) var(--space-xl) 0;
+}
+
+.profileEditModalTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.profileEditModalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profileEditModalClose:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.profileEditModalClose:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profileEditModalForm {
+  padding: var(--space-xl);
+}
+
+.profileEditModalAvatarWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+}
+
+.profileEditModalAvatarLabel {
+  cursor: pointer;
+  position: relative;
+}
+
+.profileEditModalAvatarPreview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 3px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.profileEditModalAvatarLabel:hover .profileEditModalAvatarPreview {
+  border-color: var(--brand-primary);
+  transform: scale(1.02);
+}
+
+.profileEditModalAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileEditModalAvatarInitials {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.profileEditModalAvatarOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #fff;
+  font-size: var(--text-body-xs);
+  font-weight: var(--weight-medium);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.profileEditModalAvatarLabel:hover .profileEditModalAvatarOverlay {
+  opacity: 1;
+}
+
+.profileEditModalAvatarOverlay svg {
+  flex-shrink: 0;
+}
+
+.profileEditModalAvatarInput {
+  display: none;
+}
+
+.profileEditModalField {
+  margin-bottom: var(--space-lg);
+}
+
+.profileEditModalLabel {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.profileEditModalInput {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-light);
+  border-radius: 12px;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.profileEditModalInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.profileEditModalInput:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--brand-primary-glow);
+}
+
+.profileEditModalInput.error {
+  border-color: var(--color-danger);
+}
+
+.profileEditModalInput.error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+.profileEditModalInput.success {
+  border-color: var(--color-success);
+}
+
+.profileEditModalInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profileEditModalFieldMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  min-height: 20px;
+}
+
+.profileEditModalError {
+  color: var(--color-danger);
+  font-size: var(--text-body-xs);
+  font-family: var(--font-primary);
+}
+
+.profileEditModalSuccess {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-success);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+}
+
+.profileEditModalSuccess svg {
+  flex-shrink: 0;
+}
+
+.profileEditModalCharCount {
+  font-size: var(--text-body-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+}
+
+.profileEditModalActions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+.profileEditModalBtn {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 12px;
+  font-family: var(--font-primary);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.profileEditModalBtn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent);
+  transition: left 0.6s ease;
+}
+
+.profileEditModalBtn:hover::before {
+  left: 100%;
+}
+
+.profileEditModalBtn:hover {
+  background: var(--bg-gradient);
+  transform: translateY(-2px);
+}
+
+
+
+.profileEditModalBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.profileEditModalBtnCancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.profileEditModalBtnCancel:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.profileEditModalBtnSave {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.profileEditModalBtnSave:hover:not(:disabled) {
+  /* background: var(--brand-primary-light); */
+  /* transform: translateY(-1px); */
+  box-shadow: var(--shadow-glow);
+  background: var(--bg-gradient);
+  transform: translateY(-2px);
+}
+
+.profileEditModalBtnSave:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.profileEditModalSpinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: profileEditModalSpin 0.7s linear infinite;
+}
+
+@keyframes profileEditModalSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 1200px) {
+  .mexcMainContent {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .mexcUserDetails {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 1023px) {
+  .mexcMainContent {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .mexcProfileOverview {
+    gap: var(--space-lg);
+    /* padding-bottom: calc(clamp(64px, 12vw, 80px) + 60px + env(safe-area-inset-bottom)); */
+    /* Space for bottom nav + support button */
+  }
+
+  .mexcTopSection {
+    padding: var(--space-md) var(--space-lg);
+    gap: var(--space-md);
+  }
+
+  .mexcUserHeader {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .mexcAvatarSection {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .mexcAvatarContainer {
+    width: clamp(60px, 14vw, 100px);
+    /* height: clamp(48px, 11vw, 70px); */
+  }
+
+  .mexcAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #0066ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    /* width: 100%;
+    height: 100%; */
+  }
+
+  .mexcAvatar svg {
+    width: clamp(24px, 6vw, 40px);
+    height: clamp(24px, 6vw, 40px);
+  }
+
+  .mexcSetNicknameBtn {
+    padding: var(--space-xs) 0;
+  }
+
+  .mexcSetNicknameText {
+    font-size: clamp(var(--text-body-md), 3.5vw, var(--text-body-lg));
+  }
+
+  .mexcSetNicknameIcon svg {
+    width: clamp(14px, 3.5vw, 16px);
+    height: clamp(14px, 3.5vw, 16px);
+  }
+
+  .mexcVerifiedBadge {
+    font-size: clamp(var(--text-body-xs), 2.5vw, var(--text-body-sm));
+    padding: clamp(2px, 0.5vw, 4px) var(--space-sm);
+  }
+
+  .mexcUserDetails {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding-top: var(--space-md);
+  }
+
+  .mexcAccountRow,
+  .mexcUIDRow,
+  .mexcSignUpRow,
+  .mexcLastLoginRow {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: var(--space-xs) 0;
+  }
+
+  .mexcAccountLabel,
+  .mexcUIDLabel,
+  .mexcSignUpLabel,
+  .mexcLastLoginLabel {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    min-width: fit-content;
+  }
+
+  .mexcAccountEmail,
+  .mexcUIDValue,
+  .mexcSignUpValue,
+  .mexcLastLoginValue {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    word-break: break-word;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .mexcLastLoginValue {
+    font-size: clamp(var(--text-body-xs), 2.5vw, var(--text-body-sm));
+    line-height: 1.4;
+  }
+
+  .mexcAccountDropdown {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+  }
+
+  .mexcAccountDropdown svg,
+  .mexcEditIconDisabled,
+  .mexcCopyIconBtn svg {
+    width: clamp(14px, 3.5vw, 16px);
+    height: clamp(14px, 3.5vw, 16px);
+  }
+
+  .mexcCopyIconBtn {
+    min-width: clamp(32px, 8vw, 40px);
+    min-height: clamp(32px, 8vw, 40px);
+    padding: clamp(2px, 0.5vw, 4px);
+  }
+
+  .mexcTotalValueCard,
+  .mexcReferralCard,
+  .mexcHotEventCard,
+  .mexcLearnCard {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .mexcValueMain {
+    font-size: clamp(20px, 5vw, 24px);
+  }
+
+  .mexcValueSub {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+  }
+
+  .mexcDepositBtn {
+    padding: clamp(var(--space-sm), 2vw, var(--space-md)) clamp(var(--space-md), 4vw, var(--space-xl));
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    min-height: clamp(40px, 10vw, 48px);
+  }
+
+  .mexcHotEventsTitle {
+    font-size: clamp(var(--text-h4), 4vw, var(--text-h3));
+  }
+
+  .mexcEventCard {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .mexcEventLogo {
+    width: clamp(40px, 10vw, 48px);
+    height: clamp(40px, 10vw, 48px);
+  }
+
+  .mexcEventLogo svg {
+    width: clamp(24px, 6vw, 32px);
+    height: clamp(24px, 6vw, 32px);
+  }
+
+  .mexcEventTitle {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+  }
+
+  .mexcEventStatus {
+    font-size: clamp(var(--text-body-xs), 2.5vw, var(--text-body-sm));
+  }
+
+  .mexcReferralSubtitle,
+  .mexcLearnSubtitle {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+  }
+
+  .mexcReferralInput {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    padding: clamp(var(--space-sm), 2vw, var(--space-md));
+  }
+
+  .mexcTotalValueHeader {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .mexcTotalValueTitle {
+    font-size: clamp(var(--text-h4), 4vw, var(--text-h3));
+  }
+
+  .mexcEyeIconBtn,
+  .mexcAssetDetailsLink {
+    font-size: clamp(var(--text-body-xs), 2.5vw, var(--text-body-sm));
+  }
+
+  .mexcEyeIconBtn svg {
+    width: clamp(14px, 3.5vw, 18px);
+    height: clamp(14px, 3.5vw, 18px);
+  }
+
+  .mexcSupportIcon {
+    bottom: calc(clamp(64px, 12vw, 80px) + var(--space-md) + env(safe-area-inset-bottom));
+    right: var(--space-md);
+    width: clamp(48px, 12vw, 56px);
+    height: clamp(48px, 12vw, 56px);
+    min-width: 48px;
+    min-height: 48px;
+    z-index: 101;
+    /* Above bottom nav (z-index: 100) */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .mexcSupportIcon svg {
+    width: clamp(20px, 5vw, 24px);
+    height: clamp(20px, 5vw, 24px);
+  }
+}
+
+@media (max-width: 576px) {
+  .mexcUserHeader {
+    gap: var(--space-md);
+  }
+
+  .mexcVerifiedBadge {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mexcProfileOverview {
+    gap: var(--space-md);
+    /* padding-bottom: calc(clamp(60px, 14vw, 72px) + 60px + env(safe-area-inset-bottom)); */
+  }
+
+  .mexcTopSection {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .mexcAvatarSection {
+    gap: var(--space-sm);
+  }
+
+  .mexcUserDetails {
+    gap: var(--space-xs);
+    padding-top: var(--space-sm);
+  }
+
+  .mexcAccountRow,
+  .mexcUIDRow,
+  .mexcSignUpRow,
+  .mexcLastLoginRow {
+    padding: clamp(4px, 1vw, 6px) 0;
+  }
+
+  .mexcTotalValueCard,
+  .mexcReferralCard,
+  .mexcHotEventCard,
+  .mexcLearnCard {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+
+  .mexcTotalValueTitle,
+  .mexcReferralTitle,
+  .mexcLearnTitle,
+  .mexcHotEventsTitle {
+    font-size: clamp(var(--text-h4), 4vw, var(--text-h3));
+  }
+
+  .mexcReferralHeader,
+  .mexcLearnHeader {
+    gap: var(--space-sm);
+  }
+
+  .mexcReferralIcon,
+  .mexcLearnIcon {
+    font-size: clamp(20px, 5vw, 24px);
+    width: clamp(32px, 8vw, 40px);
+    height: clamp(32px, 8vw, 40px);
+  }
+
+  .mexcReferralLink {
+    gap: var(--space-xs);
+  }
+
+  .mexcValueContent {
+    gap: var(--space-xs);
+  }
+
+  .mexcReferralInput {
+    padding: var(--space-sm) var(--space-md);
+    min-height: clamp(40px, 10vw, 44px);
+  }
+
+  .mexcEventCard {
+    padding: var(--space-sm) var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .mexcEventContent {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mexcEventTitle {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .mexcMainContent {
+    gap: var(--space-md);
+  }
+
+  .mexcLeftColumn,
+  .mexcRightColumn {
+    gap: var(--space-md);
+  }
+
+  .mexcReferralInput {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .profileEditModal {
+    max-width: calc(100vw - var(--space-lg) * 2);
+    margin: var(--space-md);
+  }
+
+  .profileEditModalTitle {
+    font-size: clamp(var(--text-h3), 4vw, var(--text-h2));
+  }
+
+  .profileEditModalInput {
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    min-height: clamp(44px, 11vw, 48px);
+  }
+
+  .profileEditModalActions {
+    gap: var(--space-sm);
+  }
+
+  .profileEditModalBtn {
+    flex: 1;
+    min-width: 0;
+    min-height: clamp(44px, 11vw, 48px);
+    font-size: clamp(var(--text-body-sm), 3vw, var(--text-body-md));
+    padding: 10px 15px;
+  }
+
+  .mexcSupportIcon {
+    bottom: calc(clamp(60px, 14vw, 72px) + var(--space-sm) + env(safe-area-inset-bottom));
+    right: var(--space-sm);
+    width: clamp(44px, 11vw, 52px);
+    height: clamp(44px, 11vw, 52px);
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mexcSupportIcon svg {
+    width: clamp(18px, 4.5vw, 22px);
+    height: clamp(18px, 4.5vw, 22px);
+  }
+
+  .profileHeading {
+    margin: 10px 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .mexcProfileOverview {
+    gap: var(--space-md);
+    /* padding-bottom: calc(clamp(56px, 15vw, 68px) + 60px + env(safe-area-inset-bottom)); */
+  }
+
+  .mexcTopSection {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .mexcUserHeader {
+    gap: var(--space-md);
+  }
+
+  .mexcUserHeader {
+    padding-bottom: var(--space-md);
+  }
+
+  .mexcAvatarSection {
+    gap: var(--space-sm);
+  }
+
+  .mexcUserDetails {
+    gap: clamp(2px, 0.5vw, 4px);
+    padding-top: var(--space-xs);
+  }
+
+  .mexcAccountRow,
+  .mexcUIDRow,
+  .mexcSignUpRow,
+  .mexcLastLoginRow {
+    padding: clamp(2px, 0.5vw, 4px) 0;
+  }
+
+  .mexcTotalValueCard,
+  .mexcReferralCard,
+  .mexcHotEventCard,
+  .mexcLearnCard {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .mexcSupportIcon {
+    bottom: calc(clamp(56px, 15vw, 68px) + var(--space-xs) + env(safe-area-inset-bottom));
+    right: var(--space-xs);
+    width: clamp(40px, 10vw, 48px);
+    height: clamp(40px, 10vw, 48px);
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .mexcSupportIcon svg {
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
+  }
+
+  .mexcSetNicknameBtn {
+    padding: var(--space-xs) 0;
+  }
+
+  .mexcSetNicknameText {
+    font-size: var(--text-body-md);
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 1023px) and (orientation: landscape) {
+  .mexcProfileOverview {
+    gap: var(--space-md);
+  }
+
+  .mexcTopSection {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .mexcUserDetails {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .mexcAccountRow,
+  .mexcUIDRow,
+  .mexcSignUpRow,
+  .mexcLastLoginRow {
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+
+  .mexcSupportIcon {
+    bottom: calc(clamp(56px, 10vh, 64px) + var(--space-sm) + env(safe-area-inset-bottom));
+    width: clamp(44px, 8vh, 52px);
+    height: clamp(44px, 8vh, 52px);
+  }
+}
+
+@media (max-width: 480px) {
+
+  .mexcTopSection,
+  .mexcTotalValueCard,
+  .mexcReferralCard,
+  .mexcHotEventCard,
+  .mexcLearnCard {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+
+  .mexcValueMain {
+    font-size: 20px;
+  }
+
+  .profileEditModal {
+    margin: 0px;
+  }
+
+  .profileEditModalForm {
+    padding: var(--space-lg);
+  }
+
+
+
+  .profileEditModalBtn {
+    width: 100%;
+  }
+}
+
+.mexcUserDetails {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-light);
+}
+
+.mexcDetailsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mexInfo {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.mexcInfoRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.mexcInfoIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  /* background-color: var(--bg-tertiary); */
+  background-color: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.mexcInfoText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mexcInfoText p {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.mexUID {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.mexcInfoLabel {
+  font-size: var(--text-body-sm);
+  color: var(--text-secondary);
+}
+
+.mexcInfoValue {
+  font-size: var(--text-body-md);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .mexcUserDetails {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+}
+
+.svgclass {
+  margin-left: auto;
+}
+
+.profileEditModalAvatarPreview {
+  position: relative;
+}
+
+.profileEditModalRemoveIcon {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: 0.3s ease;
+}
+
+.profileEditModalRemoveIcon:hover {
+  transform: scale(1.1);
+}
+
+@media(max-width:320px) {
+  .profileEditModalActions {
+    flex-direction: column;
+  }
+}
