@@ -230,61 +230,24 @@ const CryptoMarkets = ({
     if (markets.length === 0) return markets;
 
     // Apply sorting based on sortBy
-    const sortMarkets = (marketsToSort) => {
-      return marketsToSort.sort((a, b) => {
-        switch (sortBy) {
-          case 'volume':
-            return (b.volume24h || 0) - (a.volume24h || 0);
-          case 'price':
-            return (b.price || b.index || 0) - (a.price || a.index || 0);
-          case 'change':
-            return (b.change24h || 0) - (a.change24h || 0);
-          case 'name':
-            const aName = (a.base || a.symbol || '').toUpperCase();
-            const bName = (b.base || b.symbol || '').toUpperCase();
-            return aName.localeCompare(bName);
-          default:
-            return 0;
+    return markets.sort((a, b) => {
+      switch (sortBy) {
+        case 'volume':
+          return (b.volume24h || 0) - (a.volume24h || 0);
+        case 'price':
+          return (b.price || b.index || 0) - (a.price || a.index || 0);
+        case 'change':
+          return (b.change24h || 0) - (a.change24h || 0);
+        case 'name': {
+          const aName = (a.base || a.symbol || '').toUpperCase();
+          const bName = (b.base || b.symbol || '').toUpperCase();
+          return aName.localeCompare(bName);
         }
-      });
-    };
-
-    // If not showing favorites/watchlist, maintain top crypto priority
-    if (!showFavorites && !showWatchlist) {
-      const topCryptos = [];
-      const otherMarkets = [];
-      const favorites = [];
-
-      markets.forEach((market) => {
-        const base = (market.base || '').toUpperCase();
-        const isTopCrypto = TOP_CRYPTO_PRIORITY.includes(base);
-        const isFavorite = favoritesSet.has(favKey(market));
-
-        if (isTopCrypto) {
-          topCryptos.push(market);
-        } else if (isFavorite) {
-          favorites.push(market);
-        } else {
-          otherMarkets.push(market);
-        }
-      });
-
-      // Sort each group
-      topCryptos.sort((a, b) => {
-        const aBase = (a.base || '').toUpperCase();
-        const bBase = (b.base || '').toUpperCase();
-        return TOP_CRYPTO_PRIORITY.indexOf(aBase) - TOP_CRYPTO_PRIORITY.indexOf(bBase);
-      });
-
-      const sortedFavorites = sortMarkets(favorites);
-      const sortedOthers = sortMarkets(otherMarkets);
-
-      return [...topCryptos, ...sortedFavorites, ...sortedOthers];
-    }
-
-    // If showing favorites/watchlist, just sort all
-    return sortMarkets(markets);
-  }, [filteredMarkets, favoritesSet, favKey, sortBy, showFavorites, showWatchlist]);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredMarkets, sortBy]);
 
   const formatPrice = useCallback(
     (price) => formatPriceUtil(price, { marketType: 'crypto' }),

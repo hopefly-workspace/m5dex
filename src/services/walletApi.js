@@ -157,9 +157,9 @@ export const TRANSFER_WALLET_KEYS = ['spot', 'crypto', 'forex', 'indian'];
 
 export const TRANSFER_COINS = [{ symbol: 'USDT', name: 'TetherUS' }];
 
-/** Base URL for globalx balance GET APIs (override via VITE_TRADING_API_BASE). */
+/** Base URL for m5dex balance GET APIs (override via VITE_TRADING_API_BASE). */
 export const getTradingApiBase = () =>
-  String(import.meta.env.VITE_TRADING_API_BASE || 'https://globaltradeapi.blockcryp.com/v1/trading').replace(
+  String(import.meta.env.VITE_TRADING_API_BASE || '').replace(
     /\/+$/,
     ''
   );
@@ -254,36 +254,36 @@ export function normalizeTradingBalanceRows(raw) {
       }
       const symbol = String(
         item.tradeprocedure ??
-          item.tradeProcedure ??
-          item.symbol ??
-          item.asset ??
-          item.currency ??
-          item.coin ??
-          item.pair ??
-          item.name ??
-          item.ticker ??
-          ''
+        item.tradeProcedure ??
+        item.symbol ??
+        item.asset ??
+        item.currency ??
+        item.coin ??
+        item.pair ??
+        item.name ??
+        item.ticker ??
+        ''
       ).trim();
       const balance = parseFloat(item.balance ?? item.total ?? item.amount ?? item.equity ?? item.qty ?? 0);
       const locked = parseFloat(
         item.lockebalance ??
-          item.lockeBalance ??
-          item.lockedbalance ??
-          item.lockedBalance ??
-          item.locked ??
-          item.freeze ??
-          item.frozen ??
-          item.in_trade ??
-          item.used ??
-          item.margin ??
-          0
+        item.lockeBalance ??
+        item.lockedbalance ??
+        item.lockedBalance ??
+        item.locked ??
+        item.freeze ??
+        item.frozen ??
+        item.in_trade ??
+        item.used ??
+        item.margin ??
+        0
       );
       const available = parseFloat(
         item.available ??
-          item.free ??
-          item.available_balance ??
-          item.availableBalance ??
-          (Number.isFinite(balance) && Number.isFinite(locked) ? balance - locked : balance)
+        item.free ??
+        item.available_balance ??
+        item.availableBalance ??
+        (Number.isFinite(balance) && Number.isFinite(locked) ? balance - locked : balance)
       );
       const usdValue = parseFloat(
         item.usdValue ?? item.usd_value ?? item.usdt ?? item.value_usd ?? item.valueUsd ?? balance

@@ -233,7 +233,7 @@ const ForexMarketsPage = () => {
             <div className="marketsHeaderText">
               <h1 className="marketsTitle">Forex Markets</h1>
               <p className="marketsSubtitle">
-                Currency pairs, commodities, metals, and global indices — one forex market
+                Currency pairs, commodities, metals, and m5dex indices — one forex market
               </p>
             </div>
             {/* <div className="wsStatusContainer">

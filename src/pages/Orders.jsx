@@ -28,6 +28,8 @@ import Header from '../components/Header';
 import '../styles/pages/Orders.css';
 import { tokenStorage } from '../utils/storage';
 import { resolveOrderNo } from '../utils/orderDisplay';
+import logo from "../../public/assets/img/icon.png"
+// import darklogo from "../../public/assets/img/m5dex-dark-logo.png"
 
 const statusOptions = [
   { id: 'all', label: 'All Status' },
@@ -1483,100 +1485,199 @@ const Orders = () => {
     }
 
     setCancellingAll(true);
-    let errors = [];
+    const errors = [];
 
     try {
-      /* 
-      // PREVIOUS CODE: One by one cancellation
-      for (const order of cancelableOpenOrders) {
-        const payload = buildCancelPayload(order);
-        if (!payload.pair || !payload.orderno) continue;
-
-        try {
-          await closeOrder(payload);
-        } catch (err) {
-          console.error('Failed to cancel order', order.id, err);
-
-          const backendMessage =
-            err?.response?.data?.message ||
-            err?.response?.data?.msg ||
-            err?.message ||
-            `Order ${order.id} failed`;
-
-          errors.push(backendMessage);
-        }
-      }
-      */
-
-      // NEW CODE: Bulk cancellation
       const groups = {};
+
+      // Group orders by type only
       for (const order of cancelableOpenOrders) {
         const payload = buildCancelPayload(order);
+
         if (!payload.pair || !payload.orderno) continue;
 
-        const rawType = payload.type || '';
-        const typeMap = { 'crypto': 'CRYPTO', 'forex': 'FOREX', 'india': 'INDIAN', 'indian': 'INDIAN' };
-        const type = typeMap[rawType.toLowerCase()] || '';
-        const mode = payload.mode || '';
-        const key = `${type}_${mode}`;
+        const rawType = payload.type || "";
+        const typeMap = {
+          crypto: "CRYPTO",
+          forex: "FOREX",
+          india: "INDIAN",
+          indian: "INDIAN",
+        };
 
-        if (!groups[key]) groups[key] = { type, mode, items: [], orders: [] };
+        const type = typeMap[rawType.toLowerCase()] || "";
+        const key = type;
+
+        if (!groups[key]) {
+          groups[key] = {
+            type,
+            items: [],
+          };
+        }
 
         const item = {
+          orderno: payload.orderno,
           price: Number(payload.price),
           quantity: Number(payload.quantity),
-          orderno: payload.orderno,
-          markettypeid: payload.marketType,
+          markettypeid: Number(payload.marketType),
+          mode: payload.mode, // ✅ Pass mode inside every order
         };
-        if (type === 'INDIAN') {
-          item.pairid = payload.pairid;
-          item.lotsize = Number(payload.lotsize);
-        } else if (type === 'FOREX') {
+
+        if (type === "FOREX") {
           item.pairname = payload.pair;
+          item.lotsize = Number(payload.lotsize);
+        } else if (type === "INDIAN") {
+          item.pairid = payload.pairid;
           item.lotsize = Number(payload.lotsize);
         } else {
           item.pairname = payload.pair;
         }
+
         groups[key].items.push(item);
-        groups[key].orders.push(order);
       }
 
-      for (const groupKey of Object.keys(groups)) {
-        const group = groups[groupKey];
+      // Call API for each type
+      for (const key of Object.keys(groups)) {
+        const group = groups[key];
+
+        const bulkPayload = {
+          trademode: "close",
+          type: group.type,
+          ordersjson: group.items,
+        };
+
+        console.log("Bulk Payload:", bulkPayload);
+
         try {
-          const bulkPayload = {
-            mode: group.mode,
-            trademode: 'close',
-            type: group.type,
-            ordersjson: group.items
-          };
-          // console.log("bulk payload cancelAll-------", bulkPayload);
           await closeAllOrders(bulkPayload);
         } catch (err) {
-          console.error('Failed to cancel group of orders', err);
+          console.error("Failed to cancel orders:", err);
+
           const backendMessage =
             err?.response?.data?.message ||
             err?.response?.data?.msg ||
             err?.message ||
-            `Group cancel failed`;
+            "Failed to cancel orders";
+
           errors.push(backendMessage);
         }
       }
 
-      if (errors.length > 0) {
-        const uniqueErrors = [...new Set(errors)];
-        showError(uniqueErrors.join("\n"), 5000);
+      if (errors.length) {
+        showError([...new Set(errors)].join("\n"), 5000);
       } else {
         showSuccess("All orders cancelled successfully");
       }
 
       await fetchOrdersSilent();
-
     } finally {
       setCancellingAll(false);
       setShowCancelAllModal(false);
     }
   };
+
+  // const handleCancelAll = async () => {
+  //   if (!cancelableOpenOrders.length) {
+  //     setShowCancelAllModal(false);
+  //     return;
+  //   }
+
+  //   setCancellingAll(true);
+  //   let errors = [];
+
+  //   try {
+  //     /* 
+  //     // PREVIOUS CODE: One by one cancellation
+  //     for (const order of cancelableOpenOrders) {
+  //       const payload = buildCancelPayload(order);
+  //       if (!payload.pair || !payload.orderno) continue;
+
+  //       try {
+  //         await closeOrder(payload);
+  //       } catch (err) {
+  //         console.error('Failed to cancel order', order.id, err);
+
+  //         const backendMessage =
+  //           err?.response?.data?.message ||
+  //           err?.response?.data?.msg ||
+  //           err?.message ||
+  //           `Order ${order.id} failed`;
+
+  //         errors.push(backendMessage);
+  //       }
+  //     }
+  //     */
+
+  //     // NEW CODE: Bulk cancellation
+  //     const groups = {};
+  //     for (const order of cancelableOpenOrders) {
+  //       const payload = buildCancelPayload(order);
+  //       if (!payload.pair || !payload.orderno) continue;
+
+  //       const rawType = payload.type || '';
+  //       const typeMap = { 'crypto': 'CRYPTO', 'forex': 'FOREX', 'india': 'INDIAN', 'indian': 'INDIAN' };
+  //       const type = typeMap[rawType.toLowerCase()] || '';
+  //       const mode = payload.mode || '';
+  //       const key = `${type}_${mode}`;
+
+  //       if (!groups[key]) groups[key] = { type, mode, items: [], orders: [] };
+
+  //       const item = {
+  //         price: Number(payload.price),
+  //         quantity: Number(payload.quantity),
+  //         orderno: payload.orderno,
+  //         markettypeid: payload.marketType,
+  //         mode: payload.mode,
+  //       };
+
+  //       if (type === 'INDIAN') {
+  //         item.pairid = payload.pairid;
+  //         item.lotsize = Number(payload.lotsize);
+  //       } else if (type === 'FOREX') {
+  //         item.pairname = payload.pair;
+  //         item.lotsize = Number(payload.lotsize);
+  //       } else {
+  //         item.pairname = payload.pair;
+  //       }
+  //       groups[key].items.push(item);
+  //       groups[key].orders.push(order);
+  //     }
+
+  //     for (const groupKey of Object.keys(groups)) {
+  //       const group = groups[groupKey];
+  //       try {
+  //         const bulkPayload = {
+  //           // mode: group.mode,
+  //           trademode: 'close',
+  //           type: group.type,
+  //           ordersjson: group.items
+  //         };
+  //         // console.log("bulk payload cancelAll-------", bulkPayload);
+  //         await closeAllOrders(bulkPayload);
+  //       } catch (err) {
+  //         console.error('Failed to cancel group of orders', err);
+  //         const backendMessage =
+  //           err?.response?.data?.message ||
+  //           err?.response?.data?.msg ||
+  //           err?.message ||
+  //           `Group cancel failed`;
+  //         errors.push(backendMessage);
+  //       }
+  //     }
+
+  //     if (errors.length > 0) {
+  //       const uniqueErrors = [...new Set(errors)];
+  //       showError(uniqueErrors.join("\n"), 5000);
+  //     } else {
+  //       showSuccess("All orders cancelled successfully");
+  //     }
+
+  //     await fetchOrdersSilent();
+
+  //   } finally {
+  //     setCancellingAll(false);
+  //     setShowCancelAllModal(false);
+  //   }
+  // };
 
   // const handleCancelAll = async () => {
   //   if (!openOrders.length) {
@@ -3739,9 +3840,7 @@ const Orders = () => {
                       <div className="share-header">
                         <div className='share_flex'>
                           <div className="share-logo">
-                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
+                            <img src={logo} style={{ height: "32px", borderRadius: "4px" }} alt="" />
                           </div>
                           <div className="share-brand">
                             <h1 className="share-brand-name">M5dex</h1>

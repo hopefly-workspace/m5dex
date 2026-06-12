@@ -1318,7 +1318,7 @@
   border: none;
   border-radius: var(--radius-xl);
   background: var(--brand-primary);
-  color: #fff;
+  color: black;
   padding: 6px 12px;
   cursor: pointer;
   font-size: var(--text-body-sm);
@@ -6169,16 +6169,16 @@ body.dark-theme .marketsSearchModalInput {
 }
 
 .marketsSearchModalScriptBtn--remove {
-  border: 1px solid #f4b400;
-  background: color-mix(in srgb, #f4b400 16%, var(--bg-secondary));
-  color: #f4b400;
+  border: 1px solid #ef4444;
+  background: color-mix(in srgb, #ef4444 16%, var(--bg-secondary));
+  color: #ef4444;
   box-shadow: 0 10px 24px rgba(244, 180, 0, 0.12);
 }
 
 .marketsSearchModalScriptBtn--remove:hover {
-  background: color-mix(in srgb, #f4b400 26%, var(--bg-secondary));
-  border-color: color-mix(in srgb, #f4b400 90%, #fff);
-  color: color-mix(in srgb, #f4b400 92%, #fff);
+  background: color-mix(in srgb, #ef4444 26%, var(--bg-secondary));
+  border-color: color-mix(in srgb, #ef4444 90%, #fff);
+  color: color-mix(in srgb, #ef4444 92%, #fff);
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(244, 180, 0, 0.22);
 }

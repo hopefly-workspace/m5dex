@@ -601,7 +601,7 @@ const Header = () => {
           <div className="header-content">
             <div className="header-logo">
               <div className="header-logo-mark">
-         <img style={{height:"100px"}} src={!isDark?darklogo:logo} alt="" />
+                <img style={{ height: "100px" }} src={!isDark ? darklogo : logo} alt="" />
               </div>
               {!isMobile && (
                 <h1
@@ -1858,7 +1858,7 @@ const Header = () => {
             ) : (
               <div className="mobile-sidebar-user">
                 <div className="mobile-sidebar-user-info">
-                  <div className="mobile-sidebar-username">Welcome to GlobalX</div>
+                  <div className="mobile-sidebar-username">Welcome to M5Dex</div>
                   <div className="mobile-sidebar-user-email">
                     Sign in to continue
                   </div>

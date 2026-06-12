@@ -269,8 +269,8 @@
 
 .favoritesSidebarInstTag--fut {
   color: #004a9d;
-  background: color-mix(in srgb, #3b82f6 18%, transparent);
-  border-color: color-mix(in srgb, #3b82f6 35%, transparent);
+  background: color-mix(in srgb, #ffd50077 18%, transparent);
+  border-color: color-mix(in srgb, #ffd50077 35%, transparent);
 }
 
 .favoritesSidebarSymbol {

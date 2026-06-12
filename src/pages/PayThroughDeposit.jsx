@@ -166,12 +166,16 @@ const PayThroughDeposit = () => {
   }, []);
 
   const handleProceed = () => {
+    const MAX_AMOUNT = 1000000; // 10 lakh
+
     let newErrors = { amount: "" };
 
     if (!amount || amount.trim() === "") {
       newErrors.amount = "Amount is required.";
     } else if (parseFloat(amount) < 1) {
       newErrors.amount = "Enter minimum amount of $1";
+    } else if (parseFloat(amount) > MAX_AMOUNT) {
+      newErrors.amount = "Maximum deposit amount is $1,000,000.";
     }
 
     if (newErrors.amount) {
@@ -183,7 +187,7 @@ const PayThroughDeposit = () => {
 
     setIsDepositModalOpen(true);
 
-    // setShowCoinModal(true); // Open Coin Selection first
+    // setShowCoinModal(true);
     // setShowNetworkModal(true);
   };
 
@@ -581,21 +585,29 @@ const PayThroughDeposit = () => {
 
           <div className="form-group">
             <label className="form-label">Deposit Amount</label>
+
             <div className="amount-input-group">
               <span className="currency-symbol">USD</span>
+
               <input
                 className="form-input"
                 placeholder="0.00"
-                min={1}
-                max={50000}
                 type="number"
+                min={1}
+                max={1000000}
                 value={amount}
                 onChange={handleAmountChange}
                 disabled={showLetsPay}
               />
             </div>
-            <p className="form-helper">Minimum: USD 1, Maximum: USD 50,000</p>
-            {errorMessage.amount && <p className="error">{errorMessage.amount}</p>}
+
+            <p className="form-helper">
+              Minimum: USD 1, Maximum: USD 1,000,000
+            </p>
+
+            {errorMessage.amount && (
+              <p style={{ fontSize: "14px" }} className="error">{errorMessage.amount}</p>
+            )}
           </div>
 
           <div className="deposite-btn-section">

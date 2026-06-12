@@ -1,20 +1,20 @@
 /**
- * Terms of Service — M5dex / tradeglobalx.com
+ * Terms of Service — M5dex / m5dex.com
  * Update TERMS_META when legal copy or jurisdiction details change.
  */
 
 export const TERMS_META = {
   effectiveDate: "March 15, 2026",
-  website: "https://tradeglobalx.com/",
-  websiteLabel: "tradeglobalx.com",
+  website: "https://m5dex.com/",
+  websiteLabel: "m5dex.com",
   platformName: "M5dex Dashboard / M5dex",
-  supportEmail: "support@tradeglobalx.com",
+  supportEmail: "support@m5dex.com",
   governingLaw: "India",
   disputeVenue: "competent courts in India",
 };
 
 export const TERMS_INTRO = [
-  "Welcome to M5dex. These Terms of Service govern your access to and use of our website, dashboard, trading-related services, tools, features, content, and any other services provided through tradeglobalx.com.",
+  "Welcome to M5dex. These Terms of Service govern your access to and use of our website, dashboard, trading-related services, tools, features, content, and any other services provided through m5dex.com.",
   "By creating an account, accessing the dashboard, depositing funds, using trading tools, or using any feature on our platform, you agree to these Terms. If you do not agree with these Terms, you should not use our website or services.",
 ];
 

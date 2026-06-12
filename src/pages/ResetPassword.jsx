@@ -66,24 +66,20 @@ const ResetPassword = () => {
 
   const handleChange = (field, value) => {
     const sanitizedValue = sanitizeInput(value);
+
     setFormData((prev) => ({
       ...prev,
       [field]: sanitizedValue,
     }));
 
-    if (errors[field]) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: null,
-      }));
-    }
-
-    if (field === 'newPassword' && errors.confirmPassword) {
-      setErrors((prev) => ({
-        ...prev,
-        confirmPassword: null,
-      }));
-    }
+    setErrors((prev) => ({
+      ...prev,
+      general: "",
+      [field]: "",
+      ...(field === "newPassword" && {
+        confirmPassword: "",
+      }),
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -336,4 +332,3 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
-

@@ -1132,13 +1132,13 @@ const OrdersPanel = ({
           Math.abs(apiPct) > 1e-12
             ? apiPct
             : computeClosedPositionPnlPercent(
-                profit,
-                openPrice,
-                quantity,
-                usedMargin,
-                totalAmt,
-                leverage,
-              );
+              profit,
+              openPrice,
+              quantity,
+              usedMargin,
+              totalAmt,
+              leverage,
+            );
         const marketTag = getOrderMarketTag(raw, symbol);
         const segmentKey = getOrderMarketTypeKey(raw, symbol) || 'crypto';
         const marketLabel =
@@ -1492,83 +1492,144 @@ const OrdersPanel = ({
     }
     setConfirmActionLoading(true);
     try {
-      if (confirmAction.kind === 'close-position') {
-        const toClose = normalizedOpenPositions.filter((p) => confirmAction.ids.includes(p.id));
+      if (confirmAction.kind === "close-position") {
+        const toClose = normalizedOpenPositions.filter((p) =>
+          confirmAction.ids.includes(p.id)
+        );
+
         if (toClose.length === 0) {
-          showError('Position not found for close action');
+          showError("Position not found for close action");
           return;
         }
-        setClosingIds((prev) => [...new Set([...prev, ...toClose.map((p) => p.id)])]);
+
+        setClosingIds((prev) => [
+          ...new Set([...prev, ...toClose.map((p) => p.id)]),
+        ]);
+
         let successCount = 0;
         let lastError = null;
 
         const groups = {};
+
         for (const position of toClose) {
           const pData = buildClosePayload(position);
+
           if (!pData.pair || pData.quantity <= 0) continue;
 
           const raw = position.raw ?? {};
-          const rawType = getOrderMarketTypeKey(raw, position?.symbol || raw?.pairname || raw?.pair || raw?.symbol || '');
-          const typeMap = { 'crypto': 'CRYPTO', 'forex': 'FOREX', 'india': 'INDIAN' };
-          const type = typeMap[rawType] || '';
-          const mode = pData.mode || '';
-          const key = `${type}_${mode}`;
+          const rawType = getOrderMarketTypeKey(
+            raw,
+            position?.symbol ||
+            raw?.pairname ||
+            raw?.pair ||
+            raw?.symbol ||
+            ""
+          );
 
-          if (!groups[key]) groups[key] = { type, mode, positions: [], items: [] };
+          const typeMap = {
+            crypto: "CRYPTO",
+            forex: "FOREX",
+            india: "INDIAN",
+            indian: "INDIAN",
+          };
+
+          const type = typeMap[rawType] || "";
+
+          if (!groups[type]) {
+            groups[type] = {
+              type,
+              positions: [],
+              items: [],
+            };
+          }
 
           const item = {
+            orderno: pData.orderno,
             price: Number(pData.price),
             quantity: Number(pData.quantity),
-            orderno: pData.orderno,
-            markettypeid: pData.marketType,
+            markettypeid: Number(pData.marketType),
+            mode: pData.mode, // ✅ Pass mode here
           };
-          if (type === 'INDIAN') {
+
+          if (type === "INDIAN") {
             item.pairid = pData.pairid;
             item.lotsize = Number(pData.lotsize);
-          } else if (type === 'FOREX') {
+          } else if (type === "FOREX") {
             item.pairname = pData.pair;
             item.lotsize = Number(pData.lotsize);
           } else {
             item.pairname = pData.pair;
           }
-          groups[key].items.push(item);
-          groups[key].positions.push(position);
+
+          groups[type].items.push(item);
+          groups[type].positions.push(position);
         }
 
-        for (const groupKey of Object.keys(groups)) {
-          const group = groups[groupKey];
+        for (const type of Object.keys(groups)) {
+          const group = groups[type];
 
           const deviceInfo = await getDeviceInfo();
 
           try {
             const payload = {
-              mode: group.mode,
-              trademode: 'close',
+              trademode: "close",
               type: group.type,
               ordersjson: group.items,
-              device_info: deviceInfo, // device info
+              device_info: deviceInfo,
             };
-            // console.log("bulk payload-------", payload);
+
+            console.log("Bulk Close Payload:", payload);
+
             await closeAllOrders(payload);
+
             successCount += group.items.length;
 
-            const closedIds = group.positions.map(p => p.id);
+            const closedIds = group.positions.map((p) => p.id);
+
             setOpenPositions((prev) =>
-              prev.filter((p) => !closedIds.includes((p?.id ?? p?.orderId ?? p?.order_id ?? p?.usertranid ?? p?._id)))
+              prev.filter(
+                (p) =>
+                  !closedIds.includes(
+                    p?.id ??
+                    p?.orderId ??
+                    p?.order_id ??
+                    p?.usertranid ??
+                    p?._id
+                  )
+              )
             );
-            setSelectedPositions((prev) => prev.filter((id) => !closedIds.includes(id)));
+
+            setSelectedPositions((prev) =>
+              prev.filter((id) => !closedIds.includes(id))
+            );
           } catch (err) {
-            lastError = err?.message || err?.data?.message || String(err);
+            lastError =
+              err?.response?.data?.message ||
+              err?.response?.data?.msg ||
+              err?.message ||
+              "Failed to close positions";
           }
         }
 
         if (successCount > 0) {
-          showSuccess(successCount === toClose.length ? 'Position(s) closed successfully' : `Closed ${successCount} of ${toClose.length} positions`);
+          showSuccess(
+            successCount === toClose.length
+              ? "Position(s) closed successfully"
+              : `Closed ${successCount} of ${toClose.length} positions`
+          );
+
           if (onOrderChange) onOrderChange();
-          window.dispatchEvent(new Event('refresh-wallet'));
+
+          window.dispatchEvent(new Event("refresh-wallet"));
         }
-        if (lastError && successCount < toClose.length) showError(lastError, 5000);
-        setClosingIds((prev) => prev.filter((id) => !confirmAction.ids.includes(id)));
+
+        if (lastError && successCount < toClose.length) {
+          showError(lastError, 5000);
+        }
+
+        setClosingIds((prev) =>
+          prev.filter((id) => !confirmAction.ids.includes(id))
+        );
       } else if (confirmAction.kind === 'cancel-pending') {
         const ids = confirmAction.ids;
         const pendingRows = confirmRows.pending;

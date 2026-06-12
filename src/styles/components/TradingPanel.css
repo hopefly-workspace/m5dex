@@ -1786,7 +1786,7 @@
 }
 
 .tp-india-margin-card__pill--live {
-  color: var(--accent-primary, #3b82f6);
+  color: var(--accent-primary, #ffd50077);
   border-color: rgba(59, 130, 246, 0.35);
   background: rgba(59, 130, 246, 0.1);
 }
@@ -1980,7 +1980,7 @@
   margin-top: -5px;
   border-radius: 50%;
   transform: none;
-  background: var(--brand-primary, #3b82f6);
+  background: var(--brand-primary, #ffd50077);
   border: 2px solid var(--bg-primary, #0f1419);
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
@@ -2007,7 +2007,7 @@
   height: 14px;
   border-radius: 50%;
   transform: none;
-  background: var(--brand-primary, #3b82f6);
+  background: var(--brand-primary, #ffd50077);
   border: 2px solid var(--bg-primary, #0f1419);
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
@@ -2040,7 +2040,7 @@
 }
 
 .tp-crypto-slider__step.tp-leverage-marker.tp-leverage-marker--active {
-  color: var(--brand-primary, #3b82f6);
+  color: var(--brand-primary, #ffd50077);
   background: rgba(59, 130, 246, 0.12);
   border: none;
   font-weight: 600;

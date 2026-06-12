@@ -4,6 +4,7 @@ import api from "../../services/api";
 import '../../styles/components/payment/CryptoDeposit.css';
 import axios from 'axios';
 import { getDeviceInfo } from '../../utils/clientDeviceInfo';
+import logo from "../../../public/assets/img/m5dex-light-logo.png"
 
 const CryptoDeposit = ({ isOpen, onClose, amount }) => {
 
@@ -764,7 +765,9 @@ const CryptoDeposit = ({ isOpen, onClose, amount }) => {
 
                     <div className="payment-header">
                         <div className="brand-info">
-                            <div className="brand-logo">GT</div>
+                            <div className="brand-logo">
+                                <img src={logo} alt="" />
+                            </div>
                             <div>
                                 <h4 className="brand-name">M5dex <span className="verified-check">✓</span></h4>
 

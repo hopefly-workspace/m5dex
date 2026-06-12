@@ -1,16 +1,16 @@
 /**
- * Data protection policy content — M5dex / tradeglobalx.com
+ * Data protection policy content — M5dex / m5dex.com
  * Update PRIVACY_META when legal or contact details change.
  */
 
 export const PRIVACY_META = {
   effectiveDate: "March 15, 2026",
-  website: "https://tradeglobalx.com/",
-  websiteLabel: "tradeglobalx.com",
+  website: "https://m5dex.com/",
+  websiteLabel: "m5dex.com",
   platformName: "M5dex / M5dex Dashboard",
   companyName: "M5dex",
-  supportEmail: "support@tradeglobalx.com",
-  privacyEmail: "privacy@tradeglobalx.com",
+  supportEmail: "support@m5dex.com",
+  privacyEmail: "privacy@m5dex.com",
   phone: "+91 XXXXX XXXXX",
   address: "India",
 };

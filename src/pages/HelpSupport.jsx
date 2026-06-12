@@ -369,7 +369,7 @@ const HelpSupport = () => {
                       <p className="HelpInfoLabel">Support Email</p>
                       <div className="HelpInfo">
                         <span className="HelpInfoValue">
-                          support@tradeglobalx.com
+                          support@m5dex.com
                         </span>
                       </div>
                     </div>

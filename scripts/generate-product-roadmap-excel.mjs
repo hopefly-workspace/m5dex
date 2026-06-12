@@ -91,7 +91,7 @@ const newFeatures = [
   ['N-017', 'Markets', 'Discovery', 'Screener / heatmap', 'Top movers, volume spike, funding rate screen for crypto.', 'Medium', 'New', 'Discovery → more trades', 'L', 'Markets pages', 'New data feeds'],
   ['N-018', 'P2P', 'Payments', 'Escrow status tracker', 'Real-time P2P order timeline with dispute flow.', 'High', 'New', 'Trust in P2P product', 'L', 'P2PTrading.jsx', 'Replace placeholder accounts first'],
   ['N-019', 'Admin', 'Ops', 'Feature flags / maintenance mode', 'Toggle markets or trading without deploy.', 'Medium', 'New', 'Safer ops during incidents', 'M', 'Backend + frontend gate', 'checkTradingMarket pattern exists'],
-  ['N-020', 'Performance', 'Infrastructure', 'CDN + edge caching for static', 'Optimize global latency for SPA assets.', 'Low', 'New', 'Faster load worldwide', 'M', 'Deploy config', 'Cloudflare / similar'],
+  ['N-020', 'Performance', 'Infrastructure', 'CDN + edge caching for static', 'Optimize m5dex latency for SPA assets.', 'Low', 'New', 'Faster load worldwide', 'M', 'Deploy config', 'Cloudflare / similar'],
 ];
 
 function rowsToSheet(data) {
@@ -109,7 +109,7 @@ function buildSummarySheet() {
     rows: [
       ['ARK Frontend — Product Roadmap & Backlog'],
       ['Generated on', generated],
-      ['Project', 'global-trading (ark_front)'],
+      ['Project', 'm5dex (ark_front)'],
       ['Stack', 'React 19 + Vite 7 + Lightweight Charts + Tailwind 4'],
       [],
       ['Sheet', 'Description', 'Count'],

@@ -50,7 +50,7 @@
    2. SHARED HEADER (Blue Section)
    ============================================================ */
 .payment-header {
-    background: white;
+    /* background: white; */
     color: var(--text-primary);
     padding: 25px 20px 45px 20px;
     display: flex;
@@ -67,7 +67,7 @@
 .brand-logo {
     width: 35px;
     height: 35px;
-    background: white;
+    background: black;
     border-radius: 8px;
     color: white;
     display: flex;
@@ -80,8 +80,7 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
-    color: white;
-
+    color: var(--text-primary);
 }
 
 .verified-check {
@@ -226,9 +225,9 @@
 
 /* Highlight the selected coin */
 .coin-item.selected-coin {
-    border-color: #0062ff;
+    border-color: var(--brand-primary);
     background: var(--bg-hover);
-    box-shadow: 0 0 10px rgba(0, 98, 255, 0.2);
+    box-shadow: 0 0 10px #ffd50067;
 }
 
 /* Pay Button Container */
@@ -241,8 +240,8 @@
     padding: 14px;
     border-radius: 12px;
     border: none;
-    background: white;
-    color: white;
+    background: #ffd500;
+    color: black;
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -250,13 +249,13 @@
 }
 
 .main-pay-btn:hover:not(:disabled) {
-    background: #0052d9;
+    background: #ffd500;
     transform: translateY(-1px);
 }
 
 .main-pay-btn:disabled {
     background: #cbcbcb;
-    color: #ffffff;
+    color: var(--text-primary);
     cursor: not-allowed;
     border: 1px solid #888888;
 }
@@ -580,25 +579,25 @@ body.dark-theme .network-item-card:hover {
 
 /* Blue border and checkmark for the active state */
 .network-item-card.active {
-    border: 2px solid #3b82f6;
+    border: 2px solid #ffd50077;
     /* Bright blue border */
     background: rgba(59, 130, 246, 0.05);
 }
 
 .selected-check {
-    color: #3b82f6;
+    color: #ffd50077;
     font-size: 14px;
     font-weight: bold;
 }
 
 /* Ensure the arrow turns blue when active */
 .network-item-card.active .arrow-icon {
-    color: #3b82f6;
+    color: #ffd50077;
 }
 
 
 .copy-btn-new:hover svg {
-    color: #3b82f6;
+    color: #ffd50077;
     /* Subtle blue on hover */
     transform: scale(1.1);
     transition: all 0.2s ease;

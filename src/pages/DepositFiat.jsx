@@ -519,6 +519,7 @@ const DepositFiat = () => {
                       }}
                     />
                   </div>
+                  <span>{ } INR : 1 USDT</span>
                   {formErrors.amount && <div className="input-error-text" style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>{formErrors.amount}</div>}
                 </div>
               </div>
@@ -874,7 +875,7 @@ const DepositFiat = () => {
                       </h3>
 
                       <button
-                        className="modal-close-btn " style={{ cursor: "pointer"}}
+                        className="modal-close-btn " style={{ cursor: "pointer" }}
                         onClick={closeShowImage}
                       >
                         ✕
@@ -882,7 +883,7 @@ const DepositFiat = () => {
                     </div>
 
                     {/* Body */}
-                    <div className="modal-body " style={{ padding: "15px"}}>
+                    <div className="modal-body " style={{ padding: "15px" }}>
                       <img
                         src={selectedImg}
                         alt="Deposit Receipt"

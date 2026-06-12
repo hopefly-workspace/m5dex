@@ -1959,25 +1959,25 @@ const TradingPanel = ({
                   indiaRefPriceForSizing != null &&
                   indiaRefPriceForSizing > 0 &&
                   (indiaSummary.marginUsdt > 0 || indiaSummary.notionalInr > 0) && (
-                  <p className="tp-india-qty-hint">
-                    Est. margin:{' '}
-                    <strong>
-                      {indiaCalcCurrency === 'inr'
-                        ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
-                        : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
-                    </strong>
-                    {' · '}
-                    Notional:{' '}
-                    <strong>
-                      {indiaCalcCurrency === 'inr'
-                        ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
-                        : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
-                    </strong>
-                    {indiaSizingUsesLtpFallback ? (
-                      <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
-                    ) : null}
-                  </p>
-                )}
+                    <p className="tp-india-qty-hint">
+                      Est. margin:{' '}
+                      <strong>
+                        {indiaCalcCurrency === 'inr'
+                          ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
+                          : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
+                      </strong>
+                      {' · '}
+                      Notional:{' '}
+                      <strong>
+                        {indiaCalcCurrency === 'inr'
+                          ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
+                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
+                      </strong>
+                      {indiaSizingUsesLtpFallback ? (
+                        <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
+                      ) : null}
+                    </p>
+                  )}
                 {indiaMarketNoExecutableBook && (
                   <p className="tp-india-qty-hint tp-india-qty-hint--warn" role="status">
                     Live bid and ask are required to place an order. Wait for quotes on the feed.
@@ -2159,52 +2159,52 @@ const TradingPanel = ({
               </div>
             )}
             {!isIndia && (
-            <div
-              className={`tp-leverage-slider-wrap${isCrypto || isForex ? ' tp-leverage-slider-wrap--crypto tp-crypto-slider' : ''}${isForex && forexOrderExceedsBalance ? ' tp-crypto-slider--exceeds' : ''}`}
-            >
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={sliderPercent}
-                onChange={handleSliderInputChange}
-                className={`tp-leverage-range${isCrypto || isForex ? ' tp-crypto-slider__range' : ''}`}
-                style={
-                  isCrypto || isForex
-                    ? {
-                      background:
-                        isForex && forexOrderExceedsBalance
-                          ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
-                          : `linear-gradient(to right, var(--brand-primary, #3b82f6) 0%, var(--brand-primary, #3b82f6) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
-                    }
-                    : undefined
-                }
-                aria-label={
-                  isCrypto
-                    ? 'Percentage of maximum position size'
-                    : isForex
-                      ? 'Lot size as percent of maximum buying power'
-                      : 'Amount percentage'
-                }
-              />
               <div
-                className={`tp-leverage-markers${isCrypto || isForex ? ' tp-crypto-slider__markers' : ''}`}
+                className={`tp-leverage-slider-wrap${isCrypto || isForex ? ' tp-leverage-slider-wrap--crypto tp-crypto-slider' : ''}${isForex && forexOrderExceedsBalance ? ' tp-crypto-slider--exceeds' : ''}`}
               >
-                {SLIDER_PERCENTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`tp-leverage-marker${isCrypto || isForex ? ' tp-crypto-slider__step' : ''}${sliderPercent >= p ? ' tp-leverage-marker--active' : ''}`}
-                    onClick={() => handleSliderDotClick(p)}
-                    aria-label={`${p}%`}
-                  >
-                    {!(isCrypto || isForex) && <span className="tp-leverage-marker-dot" />}
-                    <span className="tp-leverage-marker-label">{p}%</span>
-                  </button>
-                ))}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={sliderPercent}
+                  onChange={handleSliderInputChange}
+                  className={`tp-leverage-range${isCrypto || isForex ? ' tp-crypto-slider__range' : ''}`}
+                  style={
+                    isCrypto || isForex
+                      ? {
+                        background:
+                          isForex && forexOrderExceedsBalance
+                            ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
+                            : `linear-gradient(to right, var(--brand-primary, #ffd50077) 0%, var(--brand-primary, #ffd50077) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
+                      }
+                      : undefined
+                  }
+                  aria-label={
+                    isCrypto
+                      ? 'Percentage of maximum position size'
+                      : isForex
+                        ? 'Lot size as percent of maximum buying power'
+                        : 'Amount percentage'
+                  }
+                />
+                <div
+                  className={`tp-leverage-markers${isCrypto || isForex ? ' tp-crypto-slider__markers' : ''}`}
+                >
+                  {SLIDER_PERCENTS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`tp-leverage-marker${isCrypto || isForex ? ' tp-crypto-slider__step' : ''}${sliderPercent >= p ? ' tp-leverage-marker--active' : ''}`}
+                      onClick={() => handleSliderDotClick(p)}
+                      aria-label={`${p}%`}
+                    >
+                      {!(isCrypto || isForex) && <span className="tp-leverage-marker-dot" />}
+                      <span className="tp-leverage-marker-label">{p}%</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
             )}
 
             <div className="tp-options-row">
@@ -2409,25 +2409,25 @@ const TradingPanel = ({
                   indiaRefPriceForSizing != null &&
                   indiaRefPriceForSizing > 0 &&
                   (indiaSummary.marginUsdt > 0 || indiaSummary.notionalInr > 0) && (
-                  <p className="tp-india-qty-hint">
-                    Est. margin:{' '}
-                    <strong>
-                      {indiaCalcCurrency === 'inr'
-                        ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
-                        : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
-                    </strong>
-                    {' · '}
-                    Notional:{' '}
-                    <strong>
-                      {indiaCalcCurrency === 'inr'
-                        ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
-                        : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
-                    </strong>
-                    {indiaSizingUsesLtpFallback ? (
-                      <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
-                    ) : null}
-                  </p>
-                )}
+                    <p className="tp-india-qty-hint">
+                      Est. margin:{' '}
+                      <strong>
+                        {indiaCalcCurrency === 'inr'
+                          ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
+                          : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
+                      </strong>
+                      {' · '}
+                      Notional:{' '}
+                      <strong>
+                        {indiaCalcCurrency === 'inr'
+                          ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
+                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
+                      </strong>
+                      {indiaSizingUsesLtpFallback ? (
+                        <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
+                      ) : null}
+                    </p>
+                  )}
                 {indiaMarketNoExecutableBook && (
                   <p className="tp-india-qty-hint tp-india-qty-hint--warn" role="status">
                     Live bid and ask are required to place an order. Wait for quotes on the feed.
@@ -2609,52 +2609,52 @@ const TradingPanel = ({
               </div>
             )}
             {!isIndia && (
-            <div
-              className={`tp-leverage-slider-wrap${isCrypto || isForex ? ' tp-leverage-slider-wrap--crypto tp-crypto-slider' : ''}${isForex && forexOrderExceedsBalance ? ' tp-crypto-slider--exceeds' : ''}`}
-            >
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={sliderPercent}
-                onChange={handleSliderInputChange}
-                className={`tp-leverage-range${isCrypto || isForex ? ' tp-crypto-slider__range' : ''}`}
-                style={
-                  isCrypto || isForex
-                    ? {
-                      background:
-                        isForex && forexOrderExceedsBalance
-                          ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
-                          : `linear-gradient(to right, var(--brand-primary, #3b82f6) 0%, var(--brand-primary, #3b82f6) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
-                    }
-                    : undefined
-                }
-                aria-label={
-                  isCrypto
-                    ? 'Percentage of maximum position size'
-                    : isForex
-                      ? 'Lot size as percent of maximum buying power'
-                      : 'Amount percentage'
-                }
-              />
               <div
-                className={`tp-leverage-markers${isCrypto || isForex ? ' tp-crypto-slider__markers' : ''}`}
+                className={`tp-leverage-slider-wrap${isCrypto || isForex ? ' tp-leverage-slider-wrap--crypto tp-crypto-slider' : ''}${isForex && forexOrderExceedsBalance ? ' tp-crypto-slider--exceeds' : ''}`}
               >
-                {SLIDER_PERCENTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`tp-leverage-marker${isCrypto || isForex ? ' tp-crypto-slider__step' : ''}${sliderPercent >= p ? ' tp-leverage-marker--active' : ''}`}
-                    onClick={() => handleSliderDotClick(p)}
-                    aria-label={`${p}%`}
-                  >
-                    {!(isCrypto || isForex) && <span className="tp-leverage-marker-dot" />}
-                    <span className="tp-leverage-marker-label">{p}%</span>
-                  </button>
-                ))}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={sliderPercent}
+                  onChange={handleSliderInputChange}
+                  className={`tp-leverage-range${isCrypto || isForex ? ' tp-crypto-slider__range' : ''}`}
+                  style={
+                    isCrypto || isForex
+                      ? {
+                        background:
+                          isForex && forexOrderExceedsBalance
+                            ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
+                            : `linear-gradient(to right, var(--brand-primary, #ffd50077) 0%, var(--brand-primary, #ffd50077) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
+                      }
+                      : undefined
+                  }
+                  aria-label={
+                    isCrypto
+                      ? 'Percentage of maximum position size'
+                      : isForex
+                        ? 'Lot size as percent of maximum buying power'
+                        : 'Amount percentage'
+                  }
+                />
+                <div
+                  className={`tp-leverage-markers${isCrypto || isForex ? ' tp-crypto-slider__markers' : ''}`}
+                >
+                  {SLIDER_PERCENTS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`tp-leverage-marker${isCrypto || isForex ? ' tp-crypto-slider__step' : ''}${sliderPercent >= p ? ' tp-leverage-marker--active' : ''}`}
+                      onClick={() => handleSliderDotClick(p)}
+                      aria-label={`${p}%`}
+                    >
+                      {!(isCrypto || isForex) && <span className="tp-leverage-marker-dot" />}
+                      <span className="tp-leverage-marker-label">{p}%</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
             )}
 
             <div className="tp-options-row">
@@ -2680,7 +2680,12 @@ const TradingPanel = ({
                         type="text"
                         className="tp-input"
                         value={takeProfit}
-                        onChange={(e) => setTakeProfit(e.target.value)}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.]/g, '');
+                          const parts = val.split('.');
+                          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                          setTakeProfit(val);
+                        }}
                         placeholder="0.00"
                       />
                       <span className="tp-unit">{sizeUnit}</span>
@@ -2693,7 +2698,12 @@ const TradingPanel = ({
                         type="text"
                         className="tp-input"
                         value={stopLoss}
-                        onChange={(e) => setStopLoss(e.target.value)}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.]/g, '');
+                          const parts = val.split('.');
+                          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                          setStopLoss(val);
+                        }}
                         placeholder="0.00"
                       />
                       <span className="tp-unit">{sizeUnit}</span>

@@ -154,7 +154,7 @@ const IndicesMarketsPage = () => {
           <div className="marketsHeaderContent">
             <div className="marketsHeaderText">
               <h1 className="marketsTitle">Indices Markets</h1>
-              <p className="marketsSubtitle">Trade global stock market indices</p>
+              <p className="marketsSubtitle">Trade m5dex stock market indices</p>
             </div>
             <div className="wsStatusContainer">
               <div

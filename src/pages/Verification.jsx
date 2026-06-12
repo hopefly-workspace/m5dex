@@ -291,7 +291,7 @@ const Verification = () => {
                 }}>
                   {displayValue}
                 </p>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => navigate('/signup')}
                   style={{
@@ -306,7 +306,7 @@ const Verification = () => {
                   }}
                 >
                   Change
-                </button>
+                </button> */}
               </div>
             </div>
 

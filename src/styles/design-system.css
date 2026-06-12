@@ -80,7 +80,7 @@
   --border-light: #1e293b;
   --border-medium: #3F4A5C;
   --border-heavy: #4A5568;
-  --border-focus: #4566f5;
+  --border-focus: #ffd50077;
   --border-hover: #3F4A5C;
   --divider: rgba(255, 255, 255, 0.08);
   --divider-strong: rgba(255, 255, 255, 0.12);
@@ -194,7 +194,7 @@ body.light-theme,
   --border-light: #E2E8F0;
   --border-medium: #CBD5E0;
   --border-heavy: #94A3B8;
-  --border-focus: #0066FF;
+  --border-focus: #ffd50077;
   --border-hover: #CBD5E0;
   --divider: rgba(0, 0, 0, 0.08);
   --divider-strong: rgba(0, 0, 0, 0.12);

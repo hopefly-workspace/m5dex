@@ -71,12 +71,19 @@ const ForgotPassword = () => {
         });
       }, 1500);
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
-        setErrors({ email: error.response.data.message });
-      } else {
-        setErrors({ email: 'An unexpected error occurred. Please try again later.' });
-      }
-    } finally {
+      console.error("Forgot Password Error:", error);
+
+      const message =
+        error?.response?.data?.message ||
+        error?.data?.message ||
+        error?.message ||
+        "An unexpected error occurred. Please try again later.";
+
+      setErrors({
+        email: message,
+      });
+    }
+    finally {
       setIsSubmitting(false);
     }
   };
