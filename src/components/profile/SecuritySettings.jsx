@@ -101,6 +101,8 @@ const SecuritySettings = () => {
   const [freezeSuccess, setFreezeSuccess] = useState(null);
   const [freezeResendTimer, setFreezeResendTimer] = useState(0);
   const [accountFrozen, setAccountFrozen] = useState(user?.isfreeze);
+  const [freezeConfirmModalOpen, setFreezeConfirmModalOpen] = useState(false);
+  const [freezeConfirmAction, setFreezeConfirmAction] = useState(null);
 
   useEffect(() => {
     const frozen = user?.isfreeze ?? user?.isfreeze ?? false;
@@ -170,7 +172,7 @@ const SecuritySettings = () => {
         </svg>
       ),
       title: "Google Authenticator (2FA)",
-      tag: twoFaEnabled ? "Enabled" : "Off",
+      tag: twoFaEnabled ? "On" : "Off",
       description: "Add an extra layer of security using an authenticator app (TOTP).",
       status: twoFaEnabled ? "on" : "off",
       value: twoFaEnabled ? "Enabled" : "Not enabled",
@@ -831,11 +833,11 @@ const SecuritySettings = () => {
             </div>
             {feature.id === "passkey" ? (
               <>
-                {feature?.is_veriftied && (
+                {/* {feature?.is_veriftied && (
                   <span className="securityFeatureStatus verified">
                     Verified
                   </span>
-                )}
+                )} */}
                 <button
                   type="button"
                   className="securityActionBtn"
@@ -847,9 +849,9 @@ const SecuritySettings = () => {
               </>
             ) : feature.id === "google2fa" ? (
               <>
-                {twoFaEnabled && (
+                {/* {twoFaEnabled && (
                   <span className="securityFeatureStatus verified">Verified</span>
-                )}
+                )} */}
                 <button
                   type="button"
                   className="securityActionBtn"
@@ -948,13 +950,16 @@ const SecuritySettings = () => {
             <p className="securityFeatureDescription">
               {accountFrozen
                 ? "Unfreeze your account to use trading and withdrawal again. We'll send an OTP to your registered email to verify."
-                : "Temporarily freeze your account to block all trading and withdrawals. We'll send an OTP to your registered email to verify."}
+                : "Temporarily freeze your account to block all trading and withdrawals. all trading, deposits and withdraw stopped. We'll send an OTP to your registered email to verify."}
             </p>
           </div>
           <button
             type="button"
             className={`securityActionBtn ${accountFrozen ? "" : "securityActionBtnDanger"}`}
-            onClick={() => openFreezeOtpModal(accountFrozen ? "unfreeze" : "freeze")}
+            onClick={() => {
+              setFreezeConfirmAction(accountFrozen ? "unfreeze" : "freeze");
+              setFreezeConfirmModalOpen(true);
+            }}
           >
             {accountFrozen ? "Unfreeze account" : "Freeze account"}
           </button>
@@ -1104,6 +1109,49 @@ const SecuritySettings = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {freezeConfirmModalOpen && (
+        <div className="passkeyModalOverlay" onClick={() => setFreezeConfirmModalOpen(false)}>
+          <div className="passkeyModal" onClick={(e) => e.stopPropagation()}>
+            <div className="passkeyModalBody" style={{ textAlign: 'center', paddingTop: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: freezeConfirmAction === "unfreeze" ? "var(--color-success)" : "var(--color-danger)" }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <h2 className="passkeyModalTitle" style={{ fontSize: '1.5rem', marginBottom: '16px' }}>
+                {freezeConfirmAction === "unfreeze" ? "Unfreeze Account" : "Account Freeze"}
+              </h2>
+              <p className="passkeyModalText" style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                {freezeConfirmAction === "unfreeze"
+                  ? "Temporarily unfreeze your account to prevent all trading, deposits, and withdrawals. To confirm this action, we'll send a verification OTP to your registered email address."
+                  : "Temporarily freeze your account to prevent all trading, deposits, and withdrawals. To confirm this action, we'll send a verification OTP to your registered email address."}
+              </p>
+              <div className="passkeyModalActions" style={{ marginTop: '32px' }}>
+                <button
+                  type="button"
+                  className="passkeyModalBtn secondary"
+                  onClick={() => setFreezeConfirmModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="passkeyModalBtn primary"
+                  onClick={() => {
+                    setFreezeConfirmModalOpen(false);
+                    openFreezeOtpModal(freezeConfirmAction);
+                  }}
+                >
+                  Send Code
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1418,13 +1466,17 @@ const SecuritySettings = () => {
                       if (digits) {
                         e.preventDefault();
                         setTwoFaCode(digits);
+                        if (twoFaError) setTwoFaError(null);
                         if (digits.length === 6) handleDisable2FA(digits);
                       }
                     }}
                   >
                     <OTPInput
                       value={twoFaCode}
-                      onChange={setTwoFaCode}
+                      onChange={(code) => {
+                        setTwoFaCode(code);
+                        if (twoFaError) setTwoFaError(null);
+                      }}
                       onComplete={handleDisable2FA}
                       error={!!twoFaError}
                       disabled={twoFaDisabling || twoFaVerifying}
@@ -1513,13 +1565,17 @@ const SecuritySettings = () => {
                       if (digits) {
                         e.preventDefault();
                         setTwoFaCode(digits);
+                        if (twoFaError) setTwoFaError(null);
                         if (digits.length === 6) handleVerifySetup(digits);
                       }
                     }}
                   >
                     <OTPInput
                       value={twoFaCode}
-                      onChange={setTwoFaCode}
+                      onChange={(code) => {
+                        setTwoFaCode(code);
+                        if (twoFaError) setTwoFaError(null);
+                      }}
                       onComplete={handleVerifySetup}
                       error={!!twoFaError}
                       disabled={twoFaLoading || twoFaVerifying || twoFaDisabling}

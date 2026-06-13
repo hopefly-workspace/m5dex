@@ -103,7 +103,7 @@ export const SecureLoginExample = () => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+        className="w-full bg-[#ffd500] text-black py-2 px-4 rounded hover:bg-[#ccaa00] disabled:opacity-50"
       >
         {loading ? 'Logging in...' : 'Login'}
       </button>
@@ -246,7 +246,7 @@ export const FormValidationExample = () => {
 
       <button
         type="submit"
-        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+        className="w-full bg-[#ffd500] text-black py-2 px-4 rounded hover:bg-[#ccaa00]"
       >
         Submit
       </button>

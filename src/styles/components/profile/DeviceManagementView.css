@@ -309,9 +309,9 @@
 }
 
 .deviceCard--current .deviceCardIcon {
-  color: var(--brand-primary);
-  background: rgba(37, 99, 235, 0.1);
-  /* border-color: rgba(37, 99, 235, 0.25); */
+  color: black;
+  background: #ffd500;
+  border-color: #ffd500;
 }
 
 .deviceCardMain {
@@ -340,8 +340,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--brand-primary);
-  background: rgba(37, 99, 235, 0.12);
+  color: black;
+  background: #ffd500;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
 }

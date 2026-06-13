@@ -161,7 +161,7 @@
 }
 
 .favoritesSidebarTr:focus-visible {
-  outline: 2px solid var(--brand-primary, #0066ff);
+  outline: 2px solid var(--brand-primary, #ffd500);
   outline-offset: -2px;
 }
 
@@ -170,12 +170,12 @@
 }
 
 .favoritesSidebarTr--active {
-  background: color-mix(in srgb, var(--brand-primary, #0066ff) 16%, transparent);
-  box-shadow: inset 3px 0 0 0 var(--brand-primary, #0066ff);
+  background: color-mix(in srgb, var(--brand-primary, #ffd500) 16%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--brand-primary, #ffd500);
 }
 
 .favoritesSidebarTr--active:hover {
-  background: color-mix(in srgb, var(--brand-primary, #0066ff) 20%, transparent);
+  background: color-mix(in srgb, var(--brand-primary, #ffd500) 20%, transparent);
 }
 
 .favoritesSidebar tbody tr:nth-child(even):not(:hover):not(.favoritesSidebarTr--active) {

@@ -86,7 +86,7 @@
 }
 
 .tradeBtn {
-  background: linear-gradient(135deg, var(--brand-primary, #0066ff) 0%, var(--brand-primary-light, #3385ff) 100%);
+  background: linear-gradient(135deg, var(--brand-primary, #ffd500) 0%, var(--brand-primary-light, #ffe033) 100%);
   color: var(--btn-primary-text, black);
   border: none;
   border-radius: var(--radius-2xl);
@@ -155,15 +155,16 @@
 /* Light theme adjustments */
 .light-theme .tradeBtn,
 [data-theme="light"] .tradeBtn {
-  background: linear-gradient(135deg, var(--brand-primary, #0066ff) 0%, var(--brand-primary-light, #3385ff) 100%);
-  color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 102, 255, 0.25);
+  background: linear-gradient(135deg, var(--brand-primary, #ffd500) 0%, var(--brand-primary-light, #ffe033) 100%);
+  color: black;
+  box-shadow: 0 4px 12px rgba(255, 213, 0, 0.3);
 }
 
 .light-theme .tradeBtn:hover,
 [data-theme="light"] .tradeBtn:hover {
-  background: linear-gradient(135deg, var(--brand-primary-light, #3385ff) 0%, var(--brand-primary, #0066ff) 100%);
-  box-shadow: 0 4px 8px rgba(0, 102, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 213, 0, 0.4);
+  background: linear-gradient(135deg, var(--brand-primary-light, #ffe033) 0%, var(--brand-primary, #ffd500) 100%);
 }
 
 /* Dark theme adjustments */
@@ -171,7 +172,7 @@
 [data-theme="dark"] .tradeBtn {
   background: var(--brand-primary);
   color: black;
-  box-shadow: 0 2px 4px rgba(0, 102, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(255, 213, 0, 0.3);
 }
 
 .dark-theme .tradeBtn:hover,

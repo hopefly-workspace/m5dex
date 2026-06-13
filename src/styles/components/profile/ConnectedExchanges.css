@@ -428,7 +428,7 @@
 .connectBtn {
   padding: var(--space-sm) var(--space-lg);
   background-color: var(--brand-primary);
-  color: var(--text-primary);
+  color: black;
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-primary);

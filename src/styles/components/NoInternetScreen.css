@@ -224,15 +224,15 @@
 }
 
 .no-internet-btn-primary {
-  background: linear-gradient(135deg, #0066FF 0%, #3385FF 100%);
-  color: white;
-  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.4);
+  background: linear-gradient(135deg, #ffd500 0%, #ffe033 100%);
+  color: black;
+  box-shadow: 0 4px 16px rgba(255, 213, 0, 0.4);
 }
 
 .no-internet-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 102, 255, 0.5);
-  background: linear-gradient(135deg, #3385FF 0%, #0066FF 100%);
+  box-shadow: 0 6px 20px rgba(255, 213, 0, 0.5);
+  background: linear-gradient(135deg, #ffe033 0%, #ffd500 100%);
 }
 
 .no-internet-btn-primary:active {

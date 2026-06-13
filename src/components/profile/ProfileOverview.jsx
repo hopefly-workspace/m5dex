@@ -786,7 +786,12 @@ const ProfileOverview = ({ user }) => {
                 <button
                   type="submit"
                   className="profileEditModalBtn profileEditModalBtnSave"
-                  disabled={isSubmitting || !!nicknameError || !nickname.trim()}
+                  disabled={
+                    isSubmitting || 
+                    !!nicknameError || 
+                    !nickname.trim() || 
+                    (nickname.trim() === (user?.full_name || user?.nickname || '') && !avatarFile && !removeAvatar)
+                  }
                 >
                   {isSubmitting ? (
                     <>

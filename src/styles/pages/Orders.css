@@ -1829,8 +1829,8 @@
 }
 
 .type-badge.primary {
-  background: var(--badge-primary-bg);
-  color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: black;
   /* border: 1px solid var(--badge-primary-border); */
 }
 
@@ -4130,12 +4130,9 @@
 }
 
 .share-badge.position.short {
-  /* background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.3); */
-  background: var(--btn-primary-bg);
-  color: white;
-  border-color: var(--btn-primary-bg);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* Trading Pair Badge */

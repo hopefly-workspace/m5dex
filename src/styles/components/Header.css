@@ -464,7 +464,7 @@ body.light-theme .header-logo-svg .header-logo-divider,
   color: var(--brand-primary);
   font-weight: 600;
   /* background-color: #e2e8f0; */
-  /* border-bottom: 1px solid #0066FF; */
+  /* border-bottom: 1px solid #ffd500; */
 }
 
 [data-theme="dark"] .header-link:hover {
@@ -479,7 +479,7 @@ body.light-theme .header-logo-svg .header-logo-divider,
   color: var(--brand-primary);
   font-weight: 600;
   /* background-color: #1F232D; */
-  /* border-bottom: 1px solid #0066FF; */
+  /* border-bottom: 1px solid #ffd500; */
 }
 
 /* [data-theme="dark"] .dropdown-item:hover {

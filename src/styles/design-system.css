@@ -23,9 +23,9 @@
 :root {
   /* Brand Colors - Primary (Same for both themes) */
   --brand-primary: #ffd500;
-  --brand-primary-light: #3385FF;
-  --brand-primary-dark: #0052CC;
-  --brand-primary-glow: rgba(0, 102, 255, 0.2);
+  --brand-primary-light: #ffe033;
+  --brand-primary-dark: #ccaa00;
+  --brand-primary-glow: rgba(255, 213, 0, 0.2);
   --bg-gradient: linear-gradient(180deg, #ffd500e3 0%, #ffd500ce 100%);
 
   /* Action Colors (Same for both themes) */
@@ -58,7 +58,7 @@
   --bg-dark: #090B13;
   --bg-secondary2: #1e2329;
 
-  --light-theme: #4565f51c;
+  --light-theme: rgba(255, 213, 0, 0.11);
 
 
 
@@ -67,12 +67,12 @@
   --text-secondary: #B0B8C8;
   --text-tertiary: #6B7280;
   --text-disabled: #4A5568;
-  --text-link: #4A9EFF;
-  --text-link-hover: #6BB3FF;
+  --text-link: #ffd500;
+  --text-link-hover: #ffe033;
   --text-success: #4ADE80;
   --text-danger: #FF6B6B;
   --text-warning: #FBBF24;
-  --text-info: #60A5FA;
+  --text-info: #ffd500;
   --text-gray: #73757A;
 
   /* Border & Divider Colors - Dark Theme */
@@ -87,10 +87,10 @@
   --border-secondary: #32384e;
 
   /* Button Colors - Dark Theme */
-  --btn-primary-bg: #4566f5;
-  --btn-primary-hover: #3385FF;
-  --btn-primary-active: #0052CC;
-  --btn-primary-text: #FFFFFF;
+  --btn-primary-bg: #ffd500;
+  --btn-primary-hover: #ffe033;
+  --btn-primary-active: #ccaa00;
+  --btn-primary-text: #000000;
   --btn-secondary-bg: #1E2330;
   --btn-secondary-hover: #252D3D;
   --btn-secondary-active: #2D3748;
@@ -111,24 +111,24 @@
   --badge-danger-bg: rgba(255, 61, 0, 0.15);
   --badge-warning-bg: rgba(255, 179, 0, 0.15);
   --badge-info-bg: rgba(0, 184, 212, 0.15);
-  --badge-primary-bg: rgba(0, 102, 255, 0.15);
+  --badge-primary-bg: rgba(255, 213, 0, 0.15);
   --badge-success-border: rgba(0, 200, 83, 0.3);
   --badge-danger-border: rgba(255, 61, 0, 0.3);
   --badge-warning-border: rgba(255, 179, 0, 0.3);
   --badge-info-border: rgba(0, 184, 212, 0.3);
-  --badge-primary-border: rgba(0, 102, 255, 0.3);
-  --badge-click-bg: rgba(204, 218, 235, 1);
+  --badge-primary-border: rgba(255, 213, 0, 0.3);
+  --badge-click-bg: rgba(255, 213, 0, 0.2);
 
   /* Shadows - Dark Theme */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.3);
+  --shadow-glow: 0 0 20px rgba(255, 213, 0, 0.3);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-  --brand-primary-glow: rgba(0, 102, 255, 0.1);
-  --brand-primary-dark: #0052CC;
-  --badge-click-bg: rgba(204, 218, 235, 1);
+  --brand-primary-glow: rgba(255, 213, 0, 0.1);
+  --brand-primary-dark: #ccaa00;
+  --badge-click-bg: rgba(255, 213, 0, 0.2);
 
   /*
    * Legacy "ark" aliases (payment flows, TradingChart, profile KYC).
@@ -182,12 +182,12 @@ body.light-theme,
   --text-secondary: #475569;
   --text-tertiary: #64748B;
   --text-disabled: #94A3B8;
-  --text-link: #0066FF;
-  --text-link-hover: #0052CC;
+  --text-link: #ccaa00;
+  --text-link-hover: #a68a00;
   --text-success: #059669;
   --text-danger: #DC2626;
   --text-warning: #D97706;
-  --text-info: #0284C7;
+  --text-info: #ccaa00;
   --text-gray: #73757A;
 
   /* Border & Divider Colors - Light Theme */
@@ -202,10 +202,10 @@ body.light-theme,
 
 
   /* Button Colors - Light Theme */
-  --btn-primary-bg: #0066FF;
-  --btn-primary-hover: #3385FF;
-  --btn-primary-active: #0052CC;
-  --btn-primary-text: #FFFFFF;
+  --btn-primary-bg: #ffd500;
+  --btn-primary-hover: #ffe033;
+  --btn-primary-active: #ccaa00;
+  --btn-primary-text: #000000;
   --btn-secondary-bg: #F1F3F5;
   --btn-secondary-hover: #E9ECEF;
   --btn-secondary-active: #DEE2E6;
@@ -226,22 +226,22 @@ body.light-theme,
   --badge-danger-bg: rgba(220, 38, 38, 0.12);
   --badge-warning-bg: rgba(217, 119, 6, 0.12);
   --badge-info-bg: rgba(2, 132, 199, 0.12);
-  --badge-primary-bg: rgba(0, 102, 255, 0.12);
+  --badge-primary-bg: rgba(255, 213, 0, 0.12);
   --badge-success-border: rgba(5, 150, 105, 0.25);
   --badge-danger-border: rgba(220, 38, 38, 0.25);
   --badge-warning-border: rgba(217, 119, 6, 0.25);
   --badge-info-border: rgba(2, 132, 199, 0.25);
-  --badge-primary-border: rgba(0, 102, 255, 0.25);
-  --badge-click-bg: rgba(204, 218, 235, 1);
+  --badge-primary-border: rgba(255, 213, 0, 0.25);
+  --badge-click-bg: rgba(255, 213, 0, 0.2);
 
   /* Shadows - Light Theme */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.15);
+  --shadow-glow: 0 0 20px rgba(255, 213, 0, 0.15);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-  --badge-click-bg: rgba(204, 218, 235, 1);
+  --badge-click-bg: rgba(255, 213, 0, 0.2);
 
   --ark-bg-primary: var(--bg-primary);
   --ark-bg-secondary: var(--bg-secondary);
@@ -345,7 +345,7 @@ body.light-theme,
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.3);
+  --shadow-glow: 0 0 20px rgba(255, 213, 0, 0.3);
 
   /* Ark static tokens (spacing/type — match AuthPremium names for payment CSS) */
   --ark-space-xs: var(--space-xs);
@@ -557,7 +557,7 @@ html::-webkit-scrollbar-thumb {
 body::-webkit-scrollbar-thumb:hover,
 html::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, var(--border-focus) 0%, var(--border-medium) 100%);
-  box-shadow: inset 0 0 4px rgba(0, 102, 255, 0.3);
+  box-shadow: inset 0 0 4px rgba(255, 213, 0, 0.3);
 }
 
 /* ============================================

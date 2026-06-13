@@ -2186,3 +2186,17 @@
   margin-top: var(--space-md);
 
 }
+
+.amount-highlight {
+  color: #000;
+}
+
+[data-theme="dark"] .amount-highlight,
+html[data-theme="dark"] .amount-highlight,
+.dark-theme .amount-highlight {
+  color: var(--brand-primary, #ffd500);
+}
+
+.amount-label {
+  color: var(--text-tertiary, #64748B);
+}

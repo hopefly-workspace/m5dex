@@ -372,55 +372,55 @@
 }
 
 .trading-panel-auth-btn-primary {
-  background: linear-gradient(135deg, var(--brand-primary, #0066FF) 0%, var(--brand-primary-light, #3385FF) 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+  background: linear-gradient(135deg, var(--brand-primary, #ffd500) 0%, var(--brand-primary-light, #ffe033) 100%);
+  color: black;
+  box-shadow: 0 4px 12px rgba(255, 213, 0, 0.3);
   transition: all 0.3s ease;
 }
 
 .trading-panel-auth-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 102, 255, 0.4);
-  background: linear-gradient(135deg, var(--brand-primary-light, #3385FF) 0%, var(--brand-primary, #0066FF) 100%);
+  box-shadow: 0 6px 16px rgba(255, 213, 0, 0.4);
+  background: linear-gradient(135deg, var(--brand-primary-light, #ffe033) 0%, var(--brand-primary, #ffd500) 100%);
 }
 
 .trading-panel-auth-btn-primary:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 213, 0, 0.3);
 }
 
 /* Light Theme - Primary Button */
 .light-theme .trading-panel-auth-btn-primary,
 [data-theme="light"] .trading-panel-auth-btn-primary {
-  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(255, 213, 0, 0.25);
 }
 
 .light-theme .trading-panel-auth-btn-primary:hover,
 [data-theme="light"] .trading-panel-auth-btn-primary:hover {
-  box-shadow: 0 6px 16px rgba(0, 102, 255, 0.35);
+  box-shadow: 0 6px 16px rgba(255, 213, 0, 0.35);
 }
 
 /* Dark Theme - Primary Button */
 .dark-theme .trading-panel-auth-btn-primary,
 [data-theme="dark"] .trading-panel-auth-btn-primary {
-  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 213, 0, 0.4);
 }
 
 .dark-theme .trading-panel-auth-btn-primary:hover,
 [data-theme="dark"] .trading-panel-auth-btn-primary:hover {
-  box-shadow: 0 6px 16px rgba(0, 102, 255, 0.5);
+  box-shadow: 0 6px 16px rgba(255, 213, 0, 0.5);
 }
 
 .trading-panel-auth-btn-secondary {
   background-color: transparent;
-  color: var(--brand-primary, #0066FF);
-  border: 2px solid var(--brand-primary, #0066FF);
+  color: var(--brand-primary, #ffd500);
+  border: 2px solid var(--brand-primary, #ffd500);
   transition: all 0.3s ease;
 }
 
 .trading-panel-auth-btn-secondary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 213, 0, 0.2);
 }
 
 .trading-panel-auth-btn-secondary:active {
@@ -431,28 +431,28 @@
 .light-theme .trading-panel-auth-btn-secondary,
 [data-theme="light"] .trading-panel-auth-btn-secondary {
   background-color: transparent;
-  color: var(--brand-primary, #0066FF);
-  border: 2px solid var(--brand-primary, #0066FF);
+  color: var(--brand-primary, #ffd500);
+  border: 2px solid var(--brand-primary, #ffd500);
 }
 
 .light-theme .trading-panel-auth-btn-secondary:hover,
 [data-theme="light"] .trading-panel-auth-btn-secondary:hover {
-  background-color: rgba(0, 102, 255, 0.08);
-  border-color: var(--brand-primary-light, #3385FF);
+  background-color: rgba(255, 213, 0, 0.08);
+  border-color: var(--brand-primary-light, #ffe033);
 }
 
 /* Dark Theme - Secondary Button */
 .dark-theme .trading-panel-auth-btn-secondary,
 [data-theme="dark"] .trading-panel-auth-btn-secondary {
   background-color: transparent;
-  color: var(--brand-primary, #0066FF);
-  border: 2px solid var(--brand-primary, #0066FF);
+  color: var(--brand-primary, #ffd500);
+  border: 2px solid var(--brand-primary, #ffd500);
 }
 
 .dark-theme .trading-panel-auth-btn-secondary:hover,
 [data-theme="dark"] .trading-panel-auth-btn-secondary:hover {
-  background-color: rgba(0, 102, 255, 0.15);
-  border-color: var(--brand-primary-light, #3385FF);
+  background-color: rgba(255, 213, 0, 0.15);
+  border-color: var(--brand-primary-light, #ffe033);
 }
 
 /* Orders Panel Section - Below Chart and OrderBook */

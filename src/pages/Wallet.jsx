@@ -1197,7 +1197,8 @@ const Wallet = () => {
     setWithdrawalHistoryError(null);
     try {
       const res = await api.get(WITHDRAWAL_HISTORY_API);
-      setWithdrawalHistoryRows(normalizeWithdrawalHistoryResponse(res));
+      const normalizedData = normalizeWithdrawalHistoryResponse(res);
+      setWithdrawalHistoryRows(normalizedData.filter(item => item.wtype === "withdrawlist"));
     } catch (err) {
       setWithdrawalHistoryError(err?.message || err?.data?.message || "Failed to load withdrawal history");
       setWithdrawalHistoryRows([]);
@@ -2483,558 +2484,558 @@ const Wallet = () => {
               </div>
 
               {spotHistoryTab === "transfer" ? (
-              <div
-                id="spot-history-panel-transfer"
-                role="tabpanel"
-                aria-labelledby="spot-history-tab-transfer"
-                className="wallet-transfer-history-card-body"
-              >
-                {balanceHistoryError ? (
-                  <div className="wallet-transfer-history-error" role="alert">
-                    <span>{balanceHistoryError}</span>
-                    <button
-                      type="button"
-                      className="wallet-by-market-retry"
-                      onClick={() => fetchWalletBalanceHistory("spot")}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : null}
-                {!balanceHistoryError && (balanceHistoryLoading || balanceHistory === null) ? (
-                  <div className="wallet-transfer-history-loading">
-                    <span className="wallet-transfer-history-spinner" aria-hidden />
-                    <span>Loading transfer history…</span>
-                  </div>
-                ) : null}
-                {!balanceHistoryError &&
-                !balanceHistoryLoading &&
-                balanceHistory !== null &&
-                transferHistoryRows != null &&
-                balanceHistoryRawCount === 0 ? (
-                  <div className="wallet-transfer-history-empty">No transfer history yet.</div>
-                ) : null}
-                {!balanceHistoryError &&
-                !balanceHistoryLoading &&
-                balanceHistory !== null &&
-                transferHistoryRows != null &&
-                balanceHistoryRawCount > 0 ? (
-                  <>
-                    <div className="wallet-bh-toolbar">
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
-                        <div className="wallet-bh-date-group">
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">From</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={balanceHistoryDateFrom}
-                              max={balanceHistoryDateTo || toLocalISODate(new Date())}
-                              onChange={(e) => setBalanceHistoryDateFrom(e.target.value)}
-                            />
-                          </label>
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">To</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={balanceHistoryDateTo}
-                              min={balanceHistoryDateFrom || undefined}
-                              max={toLocalISODate(new Date())}
-                              onChange={(e) => setBalanceHistoryDateTo(e.target.value)}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="wallet-bh-btn wallet-bh-btn--ghost"
-                            onClick={() => {
-                              setBalanceHistoryDateFrom("");
-                              setBalanceHistoryDateTo("");
-                            }}
-                          >
-                            Clear dates
-                          </button>
-                        </div>
-                        <div className="wallet-bh-presets" role="group" aria-label="Quick date ranges">
-                          <span className="wallet-bh-presets-label">Quick</span>
-                          <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("7d")}>
-                            7 days
-                          </button>
-                          <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("30d")}>
-                            30 days
-                          </button>
-                          <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("month")}>
-                            This month
-                          </button>
-                          <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("all")}>
-                            All
-                          </button>
-                        </div>
-                      </div>
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
-                        <label className="wallet-bh-field wallet-bh-field--inline">
-                          <span className="wallet-bh-field-label">Rows / page</span>
-                          <select
-                            className="wallet-bh-select"
-                            value={balanceHistoryPageSize}
-                            onChange={(e) => setBalanceHistoryPageSize(Number(e.target.value))}
-                          >
-                            {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
-                              <option key={n} value={n}>
-                                {n}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <span className="wallet-bh-range-meta" aria-live="polite">
-                          {balanceHistoryRangeLabel}
-                        </span>
-                        <button
-                          type="button"
-                          className="wallet-bh-btn wallet-bh-btn--excel"
-                          onClick={exportBalanceHistoryExcel}
-                          disabled={balanceHistoryFilteredTotal === 0}
-                        >
-                          Download Excel
-                        </button>
-                      </div>
+                <div
+                  id="spot-history-panel-transfer"
+                  role="tabpanel"
+                  aria-labelledby="spot-history-tab-transfer"
+                  className="wallet-transfer-history-card-body"
+                >
+                  {balanceHistoryError ? (
+                    <div className="wallet-transfer-history-error" role="alert">
+                      <span>{balanceHistoryError}</span>
+                      <button
+                        type="button"
+                        className="wallet-by-market-retry"
+                        onClick={() => fetchWalletBalanceHistory("spot")}
+                      >
+                        Retry
+                      </button>
                     </div>
-                    {balanceHistoryFilteredTotal === 0 ? (
-                      <div className="wallet-transfer-history-empty wallet-bh-filter-empty" role="status">
-                        No entries match the selected date range.
-                      </div>
-                    ) : (
-                      <>
-                        <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
-                          <table className="wallet-transfer-history-table wallet-balance-history-table">
-                            <thead>
-                              <tr>
-                                <th scope="col" className="wallet-bh-th-date">Date & time</th>
-                                <th scope="col" className="wallet-th-num wallet-bh-th-num">Amount</th>
-                                <th scope="col" className="wallet-th-num wallet-bh-th-remain">Remaining</th>
-                                <th scope="col" className="wallet-bh-th-note" style={{ textAlign: "right" }}>Note</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedBalanceHistoryRows.map((row, idx) => {
-                                const bal = transferRowBalanceAfter(row);
-                                const noteLabel = transferRowActivityNote(row);
-                                const rowKey =
-                                  row?.mid ??
-                                  row?.id ??
-                                  `p${balanceHistoryPageSafe}-${idx}-${transferRowTimeValue(row)?.getTime() ?? idx}`;
-                                return (
-                                  <tr key={rowKey}>
-                                    <td className="wallet-transfer-history-td-date wallet-bh-td-date">
-                                      {transferRowDate(row)}
-                                    </td>
-                                    <td className="wallet-td-num wallet-transfer-history-td-amount wallet-bh-td-num">
-                                      <span className={`wallet-transfer-type ${row?.classname} wallet-bh-amount-pill`}>
-                                        {formatBalance(row.balance)}
-                                      </span>
-                                    </td>
-                                    <td className="wallet-td-num wallet-transfer-history-td-balance wallet-bh-td-remain">
-                                      <span className="wallet-bh-remain-value">
-                                        {formatHistoryRemain(bal, hideBalance)}
-                                      </span>
-                                    </td>
-                                    <td className="wallet-bh-td-note" style={{ textAlign: "right" }}>
-                                      <span className="wallet-balance-history-note">{noteLabel}</span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        <nav className="wallet-bh-pagination" aria-label="Transfer history pagination">
-                          <button
-                            type="button"
-                            className="wallet-bh-page-btn"
-                            disabled={balanceHistoryPageSafe <= 1}
-                            onClick={() => setBalanceHistoryPage((p) => Math.max(1, p - 1))}
-                          >
-                            Previous
-                          </button>
-                          <div className="wallet-bh-page-list">
-                            {paginationWindow.map((item, wi) =>
-                              item === "…" ? (
-                                <span key={`spot-tr-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">…</span>
-                              ) : (
-                                <button
-                                  key={item}
-                                  type="button"
-                                  className={
-                                    item === balanceHistoryPageSafe
-                                      ? "wallet-bh-page-num is-active"
-                                      : "wallet-bh-page-num"
-                                  }
-                                  onClick={() => setBalanceHistoryPage(item)}
-                                  aria-current={item === balanceHistoryPageSafe ? "page" : undefined}
-                                >
-                                  {item}
-                                </button>
-                              )
-                            )}
+                  ) : null}
+                  {!balanceHistoryError && (balanceHistoryLoading || balanceHistory === null) ? (
+                    <div className="wallet-transfer-history-loading">
+                      <span className="wallet-transfer-history-spinner" aria-hidden />
+                      <span>Loading transfer history…</span>
+                    </div>
+                  ) : null}
+                  {!balanceHistoryError &&
+                    !balanceHistoryLoading &&
+                    balanceHistory !== null &&
+                    transferHistoryRows != null &&
+                    balanceHistoryRawCount === 0 ? (
+                    <div className="wallet-transfer-history-empty">No transfer history yet.</div>
+                  ) : null}
+                  {!balanceHistoryError &&
+                    !balanceHistoryLoading &&
+                    balanceHistory !== null &&
+                    transferHistoryRows != null &&
+                    balanceHistoryRawCount > 0 ? (
+                    <>
+                      <div className="wallet-bh-toolbar">
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
+                          <div className="wallet-bh-date-group">
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">From</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={balanceHistoryDateFrom}
+                                max={balanceHistoryDateTo || toLocalISODate(new Date())}
+                                onChange={(e) => setBalanceHistoryDateFrom(e.target.value)}
+                              />
+                            </label>
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">To</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={balanceHistoryDateTo}
+                                min={balanceHistoryDateFrom || undefined}
+                                max={toLocalISODate(new Date())}
+                                onChange={(e) => setBalanceHistoryDateTo(e.target.value)}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="wallet-bh-btn wallet-bh-btn--ghost"
+                              onClick={() => {
+                                setBalanceHistoryDateFrom("");
+                                setBalanceHistoryDateTo("");
+                              }}
+                            >
+                              Clear dates
+                            </button>
                           </div>
+                          <div className="wallet-bh-presets" role="group" aria-label="Quick date ranges">
+                            <span className="wallet-bh-presets-label">Quick</span>
+                            <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("7d")}>
+                              7 days
+                            </button>
+                            <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("30d")}>
+                              30 days
+                            </button>
+                            <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("month")}>
+                              This month
+                            </button>
+                            <button type="button" className="wallet-bh-chip" onClick={() => applyBalanceHistoryPreset("all")}>
+                              All
+                            </button>
+                          </div>
+                        </div>
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
+                          <label className="wallet-bh-field wallet-bh-field--inline">
+                            <span className="wallet-bh-field-label">Rows / page</span>
+                            <select
+                              className="wallet-bh-select"
+                              value={balanceHistoryPageSize}
+                              onChange={(e) => setBalanceHistoryPageSize(Number(e.target.value))}
+                            >
+                              {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <span className="wallet-bh-range-meta" aria-live="polite">
+                            {balanceHistoryRangeLabel}
+                          </span>
                           <button
                             type="button"
-                            className="wallet-bh-page-btn"
-                            disabled={balanceHistoryPageSafe >= balanceHistoryTotalPages}
-                            onClick={() =>
-                              setBalanceHistoryPage((p) => Math.min(balanceHistoryTotalPages, p + 1))
-                            }
+                            className="wallet-bh-btn wallet-bh-btn--excel"
+                            onClick={exportBalanceHistoryExcel}
+                            disabled={balanceHistoryFilteredTotal === 0}
                           >
-                            Next
+                            Download Excel
                           </button>
-                        </nav>
-                      </>
-                    )}
-                  </>
-                ) : null}
-              </div>
+                        </div>
+                      </div>
+                      {balanceHistoryFilteredTotal === 0 ? (
+                        <div className="wallet-transfer-history-empty wallet-bh-filter-empty" role="status">
+                          No entries match the selected date range.
+                        </div>
+                      ) : (
+                        <>
+                          <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
+                            <table className="wallet-transfer-history-table wallet-balance-history-table">
+                              <thead>
+                                <tr>
+                                  <th scope="col" className="wallet-bh-th-date">Date & time</th>
+                                  <th scope="col" className="wallet-th-num wallet-bh-th-num">Amount</th>
+                                  <th scope="col" className="wallet-th-num wallet-bh-th-remain">Remaining</th>
+                                  <th scope="col" className="wallet-bh-th-note" style={{ textAlign: "right" }}>Note</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paginatedBalanceHistoryRows.map((row, idx) => {
+                                  const bal = transferRowBalanceAfter(row);
+                                  const noteLabel = transferRowActivityNote(row);
+                                  const rowKey =
+                                    row?.mid ??
+                                    row?.id ??
+                                    `p${balanceHistoryPageSafe}-${idx}-${transferRowTimeValue(row)?.getTime() ?? idx}`;
+                                  return (
+                                    <tr key={rowKey}>
+                                      <td className="wallet-transfer-history-td-date wallet-bh-td-date">
+                                        {transferRowDate(row)}
+                                      </td>
+                                      <td className="wallet-td-num wallet-transfer-history-td-amount wallet-bh-td-num">
+                                        <span className={`wallet-transfer-type ${row?.classname} wallet-bh-amount-pill`}>
+                                          {formatBalance(row.balance)}
+                                        </span>
+                                      </td>
+                                      <td className="wallet-td-num wallet-transfer-history-td-balance wallet-bh-td-remain">
+                                        <span className="wallet-bh-remain-value">
+                                          {formatHistoryRemain(bal, hideBalance)}
+                                        </span>
+                                      </td>
+                                      <td className="wallet-bh-td-note" style={{ textAlign: "right" }}>
+                                        <span className="wallet-balance-history-note">{noteLabel}</span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <nav className="wallet-bh-pagination" aria-label="Transfer history pagination">
+                            <button
+                              type="button"
+                              className="wallet-bh-page-btn"
+                              disabled={balanceHistoryPageSafe <= 1}
+                              onClick={() => setBalanceHistoryPage((p) => Math.max(1, p - 1))}
+                            >
+                              Previous
+                            </button>
+                            <div className="wallet-bh-page-list">
+                              {paginationWindow.map((item, wi) =>
+                                item === "…" ? (
+                                  <span key={`spot-tr-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">…</span>
+                                ) : (
+                                  <button
+                                    key={item}
+                                    type="button"
+                                    className={
+                                      item === balanceHistoryPageSafe
+                                        ? "wallet-bh-page-num is-active"
+                                        : "wallet-bh-page-num"
+                                    }
+                                    onClick={() => setBalanceHistoryPage(item)}
+                                    aria-current={item === balanceHistoryPageSafe ? "page" : undefined}
+                                  >
+                                    {item}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="wallet-bh-page-btn"
+                              disabled={balanceHistoryPageSafe >= balanceHistoryTotalPages}
+                              onClick={() =>
+                                setBalanceHistoryPage((p) => Math.min(balanceHistoryTotalPages, p + 1))
+                              }
+                            >
+                              Next
+                            </button>
+                          </nav>
+                        </>
+                      )}
+                    </>
+                  ) : null}
+                </div>
               ) : null}
 
               {spotHistoryTab === "deposit" ? (
-              <div
-                id="spot-history-panel-deposit"
-                role="tabpanel"
-                aria-labelledby="spot-history-tab-deposit"
-                className="wallet-transfer-history-card-body"
-              >
-                {depositHistoryError ? (
-                  <div className="wallet-transfer-history-error" role="alert">
-                    <span>{depositHistoryError}</span>
-                    <button type="button" className="wallet-by-market-retry" onClick={fetchDepositHistory}>
-                      Retry
-                    </button>
-                  </div>
-                ) : null}
+                <div
+                  id="spot-history-panel-deposit"
+                  role="tabpanel"
+                  aria-labelledby="spot-history-tab-deposit"
+                  className="wallet-transfer-history-card-body"
+                >
+                  {depositHistoryError ? (
+                    <div className="wallet-transfer-history-error" role="alert">
+                      <span>{depositHistoryError}</span>
+                      <button type="button" className="wallet-by-market-retry" onClick={fetchDepositHistory}>
+                        Retry
+                      </button>
+                    </div>
+                  ) : null}
 
-                {!depositHistoryError && depositHistoryLoading ? (
-                  <div className="wallet-transfer-history-loading">
-                    <span className="wallet-transfer-history-spinner" aria-hidden />
-                    <span>Loading deposit history…</span>
-                  </div>
-                ) : null}
+                  {!depositHistoryError && depositHistoryLoading ? (
+                    <div className="wallet-transfer-history-loading">
+                      <span className="wallet-transfer-history-spinner" aria-hidden />
+                      <span>Loading deposit history…</span>
+                    </div>
+                  ) : null}
 
-                {!depositHistoryError && !depositHistoryLoading && depositHistoryRows.length === 0 ? (
-                  <div className="wallet-transfer-history-empty">No deposits yet.</div>
-                ) : null}
+                  {!depositHistoryError && !depositHistoryLoading && depositHistoryRows.length === 0 ? (
+                    <div className="wallet-transfer-history-empty">No deposits yet.</div>
+                  ) : null}
 
-                {!depositHistoryError && !depositHistoryLoading && depositHistoryRows.length > 0 ? (
-                  <>
-                    <div className="wallet-bh-toolbar">
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
-                        <div className="wallet-bh-date-group">
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">From</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={depositHistoryDateFrom}
-                              max={depositHistoryDateTo || toLocalISODate(new Date())}
-                              onChange={(e) => setDepositHistoryDateFrom(e.target.value)}
-                            />
-                          </label>
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">To</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={depositHistoryDateTo}
-                              min={depositHistoryDateFrom || undefined}
-                              max={toLocalISODate(new Date())}
-                              onChange={(e) => setDepositHistoryDateTo(e.target.value)}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="wallet-bh-btn wallet-bh-btn--ghost"
-                            onClick={() => {
-                              setDepositHistoryDateFrom("");
-                              setDepositHistoryDateTo("");
-                            }}
-                          >
-                            Clear dates
-                          </button>
+                  {!depositHistoryError && !depositHistoryLoading && depositHistoryRows.length > 0 ? (
+                    <>
+                      <div className="wallet-bh-toolbar">
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
+                          <div className="wallet-bh-date-group">
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">From</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={depositHistoryDateFrom}
+                                max={depositHistoryDateTo || toLocalISODate(new Date())}
+                                onChange={(e) => setDepositHistoryDateFrom(e.target.value)}
+                              />
+                            </label>
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">To</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={depositHistoryDateTo}
+                                min={depositHistoryDateFrom || undefined}
+                                max={toLocalISODate(new Date())}
+                                onChange={(e) => setDepositHistoryDateTo(e.target.value)}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="wallet-bh-btn wallet-bh-btn--ghost"
+                              onClick={() => {
+                                setDepositHistoryDateFrom("");
+                                setDepositHistoryDateTo("");
+                              }}
+                            >
+                              Clear dates
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
-                        <label className="wallet-bh-field wallet-bh-field--inline">
-                          <span className="wallet-bh-field-label">Rows / page</span>
-                          <select
-                            className="wallet-bh-select"
-                            value={depositHistoryPageSize}
-                            onChange={(e) => setDepositHistoryPageSize(Number(e.target.value))}
-                          >
-                            {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
-                              <option key={n} value={n}>
-                                {n}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <span className="wallet-bh-range-meta" aria-live="polite">
-                          {depositHistoryTotal === 0
-                            ? "0 entries"
-                            : `${depositHistoryOffset + 1}–${Math.min(
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
+                          <label className="wallet-bh-field wallet-bh-field--inline">
+                            <span className="wallet-bh-field-label">Rows / page</span>
+                            <select
+                              className="wallet-bh-select"
+                              value={depositHistoryPageSize}
+                              onChange={(e) => setDepositHistoryPageSize(Number(e.target.value))}
+                            >
+                              {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <span className="wallet-bh-range-meta" aria-live="polite">
+                            {depositHistoryTotal === 0
+                              ? "0 entries"
+                              : `${depositHistoryOffset + 1}–${Math.min(
                                 depositHistoryOffset + depositHistoryPageSize,
                                 depositHistoryTotal
                               )} of ${depositHistoryTotal}`}
-                        </span>
-                        <button
-                          type="button"
-                          className="wallet-bh-btn wallet-bh-btn--excel"
-                          onClick={exportDepositHistoryExcel}
-                          disabled={depositHistoryTotal === 0}
-                        >
-                          Download Excel
-                        </button>
-                      </div>
-                    </div>
-
-                    {depositHistoryTotal === 0 ? (
-                      <div className="wallet-transfer-history-empty wallet-bh-filter-empty" role="status">
-                        No entries match the selected date range.
-                      </div>
-                    ) : (
-                      <>
-                        <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
-                          <table className="wallet-transfer-history-table wallet-balance-history-table">
-                            <thead>
-                              <tr>
-                                <th scope="col">Date & time</th>
-                                <th scope="col">Invoice ID</th>
-                                <th scope="col">Asset</th>
-                                <th scope="col" className="wallet-th-num">Amount</th>
-                                <th scope="col" style={{ textAlign: "left" }}>Status</th>
-                                <th scope="col">Order No</th>
-                                <th scope="col">Tran date</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedDepositRows.map((row, idx) => (
-                                <tr key={row?.id ?? row?.mid ?? `dep-${idx}`}>
-                                  <td>{depositRowDate(row)}</td>
-                                  <td className="wallet-transfer-ref">{String(row?.invoiceid ?? row?.invoice_id ?? "—")}</td>
-                                  <td>{String(row?.asset ?? row?.coinname ?? "—").toUpperCase()}</td>
-                                  <td className="wallet-td-num">{formatBalanceAmount(depositRowAmount(row), 4)}</td>
-                                  <td style={{ textAlign: "left" }}>
-                                    <span
-                                      className="wallet-transfer-type wallet-transfer-type--other"
-                                      style={{
-                                        color: (() => {
-                                          const st = depositRowStatus(row).toLowerCase();
-                                          if (st.includes("confirm") || st.includes("success") || st.includes("complete")) {
-                                            return "#22C55E";
-                                          }
-                                          if (st.includes("pending") || st.includes("wait") || st.includes("process")) {
-                                            return "#F59E0B";
-                                          }
-                                          if (st.includes("reject") || st.includes("fail") || st.includes("cancel")) {
-                                            return "#EF4444";
-                                          }
-                                          return "#9CA3AF";
-                                        })(),
-                                      }}
-                                    >
-                                      {depositRowStatus(row)}
-                                    </span>
-                                  </td>
-                                  <td className="wallet-transfer-ref">
-                                    <div className="wallet-address-wrap">
-                                      <span>{String(row?.orderno ?? row?.order_no ?? "—")}</span>
-                                      {row?.orderno ? (
-                                        <button
-                                          type="button"
-                                          className="wallet-copy-icon-btn"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            copyWithdrawalAddress(row.orderno, "Order number copied.");
-                                          }}
-                                          title="Copy order number"
-                                        >
-                                          <Copy size={14} />
-                                        </button>
-                                      ) : null}
-                                    </div>
-                                  </td>
-                                  <td>{String(row?.trandate ?? "—")}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                          </span>
+                          <button
+                            type="button"
+                            className="wallet-bh-btn wallet-bh-btn--excel"
+                            onClick={exportDepositHistoryExcel}
+                            disabled={depositHistoryTotal === 0}
+                          >
+                            Download Excel
+                          </button>
                         </div>
-                        <nav className="wallet-bh-pagination" aria-label="Deposit history pagination">
-                          <button
-                            type="button"
-                            className="wallet-bh-page-btn"
-                            disabled={depositHistoryPageSafe <= 1}
-                            onClick={() => setDepositHistoryPage((p) => Math.max(1, p - 1))}
-                          >
-                            Previous
-                          </button>
-                          <div className="wallet-bh-page-list">
-                            {depositPaginationWindow.map((item, wi) =>
-                              item === "…" ? (
-                                <span key={`dep-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">
-                                  …
-                                </span>
-                              ) : (
-                                <button
-                                  key={`dep-page-${item}`}
-                                  type="button"
-                                  className={
-                                    item === depositHistoryPageSafe
-                                      ? "wallet-bh-page-num is-active"
-                                      : "wallet-bh-page-num"
-                                  }
-                                  onClick={() => setDepositHistoryPage(item)}
-                                  aria-current={item === depositHistoryPageSafe ? "page" : undefined}
-                                >
-                                  {item}
-                                </button>
-                              )
-                            )}
+                      </div>
+
+                      {depositHistoryTotal === 0 ? (
+                        <div className="wallet-transfer-history-empty wallet-bh-filter-empty" role="status">
+                          No entries match the selected date range.
+                        </div>
+                      ) : (
+                        <>
+                          <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
+                            <table className="wallet-transfer-history-table wallet-balance-history-table">
+                              <thead>
+                                <tr>
+                                  <th scope="col">Date & time</th>
+                                  <th scope="col">Invoice ID</th>
+                                  <th scope="col">Asset</th>
+                                  <th scope="col" className="wallet-th-num">Amount</th>
+                                  <th scope="col" style={{ textAlign: "left" }}>Status</th>
+                                  <th scope="col">Order No</th>
+                                  <th scope="col">Tran date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paginatedDepositRows.map((row, idx) => (
+                                  <tr key={row?.id ?? row?.mid ?? `dep-${idx}`}>
+                                    <td>{depositRowDate(row)}</td>
+                                    <td className="wallet-transfer-ref">{String(row?.invoiceid ?? row?.invoice_id ?? "—")}</td>
+                                    <td>{String(row?.asset ?? row?.coinname ?? "—").toUpperCase()}</td>
+                                    <td className="wallet-td-num">{formatBalanceAmount(depositRowAmount(row), 4)}</td>
+                                    <td style={{ textAlign: "left" }}>
+                                      <span
+                                        className="wallet-transfer-type wallet-transfer-type--other"
+                                        style={{
+                                          color: (() => {
+                                            const st = depositRowStatus(row).toLowerCase();
+                                            if (st.includes("confirm") || st.includes("success") || st.includes("complete")) {
+                                              return "#22C55E";
+                                            }
+                                            if (st.includes("pending") || st.includes("wait") || st.includes("process")) {
+                                              return "#F59E0B";
+                                            }
+                                            if (st.includes("reject") || st.includes("fail") || st.includes("cancel")) {
+                                              return "#EF4444";
+                                            }
+                                            return "#9CA3AF";
+                                          })(),
+                                        }}
+                                      >
+                                        {depositRowStatus(row)}
+                                      </span>
+                                    </td>
+                                    <td className="wallet-transfer-ref">
+                                      <div className="wallet-address-wrap">
+                                        <span>{String(row?.orderno ?? row?.order_no ?? "—")}</span>
+                                        {row?.orderno ? (
+                                          <button
+                                            type="button"
+                                            className="wallet-copy-icon-btn"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              copyWithdrawalAddress(row.orderno, "Order number copied.");
+                                            }}
+                                            title="Copy order number"
+                                          >
+                                            <Copy size={14} />
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    </td>
+                                    <td>{String(row?.trandate ?? "—")}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                          <button
-                            type="button"
-                            className="wallet-bh-page-btn"
-                            disabled={depositHistoryPageSafe >= depositHistoryTotalPages}
-                            onClick={() =>
-                              setDepositHistoryPage((p) => Math.min(depositHistoryTotalPages, p + 1))
-                            }
-                          >
-                            Next
-                          </button>
-                        </nav>
-                      </>
-                    )}
-                  </>
-                ) : null}
-              </div>
+                          <nav className="wallet-bh-pagination" aria-label="Deposit history pagination">
+                            <button
+                              type="button"
+                              className="wallet-bh-page-btn"
+                              disabled={depositHistoryPageSafe <= 1}
+                              onClick={() => setDepositHistoryPage((p) => Math.max(1, p - 1))}
+                            >
+                              Previous
+                            </button>
+                            <div className="wallet-bh-page-list">
+                              {depositPaginationWindow.map((item, wi) =>
+                                item === "…" ? (
+                                  <span key={`dep-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">
+                                    …
+                                  </span>
+                                ) : (
+                                  <button
+                                    key={`dep-page-${item}`}
+                                    type="button"
+                                    className={
+                                      item === depositHistoryPageSafe
+                                        ? "wallet-bh-page-num is-active"
+                                        : "wallet-bh-page-num"
+                                    }
+                                    onClick={() => setDepositHistoryPage(item)}
+                                    aria-current={item === depositHistoryPageSafe ? "page" : undefined}
+                                  >
+                                    {item}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="wallet-bh-page-btn"
+                              disabled={depositHistoryPageSafe >= depositHistoryTotalPages}
+                              onClick={() =>
+                                setDepositHistoryPage((p) => Math.min(depositHistoryTotalPages, p + 1))
+                              }
+                            >
+                              Next
+                            </button>
+                          </nav>
+                        </>
+                      )}
+                    </>
+                  ) : null}
+                </div>
               ) : null}
 
               {spotHistoryTab === "withdrawal" ? (
-              <div
-                id="spot-history-panel-withdrawal"
-                role="tabpanel"
-                aria-labelledby="spot-history-tab-withdrawal"
-                className="wallet-transfer-history-card-body"
-              >
-                {withdrawalHistoryError ? (
-                  <div className="wallet-transfer-history-error" role="alert">
-                    <span>{withdrawalHistoryError}</span>
-                    <button type="button" className="wallet-by-market-retry" onClick={fetchWithdrawalHistory}>
-                      Retry
-                    </button>
-                  </div>
-                ) : null}
+                <div
+                  id="spot-history-panel-withdrawal"
+                  role="tabpanel"
+                  aria-labelledby="spot-history-tab-withdrawal"
+                  className="wallet-transfer-history-card-body"
+                >
+                  {withdrawalHistoryError ? (
+                    <div className="wallet-transfer-history-error" role="alert">
+                      <span>{withdrawalHistoryError}</span>
+                      <button type="button" className="wallet-by-market-retry" onClick={fetchWithdrawalHistory}>
+                        Retry
+                      </button>
+                    </div>
+                  ) : null}
 
-                {!withdrawalHistoryError && withdrawalHistoryLoading ? (
-                  <div className="wallet-transfer-history-loading">
-                    <span className="wallet-transfer-history-spinner" aria-hidden />
-                    <span>Loading withdrawal history…</span>
-                  </div>
-                ) : null}
+                  {!withdrawalHistoryError && withdrawalHistoryLoading ? (
+                    <div className="wallet-transfer-history-loading">
+                      <span className="wallet-transfer-history-spinner" aria-hidden />
+                      <span>Loading withdrawal history…</span>
+                    </div>
+                  ) : null}
 
-                {!withdrawalHistoryError && !withdrawalHistoryLoading && withdrawalHistoryRows.length === 0 ? (
-                  <div className="wallet-transfer-history-empty">No withdrawals yet.</div>
-                ) : null}
+                  {!withdrawalHistoryError && !withdrawalHistoryLoading && withdrawalHistoryRows.length === 0 ? (
+                    <div className="wallet-transfer-history-empty">No withdrawals yet.</div>
+                  ) : null}
 
-                {!withdrawalHistoryError && !withdrawalHistoryLoading && withdrawalHistoryRows.length > 0 ? (
-                  <>
-                    <div className="wallet-bh-toolbar">
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
-                        <div className="wallet-bh-date-group">
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">From</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={withdrawalHistoryDateFrom}
-                              max={withdrawalHistoryDateTo || toLocalISODate(new Date())}
-                              onChange={(e) => setWithdrawalHistoryDateFrom(e.target.value)}
-                            />
+                  {!withdrawalHistoryError && !withdrawalHistoryLoading && withdrawalHistoryRows.length > 0 ? (
+                    <>
+                      <div className="wallet-bh-toolbar">
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--filters">
+                          <div className="wallet-bh-date-group">
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">From</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={withdrawalHistoryDateFrom}
+                                max={withdrawalHistoryDateTo || toLocalISODate(new Date())}
+                                onChange={(e) => setWithdrawalHistoryDateFrom(e.target.value)}
+                              />
+                            </label>
+                            <label className="wallet-bh-field">
+                              <span className="wallet-bh-field-label">To</span>
+                              <input
+                                type="date"
+                                className="wallet-bh-date-input"
+                                value={withdrawalHistoryDateTo}
+                                min={withdrawalHistoryDateFrom || undefined}
+                                max={toLocalISODate(new Date())}
+                                onChange={(e) => setWithdrawalHistoryDateTo(e.target.value)}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="wallet-bh-btn wallet-bh-btn--ghost"
+                              onClick={() => {
+                                setWithdrawalHistoryDateFrom("");
+                                setWithdrawalHistoryDateTo("");
+                              }}
+                            >
+                              Clear dates
+                            </button>
+                          </div>
+                        </div>
+                        <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
+                          <label className="wallet-bh-field wallet-bh-field--inline">
+                            <span className="wallet-bh-field-label">Rows / page</span>
+                            <select
+                              className="wallet-bh-select"
+                              value={withdrawalHistoryPageSize}
+                              onChange={(e) => setWithdrawalHistoryPageSize(Number(e.target.value))}
+                            >
+                              {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
                           </label>
-                          <label className="wallet-bh-field">
-                            <span className="wallet-bh-field-label">To</span>
-                            <input
-                              type="date"
-                              className="wallet-bh-date-input"
-                              value={withdrawalHistoryDateTo}
-                              min={withdrawalHistoryDateFrom || undefined}
-                              max={toLocalISODate(new Date())}
-                              onChange={(e) => setWithdrawalHistoryDateTo(e.target.value)}
-                            />
-                          </label>
+                          <span className="wallet-bh-range-meta" aria-live="polite">
+                            {withdrawalHistoryTotal === 0
+                              ? "0 entries"
+                              : `${withdrawalHistoryOffset + 1}–${Math.min(
+                                withdrawalHistoryOffset + withdrawalHistoryPageSize,
+                                withdrawalHistoryTotal
+                              )} of ${withdrawalHistoryTotal}`}
+                          </span>
                           <button
                             type="button"
-                            className="wallet-bh-btn wallet-bh-btn--ghost"
-                            onClick={() => {
-                              setWithdrawalHistoryDateFrom("");
-                              setWithdrawalHistoryDateTo("");
-                            }}
+                            className="wallet-bh-btn wallet-bh-btn--excel"
+                            onClick={exportWithdrawalHistoryExcel}
+                            disabled={withdrawalHistoryTotal === 0}
                           >
-                            Clear dates
+                            Download Excel
                           </button>
                         </div>
                       </div>
-                      <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
-                        <label className="wallet-bh-field wallet-bh-field--inline">
-                          <span className="wallet-bh-field-label">Rows / page</span>
-                          <select
-                            className="wallet-bh-select"
-                            value={withdrawalHistoryPageSize}
-                            onChange={(e) => setWithdrawalHistoryPageSize(Number(e.target.value))}
-                          >
-                            {BALANCE_HISTORY_PAGE_SIZES.map((n) => (
-                              <option key={n} value={n}>
-                                {n}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <span className="wallet-bh-range-meta" aria-live="polite">
-                          {withdrawalHistoryTotal === 0
-                            ? "0 entries"
-                            : `${withdrawalHistoryOffset + 1}–${Math.min(
-                              withdrawalHistoryOffset + withdrawalHistoryPageSize,
-                              withdrawalHistoryTotal
-                            )} of ${withdrawalHistoryTotal}`}
-                        </span>
-                        <button
-                          type="button"
-                          className="wallet-bh-btn wallet-bh-btn--excel"
-                          onClick={exportWithdrawalHistoryExcel}
-                          disabled={withdrawalHistoryTotal === 0}
-                        >
-                          Download Excel
-                        </button>
-                      </div>
-                    </div>
 
-                    <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
-                      <table className="wallet-transfer-history-table wallet-balance-history-table">
-                        <thead>
-                          <tr>
-                            <th scope="col">Date & time</th>
-                            {/* <th scope="col">Coin</th> */}
-                            <th scope="col">Network</th>
-                            <th scope="col">Address</th>
-                            <th scope="col">Txn Hash</th>
-                            <th scope="col" className="wallet-th-num">Amount</th>
-                            <th scope="col" style={{ textAlign: "right" }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedWithdrawalRows.map((row, idx) => (
-                            <tr key={row?.id ?? row?.mid ?? `wd-${idx}`}>
-                              <td>{withdrawalRowDate(row)}</td>
-                              {/* <td>{String(row?.coinname ?? row?.coin ?? "—").toUpperCase()}</td> */}
-                              <td>{String(row?.network ?? "—").toUpperCase()}</td>
-                              {/* <td className="wallet-transfer-ref" title={row?.address ?? ""}>
+                      <div className="wallet-transfer-history-table-wrap wallet-balance-history-table-wrap">
+                        <table className="wallet-transfer-history-table wallet-balance-history-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Date & time</th>
+                              {/* <th scope="col">Coin</th> */}
+                              <th scope="col">Network</th>
+                              <th scope="col">Address</th>
+                              <th scope="col">Txn Hash</th>
+                              <th scope="col" className="wallet-th-num">Amount</th>
+                              <th scope="col" style={{ textAlign: "right" }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedWithdrawalRows.map((row, idx) => (
+                              <tr key={row?.id ?? row?.mid ?? `wd-${idx}`}>
+                                <td>{withdrawalRowDate(row)}</td>
+                                {/* <td>{String(row?.coinname ?? row?.coin ?? "—").toUpperCase()}</td> */}
+                                <td>{String(row?.network ?? "—").toUpperCase()}</td>
+                                {/* <td className="wallet-transfer-ref" title={row?.address ?? ""}>
                                 <button
                                   type="button"
                                   className="wallet-address-copy-btn"
@@ -3054,73 +3055,73 @@ const Wallet = () => {
                                   {String(row?.subtoaddress ?? "—")}
                                 </button>
                               </td> */}
-                              <td className="wallet-transfer-ref" title={row?.address ?? ""}>
-                                <div className="wallet-address-wrap">
+                                <td className="wallet-transfer-ref" title={row?.address ?? ""}>
+                                  <div className="wallet-address-wrap">
 
-                                  <span
-                                    className="wallet-address-copy-btn"
-                                    style={{ marginRight: "10px" }}
-                                    onClick={() => {
-                                      const url = getExplorerUrl(row?.network, row?.address);
+                                    <span
+                                      className="wallet-address-copy-btn"
+                                      style={{ marginRight: "10px" }}
+                                      onClick={() => {
+                                        const url = getExplorerUrl(row?.network, row?.address);
 
-                                      if (url !== "#") {
-                                        window.open(url, "_blank");
-                                      }
-                                    }}
-                                  >
-                                    {String(row?.subtoaddress ?? "—")}
-                                  </span>
-
-                                  {row?.address && (
-                                    <button
-                                      type="button"
-                                      className="wallet-copy-icon-btn"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        copyWithdrawalAddress(row?.address, "Address copied.");
+                                        if (url !== "#") {
+                                          window.open(url, "_blank");
+                                        }
                                       }}
-                                      title="Copy address"
                                     >
-                                      <Copy size={14} />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
+                                      {String(row?.subtoaddress ?? "—")}
+                                    </span>
 
-                              <td className="wallet-transfer-ref" title={row?.tranhash ?? ""}>
-                                <div className="wallet-address-wrap">
-                                  <span
-                                    className="wallet-address-copy-btn"
-                                    style={{ marginRight: "10px" }}
-                                    onClick={() => {
-                                      const url = getTransactionExplorerUrl(
-                                        row?.network,
-                                        row?.tranhash
-                                      );
+                                    {row?.address && (
+                                      <button
+                                        type="button"
+                                        className="wallet-copy-icon-btn"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copyWithdrawalAddress(row?.address, "Address copied.");
+                                        }}
+                                        title="Copy address"
+                                      >
+                                        <Copy size={14} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
 
-                                      if (url !== "#") {
-                                        window.open(url, "_blank");
-                                      }
-                                    }}
-                                  >
-                                    {String(row?.subtranhash ?? "—")}
-                                  </span>
+                                <td className="wallet-transfer-ref" title={row?.tranhash ?? ""}>
+                                  <div className="wallet-address-wrap">
+                                    <span
+                                      className="wallet-address-copy-btn"
+                                      style={{ marginRight: "10px" }}
+                                      onClick={() => {
+                                        const url = getTransactionExplorerUrl(
+                                          row?.network,
+                                          row?.tranhash
+                                        );
 
-                                  {row?.tranhash && (
-                                    <button
-                                      type="button"
-                                      className="wallet-copy-icon-btn"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        copyWithdrawalAddress(row?.tranhash, "Transaction hash copied.");
+                                        if (url !== "#") {
+                                          window.open(url, "_blank");
+                                        }
                                       }}
-                                      title="Copy transaction hash"
                                     >
-                                      <Copy size={14} />
-                                    </button>
-                                  )}
+                                      {String(row?.subtranhash ?? "—")}
+                                    </span>
 
-                                  {/* <button
+                                    {row?.tranhash && (
+                                      <button
+                                        type="button"
+                                        className="wallet-copy-icon-btn"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copyWithdrawalAddress(row?.tranhash, "Transaction hash copied.");
+                                        }}
+                                        title="Copy transaction hash"
+                                      >
+                                        <Copy size={14} />
+                                      </button>
+                                    )}
+
+                                    {/* <button
                                     type="button"
                                     className="wallet-copy-icon-btn"
                                     onClick={(e) => {
@@ -3131,76 +3132,76 @@ const Wallet = () => {
                                   >
                                     <Copy size={14} />
                                   </button> */}
-                                </div>
-                              </td>
-                              <td className="wallet-td-num">{formatBalanceAmount(withdrawalRowAmount(row), 4)}</td>
-                              <td style={{ textAlign: "right" }}>
-                                <span className="wallet-transfer-type wallet-transfer-type--other"
-                                  style={{
-                                    color: (() => {
-                                      const st = withdrawalRowStatus(row).toLowerCase();
-                                      if (st.includes('confirm') || st.includes('success') || st.includes('complete')) return '#22C55E'; // green
-                                      if (st.includes('pending') || st.includes('wait') || st.includes('process')) return '#F59E0B'; // yellow
-                                      if (st.includes('reject') || st.includes('fail') || st.includes('cancel')) return '#EF4444'; // red
-                                      return '#9CA3AF'; // gray
-                                    })()
-                                  }}>
-                                  {withdrawalRowStatus(row)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <nav className="wallet-bh-pagination" aria-label="Withdrawal history pagination">
-                      <button
-                        type="button"
-                        className="wallet-bh-page-btn"
-                        disabled={withdrawalHistoryPageSafe <= 1}
-                        onClick={() => setWithdrawalHistoryPage((p) => Math.max(1, p - 1))}
-                      >
-                        Previous
-                      </button>
-                      <div className="wallet-bh-page-list">
-                        {withdrawalPaginationWindow.map((item, wi) =>
-                          item === "…" ? (
-                            <span key={`wd-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">
-                              …
-                            </span>
-                          ) : (
-                            <button
-                              key={`wd-page-${item}`}
-                              type="button"
-                              className={
-                                item === withdrawalHistoryPageSafe
-                                  ? "wallet-bh-page-num is-active"
-                                  : "wallet-bh-page-num"
-                              }
-                              onClick={() => setWithdrawalHistoryPage(item)}
-                              aria-current={item === withdrawalHistoryPageSafe ? "page" : undefined}
-                            >
-                              {item}
-                            </button>
-                          )
-                        )}
+                                  </div>
+                                </td>
+                                <td className="wallet-td-num">{formatBalanceAmount(withdrawalRowAmount(row), 4)}</td>
+                                <td style={{ textAlign: "right" }}>
+                                  <span className="wallet-transfer-type wallet-transfer-type--other"
+                                    style={{
+                                      color: (() => {
+                                        const st = withdrawalRowStatus(row).toLowerCase();
+                                        if (st.includes('confirm') || st.includes('success') || st.includes('complete')) return '#22C55E'; // green
+                                        if (st.includes('pending') || st.includes('wait') || st.includes('process')) return '#F59E0B'; // yellow
+                                        if (st.includes('reject') || st.includes('fail') || st.includes('cancel')) return '#EF4444'; // red
+                                        return '#9CA3AF'; // gray
+                                      })()
+                                    }}>
+                                    {withdrawalRowStatus(row)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                      <button
-                        type="button"
-                        className="wallet-bh-page-btn"
-                        disabled={withdrawalHistoryPageSafe >= withdrawalHistoryTotalPages}
-                        onClick={() =>
-                          setWithdrawalHistoryPage((p) =>
-                            Math.min(withdrawalHistoryTotalPages, p + 1)
-                          )
-                        }
-                      >
-                        Next
-                      </button>
-                    </nav>
-                  </>
-                ) : null}
-              </div>
+                      <nav className="wallet-bh-pagination" aria-label="Withdrawal history pagination">
+                        <button
+                          type="button"
+                          className="wallet-bh-page-btn"
+                          disabled={withdrawalHistoryPageSafe <= 1}
+                          onClick={() => setWithdrawalHistoryPage((p) => Math.max(1, p - 1))}
+                        >
+                          Previous
+                        </button>
+                        <div className="wallet-bh-page-list">
+                          {withdrawalPaginationWindow.map((item, wi) =>
+                            item === "…" ? (
+                              <span key={`wd-ellipsis-${wi}`} className="wallet-bh-page-ellipsis">
+                                …
+                              </span>
+                            ) : (
+                              <button
+                                key={`wd-page-${item}`}
+                                type="button"
+                                className={
+                                  item === withdrawalHistoryPageSafe
+                                    ? "wallet-bh-page-num is-active"
+                                    : "wallet-bh-page-num"
+                                }
+                                onClick={() => setWithdrawalHistoryPage(item)}
+                                aria-current={item === withdrawalHistoryPageSafe ? "page" : undefined}
+                              >
+                                {item}
+                              </button>
+                            )
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="wallet-bh-page-btn"
+                          disabled={withdrawalHistoryPageSafe >= withdrawalHistoryTotalPages}
+                          onClick={() =>
+                            setWithdrawalHistoryPage((p) =>
+                              Math.min(withdrawalHistoryTotalPages, p + 1)
+                            )
+                          }
+                        >
+                          Next
+                        </button>
+                      </nav>
+                    </>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </section>
@@ -3249,7 +3250,10 @@ const Wallet = () => {
                   <select
                     className="transfer-select"
                     value={transferTo}
-                    onChange={(e) => setTransferTo(e.target.value)}
+                    onChange={(e) => {
+                      setTransferTo(e.target.value);
+                      if (transferError) setTransferError(null);
+                    }}
                     disabled={transferLoading}
                   >
                     {tabKeys
@@ -3271,7 +3275,10 @@ const Wallet = () => {
                   <select
                     className="transfer-select"
                     value={transferAsset}
-                    onChange={(e) => setTransferAsset(e.target.value)}
+                    onChange={(e) => {
+                      setTransferAsset(e.target.value);
+                      if (transferError) setTransferError(null);
+                    }}
                     disabled={transferLoading}
                   >
                     {TRANSFER_ASSETS.map((a) => (
@@ -3287,7 +3294,10 @@ const Wallet = () => {
                       className="transfer-input"
                       placeholder="0.00"
                       value={transferAmount}
-                      onChange={(e) => setTransferAmount(e.target.value)}
+                      onChange={(e) => {
+                        setTransferAmount(e.target.value);
+                        if (transferError) setTransferError(null);
+                      }}
                       min="0"
                       max={walletData[transferFrom]?.balance ?? 0}
                       step="0.01"
@@ -3407,7 +3417,10 @@ const Wallet = () => {
                       <select
                         className="transfer-select"
                         value={withdrawForm.network}
-                        onChange={(e) => setWithdrawForm((p) => ({ ...p, network: e.target.value }))}
+                        onChange={(e) => {
+                          setWithdrawForm((p) => ({ ...p, network: e.target.value }));
+                          if (withdrawError) setWithdrawError("");
+                        }}
                         disabled={beforeWithdrawLoading || withdrawSubmitting}
                       >
                         <option value="">Select network</option>
@@ -3425,7 +3438,10 @@ const Wallet = () => {
                         type="text"
                         className="transfer-select"
                         value={withdrawForm.address}
-                        onChange={(e) => setWithdrawForm((p) => ({ ...p, address: e.target.value }))}
+                        onChange={(e) => {
+                          setWithdrawForm((p) => ({ ...p, address: e.target.value }));
+                          if (withdrawError) setWithdrawError("");
+                        }}
                         placeholder="Paste destination wallet address"
                         disabled={beforeWithdrawLoading || withdrawSubmitting}
                       />
@@ -3440,17 +3456,20 @@ const Wallet = () => {
                         <button
                           type="button"
                           className="transfer-max-btn"
-                          onClick={() =>
+                          onClick={() => {
                             setWithdrawForm((p) => ({
                               ...p,
-                              // Keep raw numeric string for <input type="number"> (no commas/formatting).
                               amount: (() => {
                                 const n = Number(currentWallet?.available ?? 0);
                                 if (!Number.isFinite(n) || n <= 0) return "";
                                 return n.toFixed(4);
                               })(),
-                            }))
-                          }
+                            }));
+
+                            if (withdrawError) {
+                              setWithdrawError("");
+                            }
+                          }}
                           disabled={beforeWithdrawLoading || withdrawSubmitting}
                         >
                           Max
@@ -3462,7 +3481,10 @@ const Wallet = () => {
                           className="transfer-input"
                           placeholder="0.00"
                           value={withdrawForm.amount}
-                          onChange={(e) => setWithdrawForm((p) => ({ ...p, amount: e.target.value }))}
+                          onChange={(e) => {
+                            setWithdrawForm((p) => ({ ...p, amount: e.target.value }));
+                            if (withdrawError) setWithdrawError("");
+                          }}
                           min="0"
                           step="0.00000001"
                           disabled={beforeWithdrawLoading || withdrawSubmitting}

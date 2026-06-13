@@ -2545,8 +2545,6 @@ const Orders = () => {
                   Cancel All Orders
                 </button>
               )}
-
-
             </div>
           </div>
         </div>
@@ -2857,7 +2855,6 @@ const Orders = () => {
                                   {visibleColumns.open.actions && (
                                     <td>
                                       <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
-
                                         <button
                                           className="cancel-button"
                                           onClick={(e) => {
@@ -2865,9 +2862,15 @@ const Orders = () => {
                                             handleCancelOrder(item);
                                           }}
                                           disabled={cancellingIds.includes(item.id)}
-                                          aria-label="Cancel order"
+                                          aria-label={activeTab === "open" ? "Close" : "Cancel"}
                                         >
-                                          {cancellingIds.includes(item.id) ? 'Cancelling…' : 'Cancel'}
+                                          {cancellingIds.includes(item.id)
+                                            ? activeTab === "open"
+                                              ? "Closing..."
+                                              : "Cancelling..."
+                                            : activeTab === "open"
+                                              ? "Close"
+                                              : "Cancel"}
                                         </button>
                                         <button
                                           className="share-button"
@@ -3033,7 +3036,7 @@ const Orders = () => {
                                             handleCancelPendingOrder(item.orderNo, item.market)
                                           }}
                                           disabled={cancellingIds.includes(item.orderNo)}
-                                          aria-label="Cancel order"
+                                          aria-label="Cancel"
                                         >
                                           {cancellingIds.includes(item.orderNo) ? 'Cancelling…' : 'Cancel'}
                                         </button>
@@ -3491,7 +3494,7 @@ const Orders = () => {
           <div className="modal-overlay" onClick={() => setShowCancelOrderModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Cancel Order?</h2>
+                <h2>{orderToCancel._source === 'open' ? 'Close Order?' : 'Cancel Order?'}</h2>
                 <button
                   className="modal-close"
                   onClick={() => {
@@ -3506,7 +3509,7 @@ const Orders = () => {
                 </button>
               </div>
               <div className="modal-body">
-                <p>You are about to cancel this order:</p>
+                <p>You are about to {orderToCancel._source === 'open' ? 'close' : 'cancel'} this order:</p>
                 <div className="cancel-order-details">
                   {/* <div><strong>Order No:</strong> {orderToCancel.orderNo ?? orderToCancel.orderNo}</div> */}
                   <div><strong>Pair:</strong> {orderToCancel.pair}</div>
@@ -3546,7 +3549,7 @@ const Orders = () => {
                     }}
                     disabled={cancellingIds.includes(orderToCancel.id)}
                   >
-                    {cancellingIds.includes(orderToCancel.id) ? 'Cancelling…' : 'Cancel Order'}
+                    {cancellingIds.includes(orderToCancel.id) ? (orderToCancel._source === 'open' ? 'Closing…' : 'Cancelling…') : (orderToCancel._source === 'open' ? 'Close Order' : 'Cancel Order')}
                   </button>
                 </div>
               </div>
@@ -3662,7 +3665,10 @@ const Orders = () => {
                         {selectedOrderLive.side === 'buy' ? 'Buy' : 'Sell'}
                       </span>
                       <span className="order-details-chip">{getTypeBadge(selectedOrderLive.type).label}</span>
-                      <span className="order-details-chip">{selectedOrderLive.marketTag || '-'}</span>
+                      {/* <span className="order-details-chip">{selectedOrderLive.marketTag || '-'}</span> */}
+                      {selectedOrderLive.raw?.istatus && (
+                        <span className="order-details-chip" style={{ textTransform: 'uppercase' }}>{selectedOrderLive.raw.istatus}</span>
+                      )}
                     </div>
                   </div>
                   <div className={`order-details-pnl-card ${Number(selectedOrderLive.profit || 0) >= 0 ? 'is-profit' : 'is-loss'}`}>

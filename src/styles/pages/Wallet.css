@@ -2761,16 +2761,17 @@
   height: 28px;
   padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-tertiary);
-  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: black;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .transfer-max-btn:hover:not(:disabled) {
-  border-color: var(--brand-primary);
+  border-color: var(--brand-primary-light);
+  background: var(--brand-primary-light);
 }
 
 .transfer-max-btn:disabled {
@@ -3037,7 +3038,7 @@
 
 .btn-primary {
   background: var(--brand-primary);
-  color: white;
+  color: black;
 }
 
 .btn-primary:hover:not(:disabled) {

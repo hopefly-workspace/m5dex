@@ -93,7 +93,8 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
 
   const setMaxAmount = useCallback(() => {
     if (availableBalance > 0) {
-      setAmount(String(formatNumber(availableBalance, 8)));
+      // Strip commas so parseFloat doesn't stop at the first comma
+      setAmount(String(formatNumber(availableBalance, 8)).replace(/,/g, ''));
       setError(null);
     }
   }, [availableBalance]);
@@ -286,8 +287,11 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
                 placeholder={`Minimum ${MIN_AMOUNT}`}
                 value={amount}
                 onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError(null);
+                  const value = e.target.value;
+                  if (/^\d*\.?\d*$/.test(value)) {
+                    setAmount(value);
+                    setError(null);
+                  }
                 }}
                 disabled={loading}
                 aria-describedby="tfm-available"

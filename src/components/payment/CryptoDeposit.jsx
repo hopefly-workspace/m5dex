@@ -4,7 +4,7 @@ import api from "../../services/api";
 import '../../styles/components/payment/CryptoDeposit.css';
 import axios from 'axios';
 import { getDeviceInfo } from '../../utils/clientDeviceInfo';
-import logo from "../../../public/assets/img/m5dex-light-logo.png"
+import logo from "../../../public/assets/img/icon.png"
 
 const CryptoDeposit = ({ isOpen, onClose, amount }) => {
 

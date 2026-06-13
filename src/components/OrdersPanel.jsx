@@ -2547,7 +2547,10 @@ const OrdersPanel = ({
                       {selectedOrderDetailsLive.side || '-'}
                     </span>
                     <span className="ordersPanelDetailChip">{selectedOrderDetailsLive.marketTag || '-'}</span>
-                    <span className="ordersPanelDetailChip">{selectedOrderDetailsLive.statusLabel || selectedOrderDetailsLive.status || '-'}</span>
+                    {/* <span className="ordersPanelDetailChip">{selectedOrderDetailsLive.statusLabel || selectedOrderDetailsLive.status || '-'}</span> */}
+                    {selectedOrderDetailsLive.raw?.istatus && (
+                      <span className="ordersPanelDetailChip" style={{ textTransform: 'uppercase' }}>{selectedOrderDetailsLive.raw.istatus}</span>
+                    )}
                   </div>
                 </div>
                 <div className={`ordersPanelDetailPnlCard ${Number(selectedOrderDetailsLive.profit ?? 0) >= 0 ? 'is-profit' : 'is-loss'}`}>

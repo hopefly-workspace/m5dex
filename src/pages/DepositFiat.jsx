@@ -12,6 +12,7 @@ import { copyToClipboard } from '../utils/clipboard';
 import { useLatestNotification } from '../contexts/LatestNotificationContext';
 import '../styles/pages/DepositFiat.css';
 import { getDeviceInfo } from '../utils/clientDeviceInfo';
+import { useUser } from "../contexts/UserContext";
 
 // Fiat currencies
 const fiatCurrencies = [
@@ -86,6 +87,7 @@ const formatDate = (date) => {
 
 const DepositFiat = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
   const { showSuccess, showError } = useToast();
   const { refresh: refreshNotifications } = useLatestNotification() || {};
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
@@ -519,7 +521,19 @@ const DepositFiat = () => {
                       }}
                     />
                   </div>
-                  <span>{ } INR : 1 USDT</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '12px', fontWeight: '600' }}>
+                    <span className="amount-label">
+                      1 USDT = {user?.usdtvalue} INR
+                    </span>
+                    {formData.amount && Number(formData.amount) > 0 ? (
+                      <span>
+                        <span className="amount-label">You will get </span>
+                        <span className="amount-highlight">{Number(formData.amount / (user?.usdtvalue)).toFixed(6)} USDT</span>
+                      </span>
+                    ) : (
+                      <span style={{ color: 'transparent' }}>You will get 0.000000 USDT</span>
+                    )}
+                  </div>
                   {formErrors.amount && <div className="input-error-text" style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>{formErrors.amount}</div>}
                 </div>
               </div>
