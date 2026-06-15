@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import CryptoMarkets from '../components/markets/CryptoMarkets';
 import ForexMarkets from '../components/markets/ForexMarkets';
 import IndiaMarkets from '../components/markets/IndiaMarkets';
+import CustomSelect from '../components/CustomSelect';
 import {
   addFavourite,
   removeFavourite,
@@ -478,13 +479,13 @@ const Markets = () => {
 
           <div className="sortFilter">
             <label className="sortLabel">Sort by:</label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
+            <CustomSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
               {sortOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </div>
         </div>
 

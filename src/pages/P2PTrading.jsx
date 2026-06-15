@@ -3,8 +3,9 @@
  * Screen for peer-to-peer cryptocurrency trading
  */
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import Header from '../components/Header';
+import CustomSelect from '../components/CustomSelect';
 import { formatTimer } from '../utils/formatTime';
 import '../styles/pages/P2PTrading.css';
 
@@ -1285,17 +1286,17 @@ Reference: P2P-ORDER-123456`}
           {showTradeHistory && (
             <>
               <div className="history-filters">
-                <select className="filter-select">
+                <CustomSelect className="filter-select">
                   <option>All</option>
                   <option>Completed</option>
                   <option>Cancelled</option>
                   <option>Disputed</option>
-                </select>
-                <select className="filter-select">
+                </CustomSelect>
+                <CustomSelect className="filter-select">
                   <option>Last 7 days</option>
                   <option>Last 30 days</option>
                   <option>All time</option>
-                </select>
+                </CustomSelect>
               </div>
               <div className="history-table">
                 <div className="table-header">

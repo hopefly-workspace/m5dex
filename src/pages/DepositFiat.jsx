@@ -414,8 +414,9 @@ const DepositFiat = () => {
       return {
         'Deposit ID': item.depositid,
         'Date/Time': formatDate(item.ondate),
-        'Amount(USDT)': `${item.usdtamount.toFixed(4)}`,
         'Amount(INR)': `${item.inramount.toFixed(4)}`,
+        'USDT Value': `${item.usdtvalue.toFixed(4)}`,
+        'Amount(USDT)': `${item.usdtamount.toFixed(4)}`,
         'Method': item.paymenttype,
         'Status': item.status,
         'Receipt': receiptName,
@@ -749,8 +750,9 @@ const DepositFiat = () => {
                 <div className="transaction-header">
                   <div className="col-date">Deposit ID</div>
                   <div className="col-date">Date/Time</div>
-                  <div className="col-amount">Amount(USDT)</div>
                   <div className="col-amount">Amount(INR)</div>
+                  <div className="col-amount">USDT value</div>
+                  <div className="col-amount">Amount(USDT)</div>
                   <div className="col-method">Method</div>
                   <div className="col-status">Status</div>
                   <div className="col-attachment">Attachment</div>
@@ -777,10 +779,13 @@ const DepositFiat = () => {
                               </div>
                             </div>
                             <div className="col-amount">
-                              <span className="amount-value">{tx?.usdtamount}</span>
+                              <span className="amount-value">{tx?.inramount}</span>
                             </div>
                             <div className="col-amount">
-                              <span className="amount-value">{tx?.inramount}</span>
+                              <span className="amount-value">{tx?.usdtvalue}</span>
+                            </div>
+                            <div className="col-amount">
+                              <span className="amount-value">{tx?.usdtamount}</span>
                             </div>
                             <div className="col-method">{tx?.paymenttype}</div>
                             <div className="col-status">
@@ -897,7 +902,7 @@ const DepositFiat = () => {
                     </div>
 
                     {/* Body */}
-                    <div className="modal-body " style={{ padding: "15px" }}>
+                    <div className="modal-body" style={{ padding: "15px" }}>
                       <img
                         src={selectedImg}
                         alt="Deposit Receipt"

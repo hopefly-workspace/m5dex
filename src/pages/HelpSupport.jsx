@@ -5,13 +5,35 @@ import { sanitizeInput } from "../utils/security";
 import { useUser } from "../contexts/UserContext";
 import Header from "../components/Header";
 import api from "../services/api";
+import CountryCodeSelector from "../components/CountryCodeSelector";
 import "../styles/components/HelpSupport.css";
+
+const PHONE_MAX_LENGTH_MAP = {
+  '+91': 10,
+  '+1': 10,
+  '+44': 10,
+  '+86': 11,
+  '+81': 10,
+  '+49': 11,
+  '+33': 9,
+  '+61': 9,
+  '+971': 9,
+  '+65': 8,
+  '+60': 10,
+  '+66': 9,
+  '+62': 12,
+  '+84': 10,
+  '+63': 10,
+  '+82': 10,
+  '+55': 11,
+};
 
 const INITIAL_FORM = {
   firstname: "",
   lastname: "",
   // email: "",
-  phoneno: "",
+  countryCode: "+91",
+  phone: "",
   note: "",
   agreeToContact: false,
 };
@@ -67,13 +89,15 @@ const HelpSupport = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const phoneMaxLength = PHONE_MAX_LENGTH_MAP[formData.countryCode] ?? 15;
+
   const handleChange = (field, value) => {
     const isCheckbox = field === "agreeToContact";
     let nextValue = value;
-    if (field === "phoneno") {
+    if (field === "phone") {
       nextValue = String(value ?? "")
-        .replace(/[^\d+\s().-]/g, "")
-        .slice(0, 25);
+        .replace(/\D/g, "")
+        .slice(0, phoneMaxLength);
     } else if (!isCheckbox) {
       nextValue = sanitizeInput(String(value ?? ""));
     }
@@ -81,23 +105,33 @@ const HelpSupport = () => {
       ...prev,
       [field]: isCheckbox ? !!value : nextValue,
     }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
+    if (field === "phone") {
+      if (errors.phoneno) setErrors((prev) => ({ ...prev, phoneno: null }));
+    } else {
+      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
+    }
   };
 
   const validateForm = () => {
     const firstnameVal = validateText(formData.firstname, { required: true, minLength: 1, maxLength: 100 });
     const lastnameVal = validateText(formData.lastname, { required: true, minLength: 1, maxLength: 100 });
-    // const emailVal = validateEmailInput(formData.email, true);
-    const phoneVal = validatePhone(formData.phoneno, true, { international: true });
     const noteVal = validateText(formData.note, { required: true, minLength: 10, maxLength: 2000 });
 
     const newErrors = {};
     if (!firstnameVal.isValid) newErrors.firstname = firstnameVal.error;
     if (!lastnameVal.isValid) newErrors.lastname = lastnameVal.error;
-    // if (!emailVal.isValid) newErrors.email = emailVal.error;
-    if (!phoneVal.isValid) newErrors.phoneno = phoneVal.error;
     if (!noteVal.isValid) newErrors.note = noteVal.error;
     if (!formData.agreeToContact) newErrors.agreeToContact = "You must agree to be contacted for issue resolution.";
+
+    // Phone validation (exactly like SignUp.jsx)
+    if (!formData.phone || formData.phone.trim().length === 0) {
+      newErrors.phoneno = 'Phone number is required';
+    } else {
+      const cleanedPhone = formData.phone.replace(/\D/g, '');
+      if (cleanedPhone.length !== phoneMaxLength) {
+        newErrors.phoneno = `Phone number must be ${phoneMaxLength} digits`;
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -114,7 +148,7 @@ const HelpSupport = () => {
         firstname: formData.firstname.trim(),
         lastname: formData.lastname.trim(),
         email: user?.email,
-        phoneno: formData.phoneno.replace(/\D/g, "").trim(),
+        phoneno: `${formData.countryCode}${formData.phone.replace(/\D/g, "").trim()}`,
         note: formData.note.trim(),
       };
       const response = await api.post("/users/addticket", payload);
@@ -212,7 +246,7 @@ const HelpSupport = () => {
                     )}
                   </div>
                 </div>
-                <div className="HelpForm">
+                <div className="">
                   <div className="ark-form-group help-form-group">
                     <label className="help-form-label" htmlFor="help-email">
                       Email Address <span className="help-required">*</span>
@@ -239,23 +273,46 @@ const HelpSupport = () => {
                     )}
                   </div>
                   <div className="ark-form-group help-form-group">
-                    <label className="help-form-label" htmlFor="help-phoneno">
+                    <label className="help-form-label" htmlFor="help-phone">
                       Phone Number <span className="help-required">*</span>
                     </label>
-                    <div className="ark-input-wrapper">
-                      <input
-                        id="help-phoneno"
-                        name="phoneno"
-                        type="tel"
-                        inputMode="tel"
-                        placeholder="+1 234 567 8900"
-                        className={`ark-input HelpInput ${errors.phoneno ? "ark-input-error" : ""}`}
-                        value={formData.phoneno}
-                        onChange={(e) => handleChange("phoneno", e.target.value)}
-                        autoComplete="tel"
-                        aria-invalid={!!errors.phoneno}
-                        aria-describedby={errors.phoneno ? "help-phoneno-error" : undefined}
-                      />
+                    <div className="ark-phone-input-wrapper">
+                      <div className="ark-phone-country-code">
+                        <CountryCodeSelector
+                          value={formData.countryCode}
+                          onChange={(code) => {
+                            setFormData((prev) => ({ ...prev, countryCode: code, phone: "" }));
+                            setErrors((prev) => ({ ...prev, phoneno: null }));
+                          }}
+                          className="country-code-selector"
+                        />
+                      </div>
+                      <div className="ark-phone-number-input">
+                        <div className="ark-input-wrapper">
+                          <div className="ark-input-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </div>
+                          <input
+                            id="help-phone"
+                            name="phone"
+                            type="tel"
+                            inputMode="tel"
+                            placeholder={`Enter ${phoneMaxLength}-digit number`}
+                            className={`ark-input HelpInput ${errors.phoneno ? "ark-input-error" : ""}`}
+                            value={formData.phone}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "").slice(0, phoneMaxLength);
+                              handleChange("phone", value);
+                            }}
+                            maxLength={phoneMaxLength}
+                            aria-invalid={!!errors.phoneno}
+                            aria-describedby={errors.phoneno ? "help-phoneno-error" : undefined}
+                            style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}
+                          />
+                        </div>
+                      </div>
                     </div>
                     {errors.phoneno && (
                       <span id="help-phoneno-error" className="help-field-error" role="alert">

@@ -25,6 +25,7 @@ import { formatIndianOrderPairDisplay, formatPriceUtil } from '../utils/helper';
 import { INDIA_INR_PER_USDT } from '../utils/tradingCalculations';
 import TP_SL_Modal from '../components/TP_SL_Modal';
 import Header from '../components/Header';
+import CustomSelect from '../components/CustomSelect';
 import '../styles/pages/Orders.css';
 import { tokenStorage } from '../utils/storage';
 import { resolveOrderNo } from '../utils/orderDisplay';
@@ -1443,11 +1444,18 @@ const Orders = () => {
       return;
     }
 
-    const cancelId = targetOrder.id;
+    const cancelId = targetOrder.orderNo || targetOrder.id;
     setCancellingIds((prev) => [...prev, cancelId]);
     try {
-      await closeOrder(payload);
-      showSuccess('Order cancelled successfully');
+      if (targetOrder._source === 'pending') {
+        const apiOrderType = getApiTypeByMarket(targetOrder.market || targetOrder.type);
+        await cancelOrder(cancelId, apiOrderType);
+        showSuccess('Pending order cancelled successfully');
+        fetchPendingOrdersSilent();
+      } else {
+        await closeOrder(payload);
+        showSuccess('Order closed successfully');
+      }
 
       if (targetOrder._source === 'pending') {
         setPendingOrdersRaw((prev) =>
@@ -1526,6 +1534,7 @@ const Orders = () => {
           item.pairname = payload.pair;
           item.lotsize = Number(payload.lotsize);
         } else if (type === "INDIAN") {
+          item.pairname = payload.pair;
           item.pairid = payload.pairid;
           item.lotsize = Number(payload.lotsize);
         } else {
@@ -3033,12 +3042,12 @@ const Orders = () => {
                                           className="cancel-button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleCancelPendingOrder(item.orderNo, item.market)
+                                            handleCancelOrder(item);
                                           }}
-                                          disabled={cancellingIds.includes(item.orderNo)}
+                                          disabled={cancellingIds.includes(item.orderNo || item.id)}
                                           aria-label="Cancel"
                                         >
-                                          {cancellingIds.includes(item.orderNo) ? 'Cancelling…' : 'Cancel'}
+                                          {cancellingIds.includes(item.orderNo || item.id) ? 'Cancelling…' : 'Cancel'}
                                         </button>
                                       </div>
                                     </td>
@@ -3472,7 +3481,7 @@ const Orders = () => {
                   </svg>
                 </button>
               </div>
-              <select
+              <CustomSelect
                 className="items-per-page-select"
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -3484,7 +3493,7 @@ const Orders = () => {
                 <option value={20}>20 per page</option>
                 <option value={50}>50 per page</option>
                 <option value={100}>100 per page</option>
-              </select>
+              </CustomSelect>
             </div>
           )}
         </div>
@@ -3518,18 +3527,6 @@ const Orders = () => {
                   <div><strong>Size:</strong> {orderToCancel?.lotsize || orderToCancel?.lotSize ? `${Number(orderToCancel?.lotsize || orderToCancel?.lotSize).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}` : '-'}</div>
                   <div><strong>Entry Price:</strong> {orderToCancel.price ? `${Number(orderToCancel.price).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : 'Market Price'}</div>
                   <div><strong>Current Price:</strong> {orderToCancel.currentPrice != null ? `${Number(orderToCancel.currentPrice).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : '-'}</div>
-                  {/* <div><strong>Liquidity Price:</strong> {orderToCancel.liquidityPrice != null ? `${Number(orderToCancel.liquidityPrice).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : '-'}</div> */}
-                  <div><strong>P&amp;L:</strong> <span className={Number(orderToCancel.profit || 0) >= 0 ? 'pnl-positive' : 'pnl-negative'}>{formatPnlCurrency(orderToCancel.profit || 0, orderToCancel.market).text} ({(orderToCancel.profitPercent || 0) >= 0 ? '+' : ''}{Number(orderToCancel.profitPercent || 0).toFixed(2)}%)</span></div>
-                  {orderToCancel.currentPrice != null && orderToCancel.price && Number(orderToCancel.price) > 0 && (
-                    <div><strong>ROI:</strong> <span className={((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100) >= 0 ? 'pnl-positive' : 'pnl-negative'}>
-                      {((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100) >= 0 ? '+' : ''}
-                      {((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100).toFixed(2)}%
-                    </span></div>
-                  )}
-                  {/* {orderToCancel.filled != null && Number(orderToCancel.filled) > 0 && (
-                    <div><strong>Filled:</strong> {Number(orderToCancel.filled).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} {orderToCancel.base} (will remain)</div>
-                  )}
-                  <div><strong>Unfilled:</strong> {orderToCancel.amount != null ? `${Math.max(0, Number(orderToCancel.amount) - Number(orderToCancel.filled || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${orderToCancel.base}` : '-'} (will cancel)</div> */}
                 </div>
                 <p className="warning-text">This action cannot be undone</p>
                 <div className="modal_btn">
@@ -3797,7 +3794,7 @@ const Orders = () => {
                     <h3>TP/SL Actions</h3>
                     <div className="order-details-grid">
                       {selectedOrderLive.tpslActions.map((action, idx) => (
-                        <div className="detail-item" key={`history-tpsl-${idx}`}>
+                        <div className="detail-item" key={`history-tpsl-${idx}`} style={{ gridColumn: '1 / -1' }}>
                           <label>{action?.action_type || 'Action'}</label>
                           <div className="detail-value">
                             {String(action?.status || action?.action_status || '-')} | TP {action?.tradepofit ?? '-'} | SL {action?.stoploss ?? '-'} | {action?.action_time ?? '-'}

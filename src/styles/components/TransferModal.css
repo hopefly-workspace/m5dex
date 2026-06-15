@@ -240,6 +240,7 @@
 
 /* Coin row with USDT icon */
 .tfm-coin-select {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -260,6 +261,7 @@
   padding: 0;
   padding-right: 24px;
   min-width: 0;
+  position: static !important;
 }
 
 .tfm-chevron {

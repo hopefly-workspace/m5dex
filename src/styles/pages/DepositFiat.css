@@ -1002,7 +1002,7 @@
 
 .transaction-header {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
   gap: var(--space-sm);
   padding: var(--space-md) var(--space-lg);
   background: var(--bg-elevated);
@@ -1052,7 +1052,7 @@
 
 .transaction-row {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border-light);
@@ -1922,7 +1922,7 @@
 .pagination-page.active {
   background: var(--brand-primary);
   border-color: var(--brand-primary);
-  color: white;
+  color: black;
 }
 
 .pagination-button:active:not(:disabled) {

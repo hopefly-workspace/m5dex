@@ -1042,6 +1042,43 @@ body.dark-theme .ark-auth-card {
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
+@media (max-height: 700px) {
+  .ark-illustration-wrapper {
+    padding: var(--ark-space-xl);
+  }
+}
+
+/* ============================================
+   LIGHT THEME OVERRIDES
+   ============================================ */
+[data-theme="light"] .ark-form-footer-link,
+[data-theme="light"] .ark-checkbox-label a {
+  color: var(--ark-text-primary);
+}
+
+[data-theme="light"] .ark-form-footer-link:hover,
+[data-theme="light"] .ark-checkbox-label a:hover {
+  color: var(--ark-text-primary);
+  text-decoration: underline;
+}
+
+[data-theme="light"] .ark-btn-primary,
+[data-theme="light"] .ark-btn-primary span {
+  color: #000 !important;
+}
+
+[data-theme="light"] .ark-checkbox:checked::after {
+  color: #000;
+}
+
+[data-theme="light"] .ark-divider-text {
+  color: var(--ark-text-primary);
+}
+
+[data-theme="light"] .ark-status-badge-text {
+  color: #000 !important;
+}
+
 @media (max-width: 1024px) {
   .ark-auth-container-centered {
     padding: var(--ark-space-xl);

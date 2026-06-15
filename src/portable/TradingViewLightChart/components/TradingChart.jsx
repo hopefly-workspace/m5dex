@@ -1,3 +1,4 @@
+import CustomSelect from '../../../components/CustomSelect';
 import {
   Fragment,
   useCallback,
@@ -2357,14 +2358,14 @@ export function TradingChart({
       {showOrderTicket && (
       <div className="trading-chart__orderbar">
         <div className="trading-chart__ticket">
-          <select
+          <CustomSelect
             className="trading-chart__select"
             value={orderSide}
             onChange={(e) => setOrderSide(e.target.value)}
           >
             <option value="buy">Long / Buy</option>
             <option value="sell">Short / Sell</option>
-          </select>
+          </CustomSelect>
           <input
             className="trading-chart__input"
             value={orderQty}

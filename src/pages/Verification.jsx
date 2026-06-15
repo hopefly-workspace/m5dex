@@ -5,11 +5,13 @@ import { tokenStorage } from '../utils/storage';
 import OTPInput from '../components/OTPInput';
 import Header from '../components/Header';
 import { formatTimer } from '../utils/formatTime';
+import { useToast } from '../contexts/ToastContext';
 import '../styles/pages/AuthPremium.css';
 
 const Verification = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showSuccess, showError } = useToast();
   const [verificationData] = useState(() => {
     const state = location.state || {};
     return {
@@ -144,6 +146,7 @@ const Verification = () => {
         sessionStorage.removeItem('verification_user_id');
         sessionStorage.removeItem('temp_token');
 
+        showSuccess(response.message || 'Verification successful! Please log in.');
         navigate('/login', { replace: true });
         // navigate('/dashboard', { replace: true });
       } else {
@@ -174,7 +177,7 @@ const Verification = () => {
     }
 
     try {
-      await api.post('/auth/resend-otp', {
+      const response = await api.post('/auth/resend-otp', {
         verification_type: verificationType,
         user_id: verificationData.user_id
       }, {
@@ -183,6 +186,7 @@ const Verification = () => {
         }
       });
 
+      showSuccess(response?.message || 'Verification code resent successfully.');
       // Reset timer
       setTimer(60);
       setCanResend(false);

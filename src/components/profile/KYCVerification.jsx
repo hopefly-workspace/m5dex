@@ -8,6 +8,7 @@ import { validatePhone } from '../../utils/validators';
 import { formatTimer } from '../../utils/formatTime';
 import OTPInput from '../OTPInput';
 import CountryCodeSelector from '../CountryCodeSelector';
+import CustomSelect from '../CustomSelect';
 import '../../styles/components/profile/KYCVerification.css';
 
 const KYCVerification = () => {
@@ -1046,7 +1047,7 @@ const KYCVerification = () => {
                 Date of Birth <span className="required">*</span>
               </label>
               <div className="dateInputGroup">
-                <select
+                <CustomSelect
                   className={`dateSelect ${errors.dateOfBirth ? 'error' : ''}`}
                   value={formData.dateOfBirth.month}
                   onChange={(e) => handleDateChange('month', e.target.value)}
@@ -1058,8 +1059,8 @@ const KYCVerification = () => {
                       {String(i + 1).padStart(2, '0')}
                     </option>
                   ))}
-                </select>
-                <select
+                </CustomSelect>
+                <CustomSelect
                   className={`dateSelect ${errors.dateOfBirth ? 'error' : ''}`}
                   value={formData.dateOfBirth.day}
                   onChange={(e) => handleDateChange('day', e.target.value)}
@@ -1071,8 +1072,8 @@ const KYCVerification = () => {
                       {String(i + 1).padStart(2, '0')}
                     </option>
                   ))}
-                </select>
-                <select
+                </CustomSelect>
+                <CustomSelect
                   className={`dateSelect ${errors.dateOfBirth ? 'error' : ''}`}
                   value={formData.dateOfBirth.year}
                   onChange={(e) => handleDateChange('year', e.target.value)}
@@ -1087,7 +1088,7 @@ const KYCVerification = () => {
                       </option>
                     );
                   })}
-                </select>
+                </CustomSelect>
               </div>
               {errors.dateOfBirth && (touched['dateOfBirth.month'] || touched['dateOfBirth.day'] || touched['dateOfBirth.year']) && (
                 <span className="fieldError">{errors.dateOfBirth}</span>
@@ -1098,7 +1099,7 @@ const KYCVerification = () => {
               <label className="formLabel">
                 Nationality <span className="required">*</span>
               </label>
-              <select
+              <CustomSelect
                 className={`formSelect ${errors.nationality ? 'error' : ''}`}
                 value={formData.nationality}
                 onChange={(e) => handleInputChange('nationality', e.target.value)}
@@ -1112,7 +1113,7 @@ const KYCVerification = () => {
                 <option value="Germany">Germany</option>
                 <option value="France">France</option>
                 <option value="Other">Other</option>
-              </select>
+              </CustomSelect>
               {errors.nationality && touched.nationality && (
                 <span className="fieldError">{errors.nationality}</span>
               )}

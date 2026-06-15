@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '../styles/components/TP_SL_Modal.css';
+import CustomSelect from './CustomSelect';
 
 const TP_SL_Modal = ({ position, isOpen, onClose, onSave, isSaving = false }) => {
   const lastInitKeyRef = useRef('');
@@ -443,18 +444,18 @@ const TP_SL_Modal = ({ position, isOpen, onClose, onSave, isSaving = false }) =>
             <div className="tpslAdvancedGrid">
               <label className="tpslAdvancedField">
                 <span>Trigger Price</span>
-                <select value={triggerPriceType} onChange={(e) => setTriggerPriceType(e.target.value)}>
+                <CustomSelect value={triggerPriceType} onChange={(e) => setTriggerPriceType(e.target.value)}>
                   <option value="mark">Mark Price</option>
                   <option value="last">Last Price</option>
                   <option value="index">Index Price</option>
-                </select>
+                </CustomSelect>
               </label>
               <label className="tpslAdvancedField">
                 <span>Execution</span>
-                <select value={executionPolicy} onChange={(e) => setExecutionPolicy(e.target.value)}>
+                <CustomSelect value={executionPolicy} onChange={(e) => setExecutionPolicy(e.target.value)}>
                   <option value="market">Market</option>
                   <option value="limit">Limit</option>
-                </select>
+                </CustomSelect>
               </label>
               <label className="tpslAdvancedField">
                 <span>Slippage Tolerance %</span>

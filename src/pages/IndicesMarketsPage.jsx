@@ -4,6 +4,7 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../contexts/ToastContext';
 import IndicesMarkets from '../components/markets/IndicesMarkets';
+import CustomSelect from '../components/CustomSelect';
 import {
   addFavourite,
   removeFavourite,
@@ -209,13 +210,13 @@ const IndicesMarketsPage = () => {
               Watchlist ({watchlistList.length})
             </button> */}
             <div className="sortFilter">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
+              <CustomSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
                 {sortOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
           </div>
         </div>

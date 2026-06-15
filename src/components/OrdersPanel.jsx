@@ -1552,6 +1552,7 @@ const OrdersPanel = ({
           };
 
           if (type === "INDIAN") {
+            item.pairname = payload.pair;
             item.pairid = pData.pairid;
             item.lotsize = Number(pData.lotsize);
           } else if (type === "FOREX") {

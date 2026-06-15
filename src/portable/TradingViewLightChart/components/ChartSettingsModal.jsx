@@ -1,3 +1,4 @@
+import CustomSelect from '../../../components/CustomSelect';
 const SETTINGS_NAV = [
   { id: 'symbol', label: 'Symbol' },
   { id: 'status', label: 'Status line' },
@@ -399,7 +400,7 @@ export function ChartSettingsModal({
           <div className="trading-chart__settings-sub trading-chart__settings-sub--indent">Positions</div>
           <div className="trading-chart__settings-inline">
             <span className="trading-chart__settings-inline-label">Unit</span>
-            <select
+            <CustomSelect
               className="trading-chart__settings-select"
               value={t.pnlPositionUnit}
               onChange={(e) => patchDraftTradingPrefs({ pnlPositionUnit: e.target.value })}
@@ -410,12 +411,12 @@ export function ChartSettingsModal({
                   {u.label}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </div>
           <div className="trading-chart__settings-sub trading-chart__settings-sub--indent">Brackets</div>
           <div className="trading-chart__settings-inline">
             <span className="trading-chart__settings-inline-label">Unit</span>
-            <select
+            <CustomSelect
               className="trading-chart__settings-select"
               value={t.pnlBracketUnit}
               onChange={(e) => patchDraftTradingPrefs({ pnlBracketUnit: e.target.value })}
@@ -426,7 +427,7 @@ export function ChartSettingsModal({
                   {u.label}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </div>
         </>
       )
@@ -499,9 +500,9 @@ export function ChartSettingsModal({
         <div className="trading-chart__settings-foot">
           <div className="trading-chart__settings-template">
             <span className="trading-chart__settings-template-label">Template</span>
-            <select className="trading-chart__settings-select" disabled aria-disabled="true" title="Not available in demo">
+            <CustomSelect className="trading-chart__settings-select" disabled aria-disabled="true" title="Not available in demo">
               <option>Default</option>
-            </select>
+            </CustomSelect>
           </div>
           <div className="trading-chart__settings-foot-btns">
             <button type="button" className="trading-chart__settings-btn trading-chart__settings-btn--ghost" onClick={onCancel}>

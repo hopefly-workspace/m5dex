@@ -950,7 +950,7 @@ const SecuritySettings = () => {
             <p className="securityFeatureDescription">
               {accountFrozen
                 ? "Unfreeze your account to use trading and withdrawal again. We'll send an OTP to your registered email to verify."
-                : "Temporarily freeze your account to block all trading and withdrawals. all trading, deposits and withdraw stopped. We'll send an OTP to your registered email to verify."}
+                : "Temporarily freeze your account to block all trading and withdrawals. We'll send an OTP to your registered email to verify."}
             </p>
           </div>
           <button

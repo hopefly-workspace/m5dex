@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
 import AmountScreen from '../components/payment/AmountScreen';
 import PaymentScreen from '../components/payment/PaymentScreen';
+import CustomSelect from '../components/CustomSelect';
 import '../styles/pages/PayThroughDeposit.css';
 import * as XLSX from 'xlsx';
 import { useLetsPay } from '../hooks/useLetsPay';
@@ -433,7 +434,7 @@ const PayThroughDeposit = () => {
         'Date/Time': formatDate(item.ondate),
         'Invoice ID': item.invoiceid,
         'Order No': item.orderno,
-        'Amount': `${item.amount.toFixed(4)} ${item.asset}`,
+        'Amount': `${Number(item.amount || 0).toFixed(4)} ${item.asset ?? ''}`,
         'Status': item.status,
         'Transection Date': formatDate(item.trandate),
       };
@@ -902,7 +903,7 @@ const PayThroughDeposit = () => {
                         </svg>
                       </button>
                     </div>
-                    <select
+                    <CustomSelect
                       className="items-per-page-select"
                       value={itemsPerPage}
                       onChange={(e) => {
@@ -914,7 +915,7 @@ const PayThroughDeposit = () => {
                       <option value={20}>20 per page</option>
                       <option value={50}>50 per page</option>
                       <option value={100}>100 per page</option>
-                    </select>
+                    </CustomSelect>
                   </div>
                 )}
               </>

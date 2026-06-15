@@ -4371,6 +4371,10 @@
   color: white;
 }
 
+[data-theme="light"] .orders-pnl-currency-btn.active {
+  color: #000;
+}
+
 .modal_btn {
   display: flex;
   justify-content: space-between;

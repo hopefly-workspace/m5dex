@@ -714,8 +714,8 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -723,15 +723,34 @@
 }
 
 .headerActionBtn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
   color: var(--text-primary);
 }
 
+body.dark-theme .headerActionBtn,
+[data-theme="dark"] .headerActionBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .headerActionBtn:hover,
+[data-theme="dark"] .headerActionBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 .headerActionBtn--active {
-  border-color: rgba(59, 130, 246, 0.6);
-  color: #0051ad;
-  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(255, 213, 0, 0.7);
+  color: #000000;
+  background: rgba(255, 213, 0, 0.2);
+}
+
+body.dark-theme .headerActionBtn--active,
+[data-theme="dark"] .headerActionBtn--active {
+  border-color: rgba(255, 213, 0, 0.5);
+  color: var(--brand-primary);
+  background: rgba(255, 213, 0, 0.12);
 }
 
 .ordersPanelFilterWrap {
@@ -797,22 +816,42 @@
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .ordersPanelFilterSeg button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
   color: var(--text-primary);
 }
 
+body.dark-theme .ordersPanelFilterSeg button,
+[data-theme="dark"] .ordersPanelFilterSeg button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-theme .ordersPanelFilterSeg button:hover,
+[data-theme="dark"] .ordersPanelFilterSeg button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
 .ordersPanelFilterSeg button.is-active {
-  border-color: rgba(59, 130, 246, 0.55);
-  background: rgba(59, 130, 246, 0.15);
-  color: #0051ad;
+  border-color: rgba(255, 213, 0, 0.7);
+  background: rgba(255, 213, 0, 0.2);
+  color: #000000;
+}
+
+body.dark-theme .ordersPanelFilterSeg button.is-active,
+[data-theme="dark"] .ordersPanelFilterSeg button.is-active {
+  border-color: rgba(255, 213, 0, 0.5);
+  background: rgba(255, 213, 0, 0.12);
+  color: var(--brand-primary);
 }
 
 .ordersPanelFilterInput {
@@ -821,9 +860,15 @@
   padding: 8px 10px;
   font-size: 12px;
   border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: var(--bg-secondary, #ffffff);
+  color: var(--text-primary);
+}
+
+body.dark-theme .ordersPanelFilterInput,
+[data-theme="dark"] .ordersPanelFilterInput {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: var(--bg-tertiary, #0b0e11);
-  color: var(--text-primary);
 }
 
 .ordersPanelFilterInput::placeholder {
@@ -832,7 +877,7 @@
 
 .ordersPanelFilterInput:focus {
   outline: none;
-  border-color: rgba(59, 130, 246, 0.5);
+  border-color: var(--brand-primary, #ffd500);
 }
 
 .ordersPanelFilterClearBtn {
@@ -928,7 +973,7 @@
   height: 14px;
   cursor: pointer;
   accent-color: #3B82F6;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(0, 0, 0, 0.02);
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 3px;
   appearance: none;
@@ -939,27 +984,37 @@
 }
 
 body.dark-theme .tableCheckbox {
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .tableCheckbox:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
-.tableCheckbox:checked {
-  background-color: #3B82F6;
-  border-color: #3B82F6;
+body.dark-theme .tableCheckbox:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.tableCheckbox:checked::after {
+.tableCheckbox:checked,
+body.dark-theme .tableCheckbox:checked,
+[data-theme="dark"] .tableCheckbox:checked {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.tableCheckbox:checked::after,
+body.dark-theme .tableCheckbox:checked::after,
+[data-theme="dark"] .tableCheckbox:checked::after {
   content: '';
   position: absolute;
   left: 4px;
   top: 1px;
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid #000000;
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
@@ -1024,11 +1079,17 @@ body.dark-theme .tableCheckbox {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.18);
+  color: #8a6d00;
+  background: rgba(255, 213, 0, 0.18);
   padding: 1px 5px;
   border-radius: 3px;
   line-height: 1.2;
+}
+
+body.dark-theme .indianInstrumentTag,
+[data-theme="dark"] .indianInstrumentTag {
+  color: var(--brand-primary);
+  background: rgba(255, 213, 0, 0.12);
 }
 
 .positionSide {
@@ -1263,12 +1324,18 @@ body.dark-theme .tableCheckbox {
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background-color: rgba(59, 131, 246, 0.226);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background-color: rgba(255, 213, 0, 0.22);
+  border-bottom: 1px solid rgba(255, 213, 0, 0.35);
   position: sticky;
   top: 0;
   z-index: 15;
   backdrop-filter: blur(10px);
+}
+
+body.dark-theme .selectionActions,
+[data-theme="dark"] .selectionActions {
+  background-color: rgba(255, 213, 0, 0.12);
+  border-bottom: 1px solid rgba(255, 213, 0, 0.25);
 }
 
 .selectionInfo {
@@ -1307,14 +1374,15 @@ body.dark-theme .tableCheckbox {
 }
 
 .selectionBtnClose {
-  background-color: #3B82F6;
-  color: white;
-  border: 1px solid #3B82F6;
+  background-color: var(--brand-primary);
+  color: #000000;
+  border: 1px solid var(--brand-primary);
 }
 
 .selectionBtnClose:hover {
-  background-color: #2563EB;
-  border-color: #2563EB;
+  background-color: var(--brand-primary-light);
+  border-color: var(--brand-primary-light);
+  color: #000000;
 }
 
 .ordersConfirmOverlay {

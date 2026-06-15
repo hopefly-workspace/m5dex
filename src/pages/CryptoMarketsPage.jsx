@@ -15,6 +15,7 @@ import {
 } from '../services/favouritesWishlistApi';
 import Header from '../components/Header';
 import CryptoMarkets from '../components/markets/CryptoMarkets';
+import CustomSelect from '../components/CustomSelect';
 import '../styles/pages/Markets.css';
 
 const sortOptions = [
@@ -282,13 +283,13 @@ const CryptoMarketsPage = () => {
             </button>
             <div className="sortFilter">
               {/* <label className="sortLabel">Sort by:</label> */}
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
+              <CustomSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
                 {sortOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
           </div>
 

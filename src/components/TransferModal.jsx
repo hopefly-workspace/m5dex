@@ -15,6 +15,7 @@ import {
 } from '../services/walletApi';
 import { useToast } from '../contexts/ToastContext';
 import '../styles/components/TransferModal.css';
+import CustomSelect from './CustomSelect';
 
 const MIN_AMOUNT = 0.00000001;
 
@@ -93,7 +94,6 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
 
   const setMaxAmount = useCallback(() => {
     if (availableBalance > 0) {
-      // Strip commas so parseFloat doesn't stop at the first comma
       setAmount(String(formatNumber(availableBalance, 8)).replace(/,/g, ''));
       setError(null);
     }
@@ -191,7 +191,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
           <div className="tfm-from-to-row">
             <div className="tfm-field tfm-field--half">
               <label className="tfm-label">From</label>
-              <select
+              <CustomSelect
                 className="tfm-select"
                 value={fromKey}
                 onChange={(e) => {
@@ -213,7 +213,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
                     {WALLET_TYPE_LABELS[k] ?? k}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
             <div className="tfm-swap-wrap">
               <button
@@ -230,7 +230,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
             </div>
             <div className="tfm-field tfm-field--half">
               <label className="tfm-label">To</label>
-              <select
+              <CustomSelect
                 className="tfm-select"
                 value={toKey}
                 onChange={(e) => {
@@ -244,7 +244,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
                     {WALLET_TYPE_LABELS[k] ?? k}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
           </div>
 
@@ -252,7 +252,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
             <label className="tfm-label">Coin</label>
             <div className="tfm-coin-select">
               <USDTIcon size={24} className="tfm-coin-icon-usdt" />
-              <select
+              <CustomSelect
                 className="tfm-select tfm-coin-select-inner"
                 value={coin}
                 onChange={(e) => {
@@ -267,8 +267,7 @@ export default function TransferModal({ walletData = getEmptyWalletData(), onClo
                     {c.symbol} {c.name}
                   </option>
                 ))}
-              </select>
-              <span className="tfm-chevron" aria-hidden />
+              </CustomSelect>
             </div>
             {(error || hasNoBalance) && (
               <p className="tfm-coin-hint" id="tfm-error" role="alert">

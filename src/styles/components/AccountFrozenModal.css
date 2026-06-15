@@ -160,7 +160,7 @@
 
 .account-frozen-modal-btn.primary {
   background: var(--ark-primary);
-  color: white;
+  color: #000;
   border-color: var(--ark-primary);
 }
 

@@ -388,8 +388,8 @@
 }
 
 .tp-india-currency-btn.active {
-  background: color-mix(in srgb, var(--brand-primary) 18%, transparent);
-  color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #000000;
 }
 
 .tp-india-currency-toolbar {
@@ -429,9 +429,14 @@
   background: var(--bg-tertiary);
   border: none;
   border-radius: var(--tp-radius-sm);
-  color: var(--brand-primary);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
+}
+
+body.dark-theme .tp-icon-btn,
+[data-theme="dark"] .tp-icon-btn {
+  color: var(--brand-primary);
 }
 
 .tp-icon-btn:hover {

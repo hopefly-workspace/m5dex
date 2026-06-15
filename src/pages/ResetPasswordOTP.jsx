@@ -23,7 +23,7 @@ const ResetPasswordOTP = () => {
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState(null);
-  const [timer, setTimer] = useState(600);
+  const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);

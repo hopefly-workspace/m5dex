@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import '../../styles/components/profile/ConnectedExchanges.css';
+import CustomSelect from '../CustomSelect';
 
 const ConnectedExchanges = () => {
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -768,12 +769,12 @@ const ConnectedExchanges = () => {
                     </div>
                     <div className="settingItem">
                       <span className="settingLabel">Sync Interval:</span>
-                      <select className="selectInput">
+                      <CustomSelect className="selectInput">
                         <option>5 minutes</option>
                         <option>10 minutes</option>
                         <option>15 minutes</option>
                         <option>30 minutes</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
 

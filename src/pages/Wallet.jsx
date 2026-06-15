@@ -26,6 +26,8 @@ import {
   normalizeTradingBalanceRows,
 } from "../services/walletApi";
 import { getCryptoBalance, getForexBalance } from "../services/tradingApi";
+import TP_SL_Modal from '../components/TP_SL_Modal';
+import CustomSelect from '../components/CustomSelect';
 import "../styles/pages/Wallet.css";
 import { useToast } from "../contexts/ToastContext";
 import { Copy } from "lucide-react";
@@ -2253,7 +2255,7 @@ const Wallet = () => {
                         <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
                           <label className="wallet-bh-field wallet-bh-field--inline">
                             <span className="wallet-bh-field-label">Rows / page</span>
-                            <select
+                            <CustomSelect
                               className="wallet-bh-select"
                               value={balanceHistoryPageSize}
                               onChange={(e) => setBalanceHistoryPageSize(Number(e.target.value))}
@@ -2263,7 +2265,7 @@ const Wallet = () => {
                                   {n}
                                 </option>
                               ))}
-                            </select>
+                            </CustomSelect>
                           </label>
                           <span className="wallet-bh-range-meta" aria-live="polite">
                             {balanceHistoryRangeLabel}
@@ -2575,7 +2577,7 @@ const Wallet = () => {
                         <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
                           <label className="wallet-bh-field wallet-bh-field--inline">
                             <span className="wallet-bh-field-label">Rows / page</span>
-                            <select
+                            <CustomSelect
                               className="wallet-bh-select"
                               value={balanceHistoryPageSize}
                               onChange={(e) => setBalanceHistoryPageSize(Number(e.target.value))}
@@ -2585,7 +2587,7 @@ const Wallet = () => {
                                   {n}
                                 </option>
                               ))}
-                            </select>
+                            </CustomSelect>
                           </label>
                           <span className="wallet-bh-range-meta" aria-live="polite">
                             {balanceHistoryRangeLabel}
@@ -2764,7 +2766,7 @@ const Wallet = () => {
                         <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
                           <label className="wallet-bh-field wallet-bh-field--inline">
                             <span className="wallet-bh-field-label">Rows / page</span>
-                            <select
+                            <CustomSelect
                               className="wallet-bh-select"
                               value={depositHistoryPageSize}
                               onChange={(e) => setDepositHistoryPageSize(Number(e.target.value))}
@@ -2774,7 +2776,7 @@ const Wallet = () => {
                                   {n}
                                 </option>
                               ))}
-                            </select>
+                            </CustomSelect>
                           </label>
                           <span className="wallet-bh-range-meta" aria-live="polite">
                             {depositHistoryTotal === 0
@@ -2985,7 +2987,7 @@ const Wallet = () => {
                         <div className="wallet-bh-toolbar-row wallet-bh-toolbar-row--actions">
                           <label className="wallet-bh-field wallet-bh-field--inline">
                             <span className="wallet-bh-field-label">Rows / page</span>
-                            <select
+                            <CustomSelect
                               className="wallet-bh-select"
                               value={withdrawalHistoryPageSize}
                               onChange={(e) => setWithdrawalHistoryPageSize(Number(e.target.value))}
@@ -2995,7 +2997,7 @@ const Wallet = () => {
                                   {n}
                                 </option>
                               ))}
-                            </select>
+                            </CustomSelect>
                           </label>
                           <span className="wallet-bh-range-meta" aria-live="polite">
                             {withdrawalHistoryTotal === 0
@@ -3247,7 +3249,7 @@ const Wallet = () => {
                 </div>
                 <div className="transfer-select-group">
                   <label className="transfer-input-label">To</label>
-                  <select
+                  <CustomSelect
                     className="transfer-select"
                     value={transferTo}
                     onChange={(e) => {
@@ -3268,11 +3270,11 @@ const Wallet = () => {
                           {walletTypeLabel[k]} — ${formatBalance(walletData[k]?.available ?? 0)}
                         </option>
                       ))}
-                  </select>
+                  </CustomSelect>
                 </div>
                 <div className="transfer-select-group">
                   <label className="transfer-input-label">Asset</label>
-                  <select
+                  <CustomSelect
                     className="transfer-select"
                     value={transferAsset}
                     onChange={(e) => {
@@ -3284,7 +3286,7 @@ const Wallet = () => {
                     {TRANSFER_ASSETS.map((a) => (
                       <option key={a} value={a}>{a}</option>
                     ))}
-                  </select>
+                  </CustomSelect>
                 </div>
                 <div className="transfer-input-group">
                   <label className="transfer-input-label">Amount</label>
@@ -3414,7 +3416,7 @@ const Wallet = () => {
 
                     <div className="transfer-select-group">
                       <label className="transfer-input-label">Network</label>
-                      <select
+                      <CustomSelect
                         className="transfer-select"
                         value={withdrawForm.network}
                         onChange={(e) => {
@@ -3429,7 +3431,7 @@ const Wallet = () => {
                             {network}
                           </option>
                         ))}
-                      </select>
+                      </CustomSelect>
                     </div>
 
                     <div className="transfer-select-group">
