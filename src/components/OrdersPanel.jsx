@@ -1692,8 +1692,10 @@ const OrdersPanel = ({
             quantity: Number(pData.quantity),
             orderno: pData.orderno,
             markettypeid: pData.marketType,
+            mode: pData.mode,
           };
           if (type === 'INDIAN') {
+            item.pairname = pData.pair;
             item.pairid = pData.pairid;
             item.lotsize = Number(pData.lotsize);
             if (pData.exchange) item.exchange = pData.exchange;
