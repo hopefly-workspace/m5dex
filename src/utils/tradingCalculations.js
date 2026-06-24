@@ -138,6 +138,19 @@ export function getMaxNotional(availableBalance, leverage) {
 }
 
 /**
+ * Initial margin for an order: position notional ÷ leverage.
+ * @param {number} notional - Order value in quote (USDT / INR notional as applicable)
+ * @param {number} leverage
+ * @returns {number}
+ */
+export function getOrderMargin(notional, leverage) {
+  const n = parseNum(notional);
+  const l = parseNum(leverage);
+  if (n == null || n <= 0 || l == null || l < 1) return 0;
+  return n / l;
+}
+
+/**
  * USDT-margined linear contract: liquidation when equity equals maintenance on mark.
  * Equity = walletBalance + Q×(mark−entry); maintenance ≈ MMR×Q×mark.
  * Long: solve W + Q(P−E) = MMR×Q×P → P = (Q×E − W) / (Q×(1−MMR)). Valid only if P < entry.
@@ -207,17 +220,45 @@ function resolveInrPerUsdt(inrPerUsdt) {
 }
 
 /**
- * Notional in INR: lotSize × quantity × price (LTP / limit), all in INR.
+ * * Forex margin notional (USDT): lots × quoted price.
+ * Units per lot from API apply to order `quantity` only, not margin math.
  */
-export function getIndiaNotionalInr(lotSize, quantity, priceInr) {
-  const l = Number(lotSize);
-  const q = Number(quantity);
-  const p = Number(priceInr);
+// export function getIndiaNotionalInr(lotSize, quantity, priceInr) {
+//   const l = Number(lotSize);
+//   const q = Number(quantity);
+//   const p = Number(priceInr);
+// export function getForexMarginNotionalUsdt(lots, price) {
+//   const l = Number(lots);
+//   const p = Number(price);
+//   if (!Number.isFinite(l) || l <= 0 || !Number.isFinite(p) || p <= 0) return 0;
+//   return l * p;
+export function getForexMarginNotionalUsdt(lots, quantityPerLot, price) {
+  return getForexContractNotionalUsdt(lots, quantityPerLot, price);
+}
+
+/** Full contract exposure (USDT): lots × units-per-lot × price — informational only. */
+export function getForexContractNotionalUsdt(lots, quantityPerLot, price) {
+  const l = Number(lots);
+  const q = Number(quantityPerLot);
+  const p = Number(price);
   if (!Number.isFinite(l) || l <= 0 || !Number.isFinite(q) || q <= 0 || !Number.isFinite(p) || p <= 0) {
     return 0;
   }
   return l * q * p;
 }
+
+/**
+ * Notional in INR: total quantity × price (quantity already includes lots × units-per-lot).
+ */
+export function getIndiaNotionalInr(_lotSize, quantity, priceInr) {
+  const q = Number(quantity);
+  const p = Number(priceInr);
+  if (!Number.isFinite(q) || q <= 0 || !Number.isFinite(p) || p <= 0) {
+    return 0;
+  }
+  return q * p;
+}
+
 
 /**
  * Required initial margin in INR: notionalINR / leverage.
@@ -242,15 +283,19 @@ export function getIndiaMarginUsdt(lotSize, quantity, priceInr, leverage, inrPer
 }
 
 /** Max quantity (lots × units) for given balance (USDT), lot, price (INR), leverage. */
-export function getIndiaMaxQuantity(lotSize, priceInr, leverage, availableUsdt, inrPerUsdt = INDIA_INR_PER_USDT) {
-  const l = Number(lotSize);
+// export function getIndiaMaxQuantity(lotSize, priceInr, leverage, availableUsdt, inrPerUsdt = INDIA_INR_PER_USDT) {
+//   const l = Number(lotSize);
+/** Max total quantity (units) for given balance (USDT), price (INR), leverage. */
+export function getIndiaMaxQuantity(_lotSize, priceInr, leverage, availableUsdt, inrPerUsdt = INDIA_INR_PER_USDT) {
   const p = Number(priceInr);
   const lev = Number(leverage);
   const b = Number(availableUsdt);
-  if (!Number.isFinite(l) || l <= 0 || !Number.isFinite(p) || p <= 0 || !Number.isFinite(lev) || lev < 1) {
+  // if (!Number.isFinite(l) || l <= 0 || !Number.isFinite(p) || p <= 0 || !Number.isFinite(lev) || lev < 1) {
+  if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(lev) || lev < 1) {
     return 0;
   }
   if (!Number.isFinite(b) || b < 0) return 0;
   const rate = resolveInrPerUsdt(inrPerUsdt);
-  return (b * lev * rate) / (l * p);
+  // return (b * lev * rate) / (l * p);
+  return (b * lev * rate) / p;
 }

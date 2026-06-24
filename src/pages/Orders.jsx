@@ -21,16 +21,40 @@ import { useUser } from '../contexts/UserContext';
 import { normalizeSymbol } from '../services/favouritesWishlistApi';
 import { useAvaxTradesWebSocket } from '../hooks/useAvaxTradesWebSocket';
 import useMarketWebSocket from '../hooks/useMarketWebSocket';
-import { formatIndianOrderPairDisplay, formatPriceUtil } from '../utils/helper';
+import { formatPriceUtil } from '../utils/helper';
 import { INDIA_INR_PER_USDT } from '../utils/tradingCalculations';
+import { resolveIndiaOrderExchange } from '../utils/indiaPairResolve';
+import {
+  computeOrderOpenPnl,
+  getIndianInstrumentKindForRaw,
+  getOrderLotSizeValue,
+  getOrderMarketTypeKey,
+  getOrderQuantityValue,
+  getOrderSizeValue,
+  resolveIndiaPairIdFromRaw,
+  resolveOrderBaseSymbol,
+  resolveOrderDisplaySymbol,
+  resolveOrderSide,
+} from '../utils/orderRowNormalize';
+import {
+  buildAllMarketsTradesData,
+  buildSymbolToQuoteMap,
+  extractIndiaOrderPairId,
+  getIndiaPairIdFromOrderRaw,
+  resolveCurrentPriceFromFeeds,
+  resolveIndiaLiveMarkPrice,
+  resolveIndiaOrderPairId,
+} from '../utils/orderMarkPrice';
+import { useIndiaPairTicksFeed } from '../hooks/useIndiaPairTicksFeed';
+import { useIndiaFavouritesSubscription } from '../hooks/useIndiaFavouritesSubscription';
+import { resolveIndiaPairIdForSymbol, fetchIndiaStockList, findIndiaPairIdInStockList, getCachedIndiaStockList } from '../services/indiaStockList';
+import { appendIndiaWsToken, readIndiaPairIdSessionMap } from '../services/indiaTicksSubscription';
 import TP_SL_Modal from '../components/TP_SL_Modal';
 import Header from '../components/Header';
 import CustomSelect from '../components/CustomSelect';
 import '../styles/pages/Orders.css';
 import { tokenStorage } from '../utils/storage';
 import { resolveOrderNo } from '../utils/orderDisplay';
-import logo from "../../public/assets/img/icon.png"
-// import darklogo from "../../public/assets/img/m5dex-dark-logo.png"
 
 const statusOptions = [
   { id: 'all', label: 'All Status' },
@@ -212,6 +236,9 @@ const WS_OPTIONS = {
   heartbeatTimeout: 10000,
 };
 
+/** Stable empty list — avoids re-subscribe loops in useIndiaFavouritesSubscription. */
+const EMPTY_INDIA_FAVOURITES = [];
+
 const getWsBase = (type) =>
   WS_BASE_BY_TYPE[String(type || 'crypto').toLowerCase().trim()] ??
   import.meta.env.VITE_WS_AVAX_TRADES_URL ??
@@ -224,32 +251,7 @@ const symbolToPair = (s) => {
   return `${base}/USDT`;
 };
 
-const getOrderMarketKey = (raw, symbol = '') => {
-  const candidates = [
-    raw?.market,
-    raw?.type,
-    raw?.segment,
-    raw?.marketSegment,
-    raw?.assetType,
-    raw?.productType,
-    raw?.market_type,
-    raw?.marketType,
-  ];
-  for (const c of candidates) {
-    const key = String(c ?? '').trim().toLowerCase();
-    if (!key) continue;
-    if (key.includes('india') || key.includes('indian')) return 'india';
-    if (key.includes('forex')) return 'forex';
-    if (key.includes('indice') || key.includes('index')) return 'forex';
-    if (key.includes('metal') || key.includes('commodit')) return 'forex';
-    if (key.includes('crypto')) return 'crypto';
-  }
-  const sym = String(symbol || '').toUpperCase();
-  if (/^(NFO|MCX|NSE|BSE|CDS|BCD|NCDEX):/i.test(sym)) return 'india';
-  if (/USDT$/i.test(sym)) return 'crypto';
-  if (/^(EUR|GBP|USD|JPY|AUD|CHF|NZD|CAD)(USD|EUR|GBP|JPY|CHF|AUD|NZD|CAD)$/.test(sym) || (sym.length === 6 && !sym.endsWith('USDT'))) return 'forex';
-  return 'crypto';
-};
+const getOrderMarketKey = getOrderMarketTypeKey;
 
 const formatExpiryDate = (expireAt) => {
   if (!expireAt) return null;
@@ -312,18 +314,6 @@ const getApiTypeByMarket = (market) => {
   return mk;
 };
 
-const getPairDisplayByMarket = (market, symbolRaw, symbol) => {
-  if (market === 'india') return formatIndianOrderPairDisplay(symbolRaw || symbol || '-') || String(symbolRaw || symbol || '-');
-  return symbolToPair(symbolRaw || symbol);
-};
-
-const getPriceFromMarketItem = (item) => {
-  if (!item || typeof item !== 'object') return null;
-  const v = item.price ?? item.p ?? item.last ?? item.close ?? item.c ?? item.Last ?? item.Close;
-  const n = v != null ? Number(v) : null;
-  return n != null && !Number.isNaN(n) ? n : null;
-};
-
 /** Normalize India tick fields to consistent numeric price/bid/ask. */
 const normalizeIndiaTradesList = (list) => {
   const toNum = (v, fallback = 0) => {
@@ -332,8 +322,10 @@ const normalizeIndiaTradesList = (list) => {
   };
   return (Array.isArray(list) ? list : []).map((x) => {
     const price = toNum(x?.price ?? x?.ltp ?? x?.p ?? x?.index ?? x?.last ?? x?.close, 0);
-    const bid = toNum(x?.bid ?? x?.b ?? x?.bidPrice, price);
-    const ask = toNum(x?.ask ?? x?.a ?? x?.askPrice, price);
+    const hasBid = x?.bid != null || x?.b != null || x?.bidPrice != null;
+    const hasAsk = x?.ask != null || x?.a != null || x?.askPrice != null;
+    const bid = hasBid ? toNum(x?.bid ?? x?.b ?? x?.bidPrice, 0) : (price > 0 ? price : 0);
+    const ask = hasAsk ? toNum(x?.ask ?? x?.a ?? x?.askPrice, 0) : (price > 0 ? price : 0);
     return {
       ...x,
       price,
@@ -489,9 +481,9 @@ const Orders = () => {
     return base.endsWith('/all') ? base : `${base}/all`;
   }, []);
   const wsUrlIndiaAll = useMemo(() => {
-    const raw = import.meta.env.VITE_WS_INDIA_URL || getWsBase('india');
+    const raw = import.meta.env.VITE_WS_INDIA_URL;
     if (!raw) return null;
-    return String(raw).replace(/\/+$/, '');
+    return appendIndiaWsToken(String(raw).replace(/\/+$/, ''));
   }, []);
 
   const isDirectStream = wsUrlForex.includes('/ws/') && wsUrlForex.split('/ws/').length > 1;
@@ -503,6 +495,115 @@ const Orders = () => {
     () => normalizeIndiaTradesList(tradesDataIndiaAll),
     [tradesDataIndiaAll]
   );
+
+  const [resolvedIndiaPairIdsBySymbol, setResolvedIndiaPairIdsBySymbol] = useState({});
+  const [indiaStockListVersion, setIndiaStockListVersion] = useState(0);
+
+  const indiaOrderPairIds = useMemo(() => {
+    const ids = new Set();
+    const feedLists = [
+      ...(Array.isArray(normalizedIndiaAllTradesData) ? normalizedIndiaAllTradesData : []),
+    ];
+    const stockList = getCachedIndiaStockList();
+    const rows = [
+      ...(Array.isArray(openOrdersRaw) ? openOrdersRaw : []),
+      ...(Array.isArray(pendingOrdersRaw) ? pendingOrdersRaw : []),
+    ];
+    for (const raw of rows) {
+      const symbolRaw = String(raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '').trim();
+      const symbol = normalizeSymbol(symbolRaw) || symbolRaw.replace(/\//g, '').toUpperCase();
+      if (getOrderMarketKey(raw, symbol) !== 'india') continue;
+      let pairId =
+        getIndiaPairIdFromOrderRaw(raw, {
+          symbol: symbolRaw,
+          feedLists,
+          sessionMap: readIndiaPairIdSessionMap(),
+        }) ||
+        resolvedIndiaPairIdsBySymbol[symbol] ||
+        '';
+      if (!pairId && symbolRaw && stockList.length > 0) {
+        pairId = findIndiaPairIdInStockList(stockList, symbolRaw) || '';
+      }
+      if (pairId) ids.add(String(pairId).trim());
+    }
+    return [...ids];
+  }, [
+    openOrdersRaw,
+    pendingOrdersRaw,
+    normalizedIndiaAllTradesData,
+    resolvedIndiaPairIdsBySymbol,
+    indiaStockListVersion,
+  ]);
+
+  useIndiaFavouritesSubscription({
+    enabled: isAuthForOrdersWs && indiaOrderPairIds.length > 0,
+    favouritesList: EMPTY_INDIA_FAVOURITES,
+    extraPairIds: indiaOrderPairIds,
+    includeSessionMap: true,
+  });
+
+  const { ticks: indiaPairTicks, ticksByPairId: indiaTicksByPairId } = useIndiaPairTicksFeed(
+    indiaOrderPairIds,
+    isAuthForOrdersWs && indiaOrderPairIds.length > 0,
+  );
+
+  const normalizedIndiaPairTicks = useMemo(
+    () => normalizeIndiaTradesList(indiaPairTicks),
+    [indiaPairTicks],
+  );
+
+  const normalizedIndiaTicksByPairId = useMemo(() => {
+    const out = {};
+    Object.entries(indiaTicksByPairId || {}).forEach(([pid, tick]) => {
+      const normalized = normalizeIndiaTradesList([tick])[0];
+      if (normalized) out[pid] = normalized;
+    });
+    return out;
+  }, [indiaTicksByPairId]);
+
+  useEffect(() => {
+    if (!isAuthForOrdersWs) return undefined;
+
+    let cancelled = false;
+    const rows = [
+      ...(Array.isArray(openOrdersRaw) ? openOrdersRaw : []),
+      ...(Array.isArray(pendingOrdersRaw) ? pendingOrdersRaw : []),
+    ];
+
+    const run = async () => {
+      const feedLists = [
+        ...(Array.isArray(normalizedIndiaAllTradesData) ? normalizedIndiaAllTradesData : []),
+      ];
+      const updates = {};
+
+      for (const raw of rows) {
+        const symbolRaw = String(raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '').trim();
+        const symbol = normalizeSymbol(symbolRaw) || symbolRaw.replace(/\//g, '').toUpperCase();
+        if (getOrderMarketKey(raw, symbol) !== 'india') continue;
+        if (resolveIndiaOrderPairId(raw, { symbol: symbolRaw, feedLists })) continue;
+        if (resolvedIndiaPairIdsBySymbol[symbol]) continue;
+
+        const pairId = await resolveIndiaPairIdForSymbol(symbolRaw);
+        if (cancelled || !pairId) continue;
+        updates[symbol] = String(pairId).trim();
+      }
+
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setResolvedIndiaPairIdsBySymbol((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isAuthForOrdersWs,
+    openOrdersRaw,
+    pendingOrdersRaw,
+    normalizedIndiaAllTradesData,
+    resolvedIndiaPairIdsBySymbol,
+  ]);
 
   const uniqueMarketsData = useMemo(() => {
     if (!marketData || marketData.size === 0) return [];
@@ -543,56 +644,66 @@ const Orders = () => {
     return Array.from(uniqueMap.values());
   }, [marketData]);
 
-  const buildSymbolPriceMap = (list = [], getPrice) => {
-    const map = new Map();
+  const allMarketFeedData = useMemo(
+    () =>
+      buildAllMarketsTradesData({
+        genericTicks: [
+          ...(Array.isArray(tradesDataCrypto) ? tradesDataCrypto : []),
+          ...(Array.isArray(uniqueMarketsData) ? uniqueMarketsData : []),
+        ],
+        indiaBroadcast: normalizedIndiaAllTradesData,
+        indiaPairTicks: normalizedIndiaPairTicks,
+        indiaTicksByPairId: normalizedIndiaTicksByPairId,
+      }),
+    [
+      tradesDataCrypto,
+      uniqueMarketsData,
+      normalizedIndiaAllTradesData,
+      normalizedIndiaPairTicks,
+      normalizedIndiaTicksByPairId,
+    ],
+  );
 
-    (Array.isArray(list) ? list : []).forEach((item) => {
-      const rawSymbol =
-        item?.symbol ??
-        item?.s ??
-        item?.id ??
-        item?.Symbol ??
-        item?.instrument ??
-        item?.pair ??
-        item?.market ??
-        '';
+  const symbolToQuoteMap = useMemo(
+    () => buildSymbolToQuoteMap(allMarketFeedData),
+    [allMarketFeedData],
+  );
 
-      const key = normalizeSymbol(rawSymbol);
-      if (!key) return;
+  const resolveCurrentPriceForOrder = useCallback(
+    ({ side, symbol, orderMarketType, raw, openPrice, fromApiPrice }) => {
+      const isIndia = String(orderMarketType || '').toLowerCase() === 'india';
+      const orderSymRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? symbol ?? '';
+      return resolveCurrentPriceFromFeeds({
+        side,
+        symbol: orderSymRaw || symbol,
+        orderMarketType,
+        raw,
+        openPrice,
+        fromApiPrice,
+        symbolToQuoteMap,
+        marketDataLists: [allMarketFeedData],
+        indiaTicksByPairId: isIndia ? normalizedIndiaTicksByPairId : null,
+      });
+    },
+    [symbolToQuoteMap, allMarketFeedData, normalizedIndiaTicksByPairId],
+  );
 
-      const price = getPrice(item);
-
-      if (price != null && price > 0) {
-        map.set(key, price);
-      }
+  useEffect(() => {
+    if (!isAuthForOrdersWs) return undefined;
+    const hasIndia = [
+      ...(Array.isArray(openOrdersRaw) ? openOrdersRaw : []),
+      ...(Array.isArray(pendingOrdersRaw) ? pendingOrdersRaw : []),
+    ].some((raw) => {
+      const symbolRaw = String(raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '').trim();
+      const symbol = normalizeSymbol(symbolRaw) || symbolRaw.replace(/\//g, '').toUpperCase();
+      return getOrderMarketKey(raw, symbol) === 'india';
     });
-
-    return map;
-  };
-
-  const symbolToPriceMap = useMemo(() => {
-    return buildSymbolPriceMap(tradesDataCrypto, (item) =>
-      getPriceFromMarketItem(item)
-    );
-  }, [tradesDataCrypto]);
-
-  const forexSymbolToPriceMap = useMemo(() => {
-    return buildSymbolPriceMap(uniqueMarketsData, (item) =>
-      Number(item?.price ?? item?.index ?? item?.ask ?? item?.bid ?? 0)
-    );
-  }, [uniqueMarketsData]);
-
-  const indiaSymbolToPriceMap = useMemo(() => {
-    return buildSymbolPriceMap(normalizedIndiaAllTradesData, (item) =>
-      Number(item?.price ?? item?.ltp ?? item?.index ?? item?.ask ?? item?.bid ?? 0)
-    );
-  }, [normalizedIndiaAllTradesData]);
-
-  const priceMap = useMemo(() => new Map([
-    ...symbolToPriceMap,
-    ...forexSymbolToPriceMap,
-    ...indiaSymbolToPriceMap,
-  ]), [symbolToPriceMap, forexSymbolToPriceMap, indiaSymbolToPriceMap]);
+    if (!hasIndia) return undefined;
+    fetchIndiaStockList()
+      .then(() => setIndiaStockListVersion((v) => v + 1))
+      .catch(() => { });
+    return undefined;
+  }, [isAuthForOrdersWs, openOrdersRaw, pendingOrdersRaw]);
 
   const reconnectOrderListWs = useCallback(() => {
     if (!isAuthForOrdersWs) return;
@@ -736,20 +847,23 @@ const Orders = () => {
       const orderNo = raw?.orderno ?? raw?.orderNo ?? null;
       const displayId = rawId != null ? String(rawId) : `open-${idx}`;
       const id = `${displayId}-${idx}`;
-      const symbolRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '';
+      const symbolRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? raw?.pairName ?? '';
       const symbol = normalizeSymbol(symbolRaw) || String(symbolRaw).replace(/\//g, '').toUpperCase().trim() || '-';
-      const market = getOrderMarketKey(raw, symbol);
-      const pair = getPairDisplayByMarket(market, symbolRaw, symbol);
-      const pairid = raw?.type;
-      const lotsize = raw?.lotsize;
-      const base = symbol.replace(/(USDT|USD|INR)$/i, '') || symbol || 'NA';
-      const sideRaw = String(raw?.ordertype ?? '').toLowerCase();
-      const side = sideRaw === 'sell' ? 'sell' : 'buy';
-      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? raw?.type ?? '').toUpperCase();
+      const market = getOrderMarketTypeKey(raw, symbol);
+      const isIndiaOrder = market === 'india';
+      const displaySymbol = resolveOrderDisplaySymbol(symbolRaw, symbol, market);
+      const pair = displaySymbol;
+      const pairid = resolveIndiaPairIdFromRaw(raw);
+      const lotsize = getOrderLotSizeValue(raw, 0);
+      const quantityNum = getOrderQuantityValue(raw, 0);
+      const sizeNum = getOrderSizeValue(raw, 0);
+      const base = resolveOrderBaseSymbol(symbolRaw, symbol, market);
+      const side = resolveOrderSide(raw);
+      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? '').toUpperCase();
       const type = marketTypeRaw === 'MARKET' ? 'market' : 'limit';
-      const price = Number(raw?.price ?? raw?.openPrice ?? 0) || 0;
-      const lotSize = Number(raw?.quantity ?? raw?.qty ?? raw?.size ?? raw?.volume ?? raw?.amount ?? 0) || 0;
-      const total = Number(raw?.totalamt ?? raw?.totalAmt ?? 0) || price * lotSize;
+      const price = Number(raw?.price ?? raw?.openPrice ?? raw?.entryPrice ?? 0) || 0;
+      const lotSize = isIndiaOrder ? (quantityNum > 0 ? quantityNum : sizeNum) : sizeNum;
+      const total = Number(raw?.totalamt ?? raw?.totalAmt ?? 0) || price * (quantityNum || sizeNum);
       const usedMargin = Number(raw?.usedmargin ?? raw?.usedMargin ?? 0) || 0;
       const leverage = Number(raw?.leverage ?? 0) || 0;
       const status = String(raw?.istatus ?? raw?.status ?? 'OPEN').toLowerCase();
@@ -757,37 +871,49 @@ const Orders = () => {
       const expiryTimeFull = formatExpiryDate(raw?.expireddate ?? raw?.expiredDate ?? raw?.expirydate ?? raw?.expiryDate ?? null);
 
       const fee = Number(raw?.tranfee ?? raw?.commission ?? raw?.fee ?? 0) || 0;
-      const tp = raw?.profitrade ?? raw?.tradeprofit ?? raw?.tp ?? raw?.takeProfit ?? null;
-      const sl = raw?.stoploss ?? raw?.stopLoss ?? raw?.sl ?? null;
-      const fromApiPrice = Number(raw?.liveprice ?? raw?.currentPrice ?? raw?.markPrice ?? raw?.lastPrice ?? 0) || null;
+      const tp = raw?.current_profitrade ?? raw?.profitrade ?? raw?.tradeprofit ?? raw?.tp ?? raw?.takeProfit ?? null;
+      const sl = raw?.current_stoploss ?? raw?.stoploss ?? raw?.stopLoss ?? raw?.sl ?? null;
+      const fromApiPrice = Number(
+        raw?.liveprice ??
+        raw?.currentPrice ??
+        raw?.current_price ??
+        raw?.markPrice ??
+        raw?.lastPrice ??
+        raw?.livePrice ??
+        0,
+      ) || null;
       const fromApiPriceValid = fromApiPrice != null && !Number.isNaN(fromApiPrice) && fromApiPrice > 0;
-      const livePrice = priceMap.get(symbol) ?? null;
-      const currentPrice = (livePrice != null && livePrice > 0 ? livePrice : null) ?? (fromApiPriceValid ? fromApiPrice : null) ?? price;
-      const isSell = side === 'sell';
-      const isIndiaMarket = market === 'india';
-      const rawProfit = Number(raw?.profit ?? raw?.pnl ?? raw?.unrealizedPnl ?? raw?.unrealized_pnl ?? 0) || 0;
-      const priceMovePct = price > 0 && currentPrice > 0 ? (currentPrice - price) / price : 0;
-      const fallbackNotional = lotSize > 0 && price > 0
-        ? lotSize * price
-        : total;
-      const fallbackNotionalUsdt = isIndiaMarket
-        ? (fallbackNotional > 0 ? fallbackNotional / fxRate : 0)
-        : fallbackNotional;
-      const notionalExposure =
-        (usedMargin > 0 && leverage > 0)
-          ? usedMargin * leverage
-          : fallbackNotionalUsdt;
-      let profit = 0;
-      if (notionalExposure > 0 && priceMovePct !== 0) {
-        const directionalPct = isSell ? -priceMovePct : priceMovePct;
-        profit = directionalPct * notionalExposure;
-      }
-      if (!Number.isFinite(profit) || profit === 0) {
-        profit = rawProfit;
-      }
-      const totalBase = isIndiaMarket ? (total > 0 ? total / fxRate : 0) : total;
-      const baseForPct = usedMargin > 0 ? usedMargin : (notionalExposure > 0 ? notionalExposure : totalBase);
-      const profitPercent = baseForPct > 0 ? (profit / baseForPct) * 100 : 0;
+      const currentPrice = isIndiaOrder
+        ? resolveIndiaLiveMarkPrice({
+          side,
+          raw,
+          symbolRaw,
+          openPrice: price,
+          feedList: allMarketFeedData,
+          ticksByPairId: normalizedIndiaTicksByPairId,
+        })
+        : resolveCurrentPriceForOrder({
+          side,
+          symbol,
+          orderMarketType: market,
+          raw,
+          fromApiPrice: fromApiPriceValid ? fromApiPrice : null,
+          openPrice: price,
+        });
+      const { profit, profitPercent } = computeOrderOpenPnl({
+        side,
+        openPrice: price,
+        currentPrice,
+        orderMarketType: market,
+        lotSizeNum: lotsize,
+        quantityNum,
+        sizeNum,
+        usedMargin,
+        leverage,
+        totalAmt: total,
+        inrPerUsdt: fxRate,
+        raw,
+      });
       const liquidityPrice = Number(raw?.soprice ?? 0) || 0;
       return {
         id,
@@ -796,6 +922,8 @@ const Orders = () => {
         orderNo,
         orderno: orderNo,
         pair,
+        displaySymbol,
+        symbolTooltip: String(symbolRaw).trim() || symbol,
         pairid,
         lotsize,
         base,
@@ -804,6 +932,7 @@ const Orders = () => {
         side,
         price,
         lotSize,
+        volume: sizeNum,
         filled: lotSize,
         total,
         filledTotal: total,
@@ -823,10 +952,12 @@ const Orders = () => {
         market,
         openPrice: price,
         liquidityPrice,
-        expiryTimeFull
+        expiryTimeFull,
+        indianInstrumentKind: getIndianInstrumentKindForRaw(symbolRaw, market),
+        raw,
       };
     });
-  }, [openOrdersRaw, priceMap, usdtInrRate]);
+  }, [openOrdersRaw, resolveCurrentPriceForOrder, usdtInrRate, allMarketFeedData, normalizedIndiaTicksByPairId]);
 
   const normalizedActiveSubTab = activeSubTab === 'indian' ? 'india' : activeSubTab;
   const inrPerUsdt = useMemo(() => {
@@ -890,12 +1021,12 @@ const Orders = () => {
       const orderNo = raw?.orderno ?? raw?.orderNo ?? null;
       const symbolRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '';
       const symbol = normalizeSymbol(symbolRaw) || String(symbolRaw).replace(/\//g, '').toUpperCase().trim() || '-';
-      const market = getOrderMarketKey(raw, symbol);
-      const pair = getPairDisplayByMarket(market, symbolRaw, symbol);
-      const base = symbol.replace(/(USDT|USD|INR)$/i, '') || 'NA';
+      const market = getOrderMarketTypeKey(raw, symbol);
+      const pair = resolveOrderDisplaySymbol(symbolRaw, symbol, market);
+      const base = resolveOrderBaseSymbol(symbolRaw, symbol, market);
       const sideRaw = String(raw?.side ?? raw?.mode ?? raw?.direction ?? raw?.ordertype ?? '').toLowerCase();
       const side = sideRaw === 'sell' ? 'sell' : 'buy';
-      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? raw?.type ?? '').toUpperCase();
+      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? '').toUpperCase();
       const type = marketTypeRaw === 'MARKET' ? 'market' : 'limit';
       const price = Number(raw?.openprice ?? raw?.openPrice ?? raw?.price ?? 0) || 0;
       const closePrice = Number(raw?.price ?? raw?.closeprice ?? raw?.closePrice ?? 0) || 0;
@@ -951,20 +1082,23 @@ const Orders = () => {
       const orderNo = raw?.orderno ?? raw?.orderNo;
       const rawId = raw?.id ?? raw?.orderId ?? raw?.usertranid ?? raw?._id;
       const displayId = orderNo != null ? String(orderNo) : `pending-${idx}`;
-      // const displayId = rawId != null ? String(rawId) : `pending-${idx}`;
       const id = `pending-${displayId}-${idx}`;
-      const symbolRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '';
+      const symbolRaw = raw?.pairname ?? raw?.pair ?? raw?.symbol ?? raw?.pairName ?? '';
       const symbol = normalizeSymbol(symbolRaw) || String(symbolRaw).replace(/\//g, '').toUpperCase().trim() || '-';
-      const market = getOrderMarketKey(raw, symbol);
-      const pair = getPairDisplayByMarket(market, symbolRaw, symbol);
-      const base = (normalizeSymbol(symbolRaw) || '').replace(/(USDT|USD|INR)$/i, '') || 'NA';
-      const sideRaw = String(raw?.side ?? raw?.mode ?? raw?.direction ?? '').toLowerCase();
-      const side = sideRaw === 'sell' ? 'sell' : 'buy';
-      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? raw?.type ?? '').toUpperCase();
+      const market = getOrderMarketTypeKey(raw, symbol);
+      const isIndiaOrder = market === 'india';
+      const displaySymbol = resolveOrderDisplaySymbol(symbolRaw, symbol, market);
+      const pair = displaySymbol;
+      const base = resolveOrderBaseSymbol(symbolRaw, symbol, market);
+      const side = resolveOrderSide(raw);
+      const marketTypeRaw = String(raw?.markettype ?? raw?.marketType ?? '').toUpperCase();
       const type = marketTypeRaw === 'MARKET' ? 'market' : 'limit';
-      const price = Number(raw?.price ?? raw?.orderPrice ?? raw?.limitPrice ?? 0) || 0;
-      const lotSize = Number(raw?.quantity ?? raw?.qty ?? raw?.size ?? raw?.volume ?? raw?.amount ?? 0) || 0;
-      const total = price * lotSize;
+      const price = Number(raw?.price ?? raw?.orderPrice ?? raw?.limitPrice ?? raw?.openPrice ?? 0) || 0;
+      const lotsize = getOrderLotSizeValue(raw, 0);
+      const quantityNum = getOrderQuantityValue(raw, 0);
+      const sizeNum = getOrderSizeValue(raw, 0);
+      const lotSize = isIndiaOrder ? (quantityNum > 0 ? quantityNum : sizeNum) : sizeNum;
+      const total = Number(raw?.totalamt ?? raw?.totalAmt ?? 0) || price * (quantityNum || sizeNum);
       const fee = Number(raw?.tranfee ?? raw?.commission ?? raw?.fee ?? 0) || 0;
       const createdAt = raw?.ondate ?? raw?.createdAt ?? raw?.time ?? raw?.timestamp ?? null;
       const expiryTimeFull = formatExpiryDate(raw?.expireddate ?? raw?.expiredDate ?? raw?.expirydate ?? raw?.expiryDate ?? null);
@@ -972,11 +1106,32 @@ const Orders = () => {
       const tp = raw?.profitrade ?? raw?.tradeprofit ?? raw?.tp ?? raw?.takeProfit ?? null;
       const sl = raw?.stoploss ?? raw?.stopLoss ?? raw?.sl ?? null;
       const liquidityPrice = Number(raw?.soprice ?? 0) || 0;
-      const fromApiPrice = Number(raw?.liveprice ?? raw?.currentPrice ?? raw?.markPrice ?? raw?.lastPrice ?? 0) || null;
+      const fromApiPrice = Number(
+        raw?.liveprice ??
+        raw?.currentPrice ??
+        raw?.current_price ??
+        raw?.markPrice ??
+        raw?.lastPrice ??
+        0,
+      ) || null;
       const fromApiPriceValid = fromApiPrice != null && !Number.isNaN(fromApiPrice) && fromApiPrice > 0;
-      const livePrice = symbol ? priceMap.get(symbol) ?? null : null;
-      const currentPrice = (livePrice != null && livePrice > 0 ? livePrice : null) ?? (fromApiPriceValid ? fromApiPrice : null) ?? price;
-
+      const currentPrice = isIndiaOrder
+        ? resolveIndiaLiveMarkPrice({
+          side,
+          raw,
+          symbolRaw,
+          openPrice: price,
+          feedList: allMarketFeedData,
+          ticksByPairId: normalizedIndiaTicksByPairId,
+        })
+        : resolveCurrentPriceForOrder({
+          side,
+          symbol,
+          orderMarketType: market,
+          raw,
+          fromApiPrice: fromApiPriceValid ? fromApiPrice : null,
+          openPrice: price,
+        });
 
       return {
         id,
@@ -986,27 +1141,33 @@ const Orders = () => {
         orderno: orderNo,
         orderId: displayId,
         pair,
+        displaySymbol,
+        symbolTooltip: String(symbolRaw).trim() || symbol,
         base,
         quote: 'USDT',
         side,
         type,
         price,
+        openPrice: price,
         lotSize,
+        lotsize,
+        volume: sizeNum,
         total,
         fee,
         feeAsset: 'USDT',
-        // role: 'maker',
         executedAt: createdAt ? new Date(createdAt) : new Date(),
         market,
+        pairid: resolveIndiaPairIdFromRaw(raw),
         tp: tp ?? null,
         sl: sl ?? null,
         liquidityPrice,
-        livePrice,
         currentPrice,
-        expiryTimeFull
+        expiryTimeFull,
+        indianInstrumentKind: getIndianInstrumentKindForRaw(symbolRaw, market),
+        raw,
       };
     });
-  }, [pendingOrdersRaw, priceMap]);
+  }, [pendingOrdersRaw, resolveCurrentPriceForOrder, allMarketFeedData, normalizedIndiaTicksByPairId]);
 
   const cancelablePendingOrders = useMemo(() => {
     if (normalizedActiveSubTab === 'all') return pendingOrders;
@@ -1076,7 +1237,15 @@ const Orders = () => {
     const raw = position.raw ?? {};
 
     const pair = position.symbol || position.pair || (raw?.pairname ?? raw?.pair ?? raw?.symbol ?? '');
-    const liveprice = Number(position.currentPrice ?? raw?.liveprice ?? raw?.price ?? position.openPrice ?? 0);
+    const market = position.market || getOrderMarketKey(raw, pair);
+    const sideRaw = position.side || raw?.side || raw?.mode || 'buy';
+    const liveprice = resolveCurrentPriceForOrder({
+      side: sideRaw,
+      symbol: pair,
+      orderMarketType: market,
+      raw,
+      openPrice: Number(position.openPrice ?? position.price ?? raw?.price ?? 0) || 0,
+    });
     const tradeprofit = data.tp;
     const stoploss = data.sl;
     const pairid = getApiPairIdByMarket(position.market, position.pairid);
@@ -1136,7 +1305,13 @@ const Orders = () => {
       liveprice,
       type: getApiTypeByMarket(selectedPosition.market),
       pairid,
-      orderno
+      orderno,
+      exchange: resolveIndiaOrderExchange({
+        symbol: pair,
+        pairId: pairid,
+        raw,
+      }),
+      raw,
     };
 
     setTpslSaving(true);
@@ -1403,27 +1578,34 @@ const Orders = () => {
   const buildCancelPayload = (order) => {
     const side = (order.side || 'buy').toString().toLowerCase();
     const raw = order.raw ?? {};
-    // Close API expects latest market price (same as OrdersPanel buildClosePayload), not entry/limit.
-    const price = Number(
-      order.currentPrice ??
-      order.livePrice ??
-      raw.liveprice ??
-      raw.currentPrice ??
-      raw.markPrice ??
-      raw.lastPrice ??
-      order.openPrice ??
-      order.price ??
-      0
-    );
-    const quantity = Number(order.amount ?? order.lotSize ?? 0);
-    const pair = order.symbol || order.pair || '';
+    const pair = String(raw?.pairname ?? raw?.pair ?? raw?.symbol ?? order.symbol ?? order.pair ?? '').trim();
+    const market = order.market || getOrderMarketKey(raw, pair);
+    const price = resolveCurrentPriceForOrder({
+      side,
+      symbol: pair,
+      orderMarketType: market,
+      raw,
+      openPrice: Number(order.openPrice ?? order.price ?? raw?.price ?? 0) || 0,
+    });
+    const quantity = Number(order.volume ?? order.lotSize ?? order.amount ?? getOrderSizeValue(raw, 0) ?? 0);
     const marketType = order.type === 'market' ? 2 : order.type === 'limit' ? 1 : 0;
     const orderno = resolveOrderNo(order) || null;
     const type = getApiTypeByMarket(order?.market);
-    const lotsize = order?.lotsize ?? 0;
-    const pairid = getApiPairIdByMarket(order?.market, order?.pairid);
+    const lotSizeRaw = getOrderLotSizeValue(raw, 0);
+    const quantityRaw = getOrderQuantityValue(raw, 0);
+    const lotsize = lotSizeRaw > 0 ? lotSizeRaw : (quantityRaw > 0 && market === 'india' ? quantityRaw : 0);
+    const pairid = getApiPairIdByMarket(order?.market, order.pairid ?? resolveIndiaPairIdFromRaw(raw));
+    const exchange =
+      String(order?.market || '').trim().toLowerCase() === 'india' ||
+        String(order?.market || '').trim().toLowerCase() === 'indian'
+        ? resolveIndiaOrderExchange({
+          symbol: pair,
+          pairId: pairid,
+          raw,
+        })
+        : '';
 
-    return { mode: side, price, quantity, pair, marketType, orderno, type, lotsize, pairid };
+    return { mode: side, price, quantity, pair, marketType, orderno, type, lotsize, pairid, exchange, raw };
   };
 
   const handleCancelOrder = (order) => {
@@ -1444,18 +1626,11 @@ const Orders = () => {
       return;
     }
 
-    const cancelId = targetOrder.orderNo || targetOrder.id;
+    const cancelId = targetOrder.id;
     setCancellingIds((prev) => [...prev, cancelId]);
     try {
-      if (targetOrder._source === 'pending') {
-        const apiOrderType = getApiTypeByMarket(targetOrder.market || targetOrder.type);
-        await cancelOrder(cancelId, apiOrderType);
-        showSuccess('Pending order cancelled successfully');
-        fetchPendingOrdersSilent();
-      } else {
-        await closeOrder(payload);
-        showSuccess('Order closed successfully');
-      }
+      await closeOrder(payload);
+      showSuccess('Order cancelled successfully');
 
       if (targetOrder._source === 'pending') {
         setPendingOrdersRaw((prev) =>
@@ -1537,6 +1712,7 @@ const Orders = () => {
           item.pairname = payload.pair;
           item.pairid = payload.pairid;
           item.lotsize = Number(payload.lotsize);
+          if (payload.exchange) item.exchange = payload.exchange;
         } else {
           item.pairname = payload.pair;
         }
@@ -1553,6 +1729,13 @@ const Orders = () => {
           type: group.type,
           ordersjson: group.items,
         };
+        if (group.type === 'INDIAN') {
+          const exchanges = group.items
+            .map((item) => String(item?.exchange || '').trim())
+            .filter(Boolean);
+          const unique = [...new Set(exchanges)];
+          if (unique.length === 1) bulkPayload.exchange = unique[0];
+        }
 
         console.log("Bulk Payload:", bulkPayload);
 
@@ -1635,9 +1818,7 @@ const Orders = () => {
   //         quantity: Number(payload.quantity),
   //         orderno: payload.orderno,
   //         markettypeid: payload.marketType,
-  //         mode: payload.mode,
   //       };
-
   //       if (type === 'INDIAN') {
   //         item.pairid = payload.pairid;
   //         item.lotsize = Number(payload.lotsize);
@@ -1655,7 +1836,7 @@ const Orders = () => {
   //       const group = groups[groupKey];
   //       try {
   //         const bulkPayload = {
-  //           // mode: group.mode,
+  //           mode: group.mode,
   //           trademode: 'close',
   //           type: group.type,
   //           ordersjson: group.items
@@ -1715,11 +1896,20 @@ const Orders = () => {
   //   }
   // };
 
-  const handleCancelPendingOrder = async (orderId, orderType) => {
+  const handleCancelPendingOrder = async (orderId, orderType, orderRow = null) => {
     try {
       const apiOrderType = getApiTypeByMarket(orderType);
-
-      const response = await cancelOrder(orderId, apiOrderType);
+      const raw = orderRow?.raw ?? orderRow ?? {};
+      const response = await cancelOrder(orderId, apiOrderType, {
+        exchange: resolveIndiaOrderExchange({
+          symbol: orderRow?.symbol ?? orderRow?.pair ?? raw?.pairname ?? raw?.pair,
+          pairId: getApiPairIdByMarket(orderType, orderRow?.pairid ?? raw?.type),
+          raw,
+        }),
+        pair: orderRow?.symbol ?? orderRow?.pair ?? raw?.pairname ?? raw?.pair,
+        pairid: getApiPairIdByMarket(orderType, orderRow?.pairid ?? raw?.type),
+        raw,
+      });
 
       if (response.status === 'true' || response.code === 200) {
         // triggerOrderRefresh();
@@ -1748,7 +1938,18 @@ const Orders = () => {
         .map(order => getApiTypeByMarket(order.market))
         .filter(type => type != null);
 
-      const response = await cancelOrder(allOrderNos, allOrderTypes);
+      const firstPending = cancelablePendingOrders[0];
+      const firstRaw = firstPending?.raw ?? firstPending ?? {};
+      const response = await cancelOrder(allOrderNos, allOrderTypes, {
+        exchange: resolveIndiaOrderExchange({
+          symbol: firstPending?.symbol ?? firstPending?.pair ?? firstRaw?.pairname,
+          pairId: getApiPairIdByMarket(firstPending?.market, firstPending?.pairid ?? firstRaw?.type),
+          raw: firstRaw,
+        }),
+        pair: firstPending?.symbol ?? firstPending?.pair ?? firstRaw?.pairname,
+        pairid: getApiPairIdByMarket(firstPending?.market, firstPending?.pairid ?? firstRaw?.type),
+        raw: firstRaw,
+      });
 
       if (response.status === 'true' || response.code === 200 || response.status === true) {
         triggerOrderRefresh();
@@ -1847,7 +2048,7 @@ const Orders = () => {
   const handleSocialShare = async (platform) => {
     if (!shareImageUrl || !orderToShare) return;
 
-    const text = `Check out my trade on M5dex! ${orderToShare.pair} - ${orderToShare.side === 'buy' ? 'Buy' : 'Sell'}`;
+    const text = `Check out my trade on GlobalX! ${orderToShare.pair} - ${orderToShare.side === 'buy' ? 'Buy' : 'Sell'}`;
     const url = window.location.href;
 
     switch (platform) {
@@ -1952,9 +2153,22 @@ const Orders = () => {
 
     const fillPrice = order.avgFillPrice ?? order.price;
     const amount = Number(order.filled ?? order.amount ?? 0);
-    const currentPrice = order.currentPrice != null && order.currentPrice > 0
-      ? order.currentPrice
-      : (priceMap.get(order.symbol) ?? fillPrice);
+    let currentPrice = order.currentPrice != null && order.currentPrice > 0 ? order.currentPrice : null;
+    if (currentPrice == null) {
+      const raw = order.raw ?? {};
+      const symbol = order.symbol || order.pair || '';
+      const orderMarket = order.market || getOrderMarketKey(raw, symbol);
+      currentPrice = resolveCurrentPriceForOrder({
+        side: order.side || 'buy',
+        symbol,
+        orderMarketType: orderMarket,
+        raw,
+        openPrice: Number(fillPrice) || 0,
+      });
+    }
+    if (currentPrice == null) {
+      currentPrice = fillPrice;
+    }
 
     if (!fillPrice || fillPrice <= 0 || !amount) return null;
     const current = currentPrice ?? fillPrice;
@@ -2053,8 +2267,21 @@ const Orders = () => {
     if (isHistoryShare) {
       return orderSharedata.currentPrice ?? orderSharedata.avgFillPrice ?? orderSharedata.price ?? null;
     }
-    return orderSharedata.currentPrice ?? priceMap.get(orderSharedata.symbol) ?? orderSharedata.avgFillPrice ?? orderSharedata.price ?? null;
-  }, [orderSharedata, isHistoryShare, priceMap]);
+    if (orderSharedata.currentPrice != null && orderSharedata.currentPrice > 0) {
+      return orderSharedata.currentPrice;
+    }
+    const raw = orderSharedata.raw ?? {};
+    const symbol = orderSharedata.symbol || orderSharedata.pair || '';
+    const market = orderSharedata.market || getOrderMarketKey(raw, symbol);
+    const resolved = resolveCurrentPriceForOrder({
+      side: orderSharedata.side || 'buy',
+      symbol,
+      orderMarketType: market,
+      raw,
+      openPrice: Number(orderSharedata.openPrice ?? orderSharedata.price ?? 0) || 0,
+    });
+    return resolved ?? orderSharedata.avgFillPrice ?? orderSharedata.price ?? null;
+  }, [orderSharedata, isHistoryShare, resolveCurrentPriceForOrder]);
 
   const roiData = useMemo(() => {
     if (!orderSharedata) return null;
@@ -2554,6 +2781,8 @@ const Orders = () => {
                   Cancel All Orders
                 </button>
               )}
+
+
             </div>
           </div>
         </div>
@@ -2828,7 +3057,8 @@ const Orders = () => {
                                   {visibleColumns.open.lotSize && (
                                     <td className="amount-cell">
                                       <div className="amount-primary">
-                                        {item?.lotsize || item?.lotSize}
+                                        {/* {item?.lotsize || item?.lotSize} */}
+                                        {item?.volume ?? item?.lotsize ?? item?.lotSize}
                                       </div>
                                     </td>
                                   )}
@@ -2864,6 +3094,7 @@ const Orders = () => {
                                   {visibleColumns.open.actions && (
                                     <td>
                                       <div className="action-buttons" onClick={(e) => e.stopPropagation()}>
+
                                         <button
                                           className="cancel-button"
                                           onClick={(e) => {
@@ -2871,15 +3102,9 @@ const Orders = () => {
                                             handleCancelOrder(item);
                                           }}
                                           disabled={cancellingIds.includes(item.id)}
-                                          aria-label={activeTab === "open" ? "Close" : "Cancel"}
+                                          aria-label="Cancel order"
                                         >
-                                          {cancellingIds.includes(item.id)
-                                            ? activeTab === "open"
-                                              ? "Closing..."
-                                              : "Cancelling..."
-                                            : activeTab === "open"
-                                              ? "Close"
-                                              : "Cancel"}
+                                          {cancellingIds.includes(item.id) ? 'Cancelling…' : 'Cancel'}
                                         </button>
                                         <button
                                           className="share-button"
@@ -3003,7 +3228,8 @@ const Orders = () => {
                                   )}
                                   {visibleColumns.pending.lotSize && (
                                     <td className="amount-cell">
-                                      {item.lotSize.toFixed(4)}
+                                      {/* {item.lotSize.toFixed(4)} */}
+                                      {Number(item?.volume ?? item?.lotSize ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 8 })}
                                     </td>
                                   )}
                                   {visibleColumns.pending.tpsl && (
@@ -3042,12 +3268,12 @@ const Orders = () => {
                                           className="cancel-button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleCancelOrder(item);
+                                            handleCancelPendingOrder(item.orderNo, item.market)
                                           }}
-                                          disabled={cancellingIds.includes(item.orderNo || item.id)}
-                                          aria-label="Cancel"
+                                          disabled={cancellingIds.includes(item.orderNo)}
+                                          aria-label="Cancel order"
                                         >
-                                          {cancellingIds.includes(item.orderNo || item.id) ? 'Cancelling…' : 'Cancel'}
+                                          {cancellingIds.includes(item.orderNo) ? 'Cancelling…' : 'Cancel'}
                                         </button>
                                       </div>
                                     </td>
@@ -3130,7 +3356,8 @@ const Orders = () => {
                               <div className="orders-card-field">
                                 <span className="orders-card-label">lotSize</span>
                                 <span className="orders-card-value">
-                                  {item.lotsize.toFixed(4)}
+                                  {/* {item.lotsize.toFixed(4)} */}
+                                  {Number(item?.volume ?? item?.lotsize ?? item?.lotSize ?? 0).toLocaleString(undefined, { maximumFractionDigits: 8 })}
                                 </span>
                               </div>
                             )}
@@ -3481,7 +3708,7 @@ const Orders = () => {
                   </svg>
                 </button>
               </div>
-              <CustomSelect
+              <select
                 className="items-per-page-select"
                 value={itemsPerPage}
                 onChange={(e) => {
@@ -3493,7 +3720,7 @@ const Orders = () => {
                 <option value={20}>20 per page</option>
                 <option value={50}>50 per page</option>
                 <option value={100}>100 per page</option>
-              </CustomSelect>
+              </select>
             </div>
           )}
         </div>
@@ -3503,7 +3730,7 @@ const Orders = () => {
           <div className="modal-overlay" onClick={() => setShowCancelOrderModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>{orderToCancel._source === 'open' ? 'Close Order?' : 'Cancel Order?'}</h2>
+                <h2>Cancel Order?</h2>
                 <button
                   className="modal-close"
                   onClick={() => {
@@ -3518,7 +3745,7 @@ const Orders = () => {
                 </button>
               </div>
               <div className="modal-body">
-                <p>You are about to {orderToCancel._source === 'open' ? 'close' : 'cancel'} this order:</p>
+                <p>You are about to cancel this order:</p>
                 <div className="cancel-order-details">
                   {/* <div><strong>Order No:</strong> {orderToCancel.orderNo ?? orderToCancel.orderNo}</div> */}
                   <div><strong>Pair:</strong> {orderToCancel.pair}</div>
@@ -3527,6 +3754,18 @@ const Orders = () => {
                   <div><strong>Size:</strong> {orderToCancel?.lotsize || orderToCancel?.lotSize ? `${Number(orderToCancel?.lotsize || orderToCancel?.lotSize).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}` : '-'}</div>
                   <div><strong>Entry Price:</strong> {orderToCancel.price ? `${Number(orderToCancel.price).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : 'Market Price'}</div>
                   <div><strong>Current Price:</strong> {orderToCancel.currentPrice != null ? `${Number(orderToCancel.currentPrice).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : '-'}</div>
+                  {/* <div><strong>Liquidity Price:</strong> {orderToCancel.liquidityPrice != null ? `${Number(orderToCancel.liquidityPrice).toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}` : '-'}</div> */}
+                  <div><strong>P&amp;L:</strong> <span className={Number(orderToCancel.profit || 0) >= 0 ? 'pnl-positive' : 'pnl-negative'}>{formatPnlCurrency(orderToCancel.profit || 0, orderToCancel.market).text} ({(orderToCancel.profitPercent || 0) >= 0 ? '+' : ''}{Number(orderToCancel.profitPercent || 0).toFixed(2)}%)</span></div>
+                  {orderToCancel.currentPrice != null && orderToCancel.price && Number(orderToCancel.price) > 0 && (
+                    <div><strong>ROI:</strong> <span className={((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100) >= 0 ? 'pnl-positive' : 'pnl-negative'}>
+                      {((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100) >= 0 ? '+' : ''}
+                      {((orderToCancel.side === 'sell' ? (orderToCancel.price - orderToCancel.currentPrice) : (orderToCancel.currentPrice - orderToCancel.price)) / orderToCancel.price * 100).toFixed(2)}%
+                    </span></div>
+                  )}
+                  {/* {orderToCancel.filled != null && Number(orderToCancel.filled) > 0 && (
+                    <div><strong>Filled:</strong> {Number(orderToCancel.filled).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} {orderToCancel.base} (will remain)</div>
+                  )}
+                  <div><strong>Unfilled:</strong> {orderToCancel.amount != null ? `${Math.max(0, Number(orderToCancel.amount) - Number(orderToCancel.filled || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${orderToCancel.base}` : '-'} (will cancel)</div> */}
                 </div>
                 <p className="warning-text">This action cannot be undone</p>
                 <div className="modal_btn">
@@ -3546,7 +3785,7 @@ const Orders = () => {
                     }}
                     disabled={cancellingIds.includes(orderToCancel.id)}
                   >
-                    {cancellingIds.includes(orderToCancel.id) ? (orderToCancel._source === 'open' ? 'Closing…' : 'Cancelling…') : (orderToCancel._source === 'open' ? 'Close Order' : 'Cancel Order')}
+                    {cancellingIds.includes(orderToCancel.id) ? 'Cancelling…' : 'Cancel Order'}
                   </button>
                 </div>
               </div>
@@ -3662,10 +3901,7 @@ const Orders = () => {
                         {selectedOrderLive.side === 'buy' ? 'Buy' : 'Sell'}
                       </span>
                       <span className="order-details-chip">{getTypeBadge(selectedOrderLive.type).label}</span>
-                      {/* <span className="order-details-chip">{selectedOrderLive.marketTag || '-'}</span> */}
-                      {selectedOrderLive.raw?.istatus && (
-                        <span className="order-details-chip" style={{ textTransform: 'uppercase' }}>{selectedOrderLive.raw.istatus}</span>
-                      )}
+                      <span className="order-details-chip">{selectedOrderLive.marketTag || '-'}</span>
                     </div>
                   </div>
                   <div className={`order-details-pnl-card ${Number(selectedOrderLive.profit || 0) >= 0 ? 'is-profit' : 'is-loss'}`}>
@@ -3794,7 +4030,7 @@ const Orders = () => {
                     <h3>TP/SL Actions</h3>
                     <div className="order-details-grid">
                       {selectedOrderLive.tpslActions.map((action, idx) => (
-                        <div className="detail-item" key={`history-tpsl-${idx}`} style={{ gridColumn: '1 / -1' }}>
+                        <div className="detail-item" key={`history-tpsl-${idx}`}>
                           <label>{action?.action_type || 'Action'}</label>
                           <div className="detail-value">
                             {String(action?.status || action?.action_status || '-')} | TP {action?.tradepofit ?? '-'} | SL {action?.stoploss ?? '-'} | {action?.action_time ?? '-'}
@@ -3843,7 +4079,9 @@ const Orders = () => {
                       <div className="share-header">
                         <div className='share_flex'>
                           <div className="share-logo">
-                            <img src={logo} style={{ height: "32px", borderRadius: "4px" }} alt="" />
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
                           </div>
                           <div className="share-brand">
                             <h1 className="share-brand-name">M5dex</h1>

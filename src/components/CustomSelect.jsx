@@ -35,22 +35,24 @@ const CustomSelect = ({ value, onChange, className = '', disabled = false, child
   };
 
   return (
-    <div 
-      className={`custom-select-container ${className} ${disabled ? 'disabled' : ''}`} 
-      ref={containerRef} 
+    <div
+      className={`custom-select-container ${className} ${disabled ? 'disabled' : ''}`}
+      ref={containerRef}
       onClick={() => !disabled && setIsOpen(!isOpen)}
       {...props}
     >
       <div className="custom-select-trigger">
-        <span>{selectedOption ? selectedOption.label : 'Select...'}</span>
+        <div className="custom-select-selected-value">
+          {selectedOption ? selectedOption.label : 'Select...'}
+        </div>
         <span className={`custom-select-arrow ${isOpen ? 'open' : ''}`}>▼</span>
       </div>
       {isOpen && (
         <ul className="custom-select-options" onClick={(e) => e.stopPropagation()}>
           {options && options.length > 0 ? (
             options.map((opt, idx) => (
-              <li 
-                key={idx} 
+              <li
+                key={idx}
                 className={`custom-select-option ${opt.value === value ? 'selected' : ''}`}
                 onClick={(e) => handleSelect(e, opt.value)}
               >

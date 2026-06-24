@@ -1,5 +1,6 @@
 import { getDeviceInfo } from '../utils/clientDeviceInfo';
 import { api } from './api';
+import { isIndiaMcxInstrument, isIndianTradingApiType, resolveIndiaOrderExchange } from '../utils/indiaPairResolve';
 
 // Default base /api use hota hai (proxy/rewrite → backend), CORS nahi aata
 const TRADING_ORDERS_PATH = '/trading/orders';
@@ -29,6 +30,21 @@ export function orderApiMonetaryFixedString(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   return n.toFixed(ORDER_API_MONETARY_DECIMALS);
+}
+
+function attachIndianExchange(body, payload = {}) {
+  const type = payload.type ?? body.type;
+  if (!isIndianTradingApiType(type)) return body;
+  const exchange =
+    String(payload.exchange || '').trim() ||
+    resolveIndiaOrderExchange({
+      exchange: payload.exchange,
+      symbol: payload.pair ?? body.pair,
+      pairId: payload.pairid ?? body.pairid,
+      raw: payload.raw,
+    });
+  if (!exchange) return body;
+  return { ...body, exchange };
 }
 
 export const placeOrder = async (payload) => {
@@ -67,7 +83,8 @@ export const placeOrder = async (payload) => {
   if (body.lotsize === undefined || Number.isNaN(Number(body.lotsize))) delete body.lotsize;
   if (body.pairid === undefined) delete body.pairid;
   if (body.usermargin === undefined) delete body.usermargin;
-  return await api.post(TRADING_ORDERS_PATH, body);
+  // return await api.post(TRADING_ORDERS_PATH, body);
+  return await api.post(TRADING_ORDERS_PATH, attachIndianExchange(body, payload));
 };
 
 /**
@@ -253,15 +270,39 @@ export const closeOrder = async (payload) => {
     pairid: payload.pairid,
     device_info: deviceInfo,
   };
-  return await api.post(CLOSE_ORDERS_PATH, body);
+  // return await api.post(CLOSE_ORDERS_PATH, body);
+  return await api.post(CLOSE_ORDERS_PATH, attachIndianExchange(body, payload));
 };
 
 export const closeAllOrders = async (payload) => {
   const deviceInfo = await getDeviceInfo();
-  const body = {
+  let body = {
     ...payload,
     device_info: deviceInfo,
   };
+  if (isIndianTradingApiType(payload?.type) && Array.isArray(payload?.ordersjson)) {
+    body.ordersjson = payload.ordersjson.map((item) => {
+      if (item?.exchange) return item;
+      const ex = resolveIndiaOrderExchange({
+        exchange: item?.exchange,
+        symbol: item?.pairname ?? item?.pair,
+        pairId: item?.pairid,
+        raw: item,
+      });
+      return ex ? { ...item, exchange: ex } : item;
+    });
+    const topExchange = String(payload.exchange || '').trim();
+    if (topExchange) {
+      body.exchange = topExchange;
+    } else {
+      const exchanges = body.ordersjson
+        .map((item) => String(item?.exchange || '').trim())
+        .filter(Boolean);
+      const unique = [...new Set(exchanges)];
+      if (unique.length === 1) body.exchange = unique[0];
+    }
+  }
+  body = attachIndianExchange(body, payload);
   return await api.post(CLOSE_ALL_ORDERS_PATH, body);
   // return await api.post('/trading/closeallorders', payload);
 };
@@ -274,18 +315,26 @@ export const closeAllOrders = async (payload) => {
 //   return await api.post(CANCEL_PENDING_ORDER_PATH, body);
 // };
 
-export const cancelOrder = async (orderId, orderType) => {
+export const cancelOrder = async (orderId, orderType, opts = {}) => {
   const deviceInfo = await getDeviceInfo();
 
   const orderno = Array.isArray(orderId) ? orderId.join(',') : orderId;
   const type = Array.isArray(orderType) ? orderType.join(',') : orderType;
   // const type = orderType || null;
 
-  const body = {
+  let body = {
     orderno: orderno,
     type: type,
     device_info: deviceInfo,
   };
+
+  body = attachIndianExchange(body, {
+    type,
+    exchange: opts.exchange,
+    pair: opts.pair,
+    pairid: opts.pairid,
+    raw: opts.raw,
+  });
 
   return await api.post(CANCEL_PENDING_ORDER_PATH, body);
 };
@@ -312,7 +361,8 @@ export const updateOrderTpSl = async (payload) => {
     device_info: deviceInfo,
   };
 
-  return await api.post(UPDATE_TPSL_PATH, body);
+  // return await api.post(UPDATE_TPSL_PATH, body);
+  return await api.post(UPDATE_TPSL_PATH, attachIndianExchange(body, payload));
 };
 
 /** GET /trading/cryptobalance — same-origin `/api` → Vite proxy → globaltradeapi…/v1 */
@@ -343,9 +393,16 @@ export const checkTradingMarket = async ({ pair, marketType, pairId }) => {
  * Response shape includes `indiandata`, `forexdata`, `indianMCXdata` each with `{ open, msg }`.
  * MCX instruments: `marketPairRaw` starts with `MCX:` (or contains `MCX:`) → uses `indianMCXdata`; else `indiandata`.
  * Unknown / missing blocks default to open (do not block).
+ *  * @param {{ exchange?: string, segment?: string }} [sessionHints]
  * @returns {{ sessionOpen: boolean, message: string }}
  */
-export const resolveCheckMarketSessionForDashboard = (res, marketType, marketPairRaw) => {
+// export const resolveCheckMarketSessionForDashboard = (res, marketType, marketPairRaw) => {
+export const resolveCheckMarketSessionForDashboard = (
+  res,
+  marketType,
+  marketPairRaw,
+  sessionHints = {}
+) => {
   const root =
     res &&
       typeof res === 'object' &&
@@ -380,9 +437,15 @@ export const resolveCheckMarketSessionForDashboard = (res, marketType, marketPai
     return readBlock(root?.forexdata);
   }
   if (t === 'india' || t === 'indian') {
-    const raw = String(marketPairRaw || '').trim();
-    const u = raw.toUpperCase();
-    const isMcx = u.startsWith('MCX:') || u.includes('MCX:');
+    // const raw = String(marketPairRaw || '').trim();
+    // const u = raw.toUpperCase();
+    // const isMcx = u.startsWith('MCX:') || u.includes('MCX:');
+    const apiExchange = String(root?.exchange || '').trim();
+    const isMcx = isIndiaMcxInstrument({
+      marketPairRaw,
+      exchange: sessionHints.exchange || apiExchange,
+      segment: sessionHints.segment,
+    });
     const block = isMcx
       ? (root?.indianMCXdata ?? root?.indianmcxdata ?? root?.indianMcxData)
       : root?.indiandata;

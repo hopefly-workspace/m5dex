@@ -18,7 +18,10 @@ import {
   parseIndiaFavouriteName,
 } from '../services/favouritesWishlistApi';
 import '../styles/pages/Markets.css';
+import '../styles/pages/IndiaSearchModal.css';
 import { formatIndianOrderPairDisplay } from '../utils/helper';
+import { indiaFuzzySymbolMatch } from '../utils/indiaPairResolve';
+import { writeIndiaExchangeToSession, writeIndiaPairIdToSession } from '../services/indiaTicksSubscription';
 import { tokenStorage } from '../utils/storage';
 
 const sortOptions = [
@@ -34,6 +37,35 @@ const normalizeFavSymbol = (value) =>
 const normalizeMarketSymbol = (value) =>
   String(value || '').toUpperCase().trim().replace(/[/\-\s_.:]/g, '');
 
+function findIndiaFavouriteEntry(list, { incomingPairId, normalizedTarget }) {
+  const pairIdNeedle = String(incomingPairId || '').trim();
+  return (list || []).find((entry) => {
+    if (String(entry?.type || '').trim().toLowerCase() !== 'india') return false;
+    const parsed = parseIndiaFavouriteName(entry?.name);
+    const normStored = normalizeFavSymbol(parsed.symbol);
+    if (pairIdNeedle && parsed.pairId && pairIdNeedle === String(parsed.pairId).trim()) {
+      return true;
+    }
+    if (normStored === normalizedTarget) return true;
+    return indiaFuzzySymbolMatch(normalizedTarget, normStored);
+  }) || null;
+}
+
+function filterOutIndiaFavourite(list, { pairIdStr, normalizedTarget }) {
+  return (list || []).filter((item) => {
+    if (String(item?.type || '').trim().toLowerCase() !== 'india') return true;
+    const parsed = parseIndiaFavouriteName(item?.name);
+    if (pairIdStr && parsed.pairId && String(parsed.pairId).trim() === pairIdStr) {
+      return false;
+    }
+    const normStored = normalizeFavSymbol(parsed.symbol);
+    const nameMatches =
+      normStored === normalizedTarget
+      || indiaFuzzySymbolMatch(normalizedTarget, normStored);
+    return !nameMatches;
+  });
+}
+
 const SEARCH_TEXT_MIN_LEN = 1;
 const MAX_OPTION_CHAINS = 40;
 const MAX_STRIKES_PER_CHAIN = 120;
@@ -42,8 +74,7 @@ const MAX_HITS_FOR_UI_AGG = 5000;
 const MAX_CHAIN_SOURCE_ITEMS = 12000;
 const SEARCH_DEBOUNCE_MS = 100;
 const CLASSIC_GROUPS_PAGE = 80;
-const INDIA_PAIRID_NAV_STATE_KEY = 'dashboard:indiaPairIdByMarket';
-
+const FLAT_SEARCH_PAGE = 60;
 function expiryKeyFromItem(item) {
   const e = item?.expirydate;
   if (e == null || String(e).trim() === '') return '—';
@@ -55,6 +86,27 @@ function formatExpiryLabel(key) {
   const d = new Date(`${key}T12:00:00`);
   if (Number.isNaN(d.getTime())) return String(key);
   return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatExpiryShort(key) {
+  if (key == null || key === '' || key === '—') return '—';
+  const d = new Date(`${key}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return String(key);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+}
+
+function parseIndiaSearchDisplay(symbol, pairname = '') {
+  const raw = String(symbol || '').trim();
+  const display = formatIndianOrderPairDisplay(raw) || raw;
+  const parts = display.split(' · ').map((p) => p.trim()).filter(Boolean);
+  const underlying = parts[0] || String(pairname || '').trim() || raw;
+  const contractParts = parts.slice(1);
+  return {
+    underlying,
+    contractLabel: contractParts.join(' · '),
+    fullDisplay: display,
+    rawCode: raw,
+  };
 }
 
 /** Styled listbox for Indian search modal (native select option menus cannot be themed). */
@@ -353,6 +405,8 @@ const IndianMarketsPage = () => {
   const [workerHitIndices, setWorkerHitIndices] = useState(null);
   const [lastSearchMs, setLastSearchMs] = useState(null);
   const [classicGroupLimit, setClassicGroupLimit] = useState(CLASSIC_GROUPS_PAGE);
+  const [flatSearchLimit, setFlatSearchLimit] = useState(FLAT_SEARCH_PAGE);
+  const [showSearchFilters, setShowSearchFilters] = useState(false);
   const [searchSelectedByKey, setSearchSelectedByKey] = useState({});
   const [bulkFavBusy, setBulkFavBusy] = useState(false);
   const workerRef = useRef(null);
@@ -362,6 +416,10 @@ const IndianMarketsPage = () => {
   // This ensures `/ws/subscribed` starts streaming ticks for ALL favorites/watchlist rows,
   // not only the one the user navigates to.
   const subscribedPairIdsRef = useRef(new Set());
+  // PairIds actively being removed — blocks the sync effect from re-subscribing mid-unsubscribe.
+  const unsubscribingPairIdsRef = useRef(new Set());
+  // PairIds the user removed this session — sync effect must not re-subscribe until re-added.
+  const removedPairIdsRef = useRef(new Set());
 
   const favoritesSet = useMemo(() => {
     const out = new Set();
@@ -369,11 +427,16 @@ const IndianMarketsPage = () => {
       const rawType = String(type || '').trim().toLowerCase();
       if (rawType === 'india') {
         // Backend stores "pairSymbol_pairid". UI stars should match pairSymbol.
-        const { symbol } = parseIndiaFavouriteName(name);
-        const symbolOnly = symbol || '';
+        const parsed = parseIndiaFavouriteName(name);
+        const symbolOnly = parsed.symbol || '';
         if (!symbolOnly) continue;
         out.add(itemKey(symbolOnly, type));
         out.add(itemKey(normalizeFavSymbol(symbolOnly), type));
+        if (parsed.pairId) {
+          const pid = String(parsed.pairId).trim();
+          out.add(itemKey(`${symbolOnly}_${pid}`, type));
+          out.add(itemKey(`${normalizeFavSymbol(symbolOnly)}_${pid}`, type));
+        }
       } else {
         out.add(itemKey(name, type));
       }
@@ -400,6 +463,17 @@ const IndianMarketsPage = () => {
       favouritesList.filter(
         ({ type }) => String(type || '').trim().toLowerCase() === 'india'
       ).length,
+    [favouritesList]
+  );
+
+  const indiaFavoritePairIdsSet = useMemo(
+    () =>
+      new Set(
+        favouritesList
+          .filter(({ type }) => String(type || '').trim().toLowerCase() === 'india')
+          .map(({ name }) => String(parseIndiaFavouriteName(name).pairId || '').trim())
+          .filter(Boolean)
+      ),
     [favouritesList]
   );
 
@@ -454,7 +528,7 @@ const IndianMarketsPage = () => {
           if (!pairsymbol && !pairname) return null;
           const exchange = String(item.exchange || '').trim();
           const segment = String(item.segment || '').trim();
-          const instrumentType = String(item.instrumentType || '').trim();
+          const instrumentType = String(item.instrumentType || item.instrumenttype || '').trim();
           const strike = String(item.strike || '').trim();
           const searchText = [
             pairsymbol,
@@ -506,6 +580,8 @@ const IndianMarketsPage = () => {
     setModalSearchQuery('');
     setDebouncedModalSearchQuery('');
     setClassicGroupLimit(CLASSIC_GROUPS_PAGE);
+    setFlatSearchLimit(FLAT_SEARCH_PAGE);
+    setShowSearchFilters(false);
     setSearchProductKind('all');
     setSearchSegment('all');
     setSearchExchange('all');
@@ -528,6 +604,8 @@ const IndianMarketsPage = () => {
     setSearchStrikeSort('asc');
     setSearchViewMode('chain');
     setClassicGroupLimit(CLASSIC_GROUPS_PAGE);
+    setFlatSearchLimit(FLAT_SEARCH_PAGE);
+    setShowSearchFilters(false);
     setWorkerHitIndices(null);
     setLastSearchMs(null);
     setSearchSelectedByKey({});
@@ -735,6 +813,12 @@ const IndianMarketsPage = () => {
   const totalMatchCount = filteredStockList.length;
   const isHitSetTruncated = totalMatchCount > MAX_HITS_FOR_UI_AGG;
 
+  const visibleFlatSearchResults = useMemo(
+    () => filteredStockList.slice(0, flatSearchLimit),
+    [filteredStockList, flatSearchLimit]
+  );
+  const hasMoreFlatResults = filteredStockList.length > flatSearchLimit;
+
   const optionChains = useMemo(
     () =>
       buildOptionChainsFromItems(
@@ -887,6 +971,16 @@ const IndianMarketsPage = () => {
     []
   );
 
+  const isStockItemFavourite = useCallback(
+    (item) => {
+      const pairId = pairIdFromStockItem(item);
+      if (pairId && indiaFavoritePairIdsSet.has(pairId)) return true;
+      const symbol = symbolFromStockItem(item);
+      return symbol ? indiaFavoriteSymbolsSet.has(normalizeFavSymbol(symbol)) : false;
+    },
+    [pairIdFromStockItem, symbolFromStockItem, indiaFavoritePairIdsSet, indiaFavoriteSymbolsSet]
+  );
+
   const searchItemSelectKey = useCallback(
     (item) => {
       const pairId = pairIdFromStockItem(item);
@@ -968,14 +1062,63 @@ const IndianMarketsPage = () => {
       collectMissing(favouritesList);
       collectMissing(watchlistList);
 
+      /*
       for (const sym of toResolve) {
         if (cancelled) return;
         const pairId = await resolvePairIdForSymbol(sym);
         if (pairId) toSubscribe.add(String(pairId).trim());
       }
+      */
+
+      const resolvedMap = new Map();
+      for (const sym of toResolve) {
+        if (cancelled) return;
+        const pairId = await resolvePairIdForSymbol(sym);
+        if (pairId) {
+          toSubscribe.add(String(pairId).trim());
+          resolvedMap.set(sym, String(pairId).trim());
+        }
+      }
+
+      if (resolvedMap.size > 0) {
+        setFavouritesList((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            if (String(item?.type || '').trim().toLowerCase() !== 'india') return item;
+            const parsed = parseIndiaFavouriteName(item.name);
+            if (parsed.pairId) return item;
+            const newPairId = resolvedMap.get(parsed.symbol);
+            if (newPairId) {
+              changed = true;
+              return { ...item, name: `${parsed.symbol}_${newPairId}` };
+            }
+            return item;
+          });
+          return changed ? next : prev;
+        });
+        setWatchlistList((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            if (String(item?.type || '').trim().toLowerCase() !== 'india') return item;
+            const parsed = parseIndiaFavouriteName(item.name);
+            if (parsed.pairId) return item;
+            const newPairId = resolvedMap.get(parsed.symbol);
+            if (newPairId) {
+              changed = true;
+              return { ...item, name: `${parsed.symbol}_${newPairId}` };
+            }
+            return item;
+          });
+          return changed ? next : prev;
+        });
+      }
 
       const pendingSubscribe = [...toSubscribe].filter(
-        (pairId) => pairId && !subscribedPairIdsRef.current.has(pairId)
+        (pairId) =>
+          pairId
+          && !subscribedPairIdsRef.current.has(pairId)
+          && !unsubscribingPairIdsRef.current.has(pairId)
+          && !removedPairIdsRef.current.has(pairId)
       );
       if (pendingSubscribe.length > 0) {
         if (cancelled) return;
@@ -1007,45 +1150,55 @@ const IndianMarketsPage = () => {
       setType(trimmedType);
       setTogglingKey(key);
       try {
-        const normalizedTarget = normalizeFavSymbol(trimmedName);
+        const parsedIncoming = parseIndiaFavouriteName(trimmedName);
+        const symbolTarget = parsedIncoming.symbol || trimmedName;
+        const incomingPairId = String(parsedIncoming.pairId || '').trim();
+        const normalizedTarget = normalizeFavSymbol(symbolTarget);
+
         const existingIndiaFavorite = isIndiaType
-          ? favouritesList.find(
-            (entry) =>
-              String(entry?.type || '').trim().toLowerCase() === 'india' &&
-              normalizeFavSymbol(parseIndiaFavouriteName(entry?.name).symbol) === normalizedTarget
-          )
+          ? findIndiaFavouriteEntry(favouritesList, { incomingPairId, normalizedTarget })
           : null;
-        const isFav = isIndiaType ? Boolean(existingIndiaFavorite) : favoritesSet.has(key);
+
+        const isFav = isIndiaType
+          ? Boolean(existingIndiaFavorite)
+          : favoritesSet.has(key);
+
         if (isFav) {
           if (isIndiaType) {
             const storedName = String(existingIndiaFavorite?.name || '').trim();
             const parsedStored = storedName ? parseIndiaFavouriteName(storedName) : { symbol: '', pairId: '' };
 
-            const symbolForUnsubscribe = parsedStored.symbol || trimmedName;
+            const symbolForUnsubscribe = parsedStored.symbol || symbolTarget;
             const pairId =
-              parsedStored.pairId || (await resolvePairIdForSymbol(symbolForUnsubscribe));
+              parsedStored.pairId
+              || incomingPairId
+              || (await resolvePairIdForSymbol(symbolForUnsubscribe));
 
             if (!pairId) {
               throw new Error('Pair id not found for unsubscribe');
             }
 
-            await callSubscriptionsApi('/subscriptions/unsubscribe', [pairId]);
-            subscribedPairIdsRef.current.delete(String(pairId).trim());
-
-            await removeFavourite(
-              { id: String(pairId).trim(), name: symbolForUnsubscribe },
-              trimmedType
-            );
+            const pairIdStr = String(pairId).trim();
+            removedPairIdsRef.current.add(pairIdStr);
+            unsubscribingPairIdsRef.current.add(pairIdStr);
 
             setFavouritesList((prev) =>
-              prev.filter((i) => {
-                if (String(i?.type || '').trim().toLowerCase() !== 'india') return true;
-                const parsed = parseIndiaFavouriteName(i?.name);
-                const nameMatches = normalizeFavSymbol(parsed.symbol) === normalizedTarget;
-                const pairMatches = parsed.pairId ? String(parsed.pairId).trim() === String(pairId).trim() : true;
-                return !(nameMatches && pairMatches);
-              })
+              filterOutIndiaFavourite(prev, { pairIdStr, normalizedTarget })
             );
+
+            try {
+              await callSubscriptionsApi('/subscriptions/unsubscribe', [pairIdStr]);
+              await removeFavourite(
+                { id: pairIdStr, name: symbolForUnsubscribe },
+                trimmedType
+              );
+            } catch (removeErr) {
+              removedPairIdsRef.current.delete(pairIdStr);
+              await fetchFavWatch();
+              throw removeErr;
+            } finally {
+              unsubscribingPairIdsRef.current.delete(pairIdStr);
+            }
           } else {
             await removeFavourite(trimmedName, trimmedType);
             setFavouritesList((prev) => prev.filter((i) => itemKey(i.name, i.type) !== key));
@@ -1053,14 +1206,17 @@ const IndianMarketsPage = () => {
           showSuccess('Removed from script');
         } else {
           if (isIndiaType) {
-            const pairId = await resolvePairIdForSymbol(trimmedName);
+            const symbolForAdd = symbolTarget;
+            const pairId = incomingPairId || (await resolvePairIdForSymbol(symbolForAdd));
             if (!pairId) {
               throw new Error('Pair id not found for subscribe');
             }
-            await callSubscriptionsApi('/subscriptions/subscribe', [pairId]);
-            subscribedPairIdsRef.current.add(String(pairId).trim());
-            const apiFavoriteName = `${trimmedName}_${pairId}`;
-            await addFavourite({ id: String(pairId).trim(), name: trimmedName }, trimmedType);
+            const pairIdStr = String(pairId).trim();
+            removedPairIdsRef.current.delete(pairIdStr);
+            await callSubscriptionsApi('/subscriptions/subscribe', [pairIdStr]);
+            subscribedPairIdsRef.current.add(pairIdStr);
+            const apiFavoriteName = `${symbolForAdd}_${pairIdStr}`;
+            await addFavourite({ id: pairIdStr, name: symbolForAdd }, trimmedType);
             setFavouritesList((prev) => [...prev, { name: apiFavoriteName, type: trimmedType }]);
           } else {
             await addFavourite(trimmedName, trimmedType);
@@ -1083,6 +1239,7 @@ const IndianMarketsPage = () => {
       resolvePairIdForSymbol,
       callSubscriptionsApi,
       favouritesList,
+      fetchFavWatch,
     ]
   );
 
@@ -1119,6 +1276,7 @@ const IndianMarketsPage = () => {
           }
 
           const pairIds = toAdd.map((entry) => entry.pairId);
+          pairIds.forEach((pairId) => removedPairIdsRef.current.delete(pairId));
           await callSubscriptionsApi('/subscriptions/subscribe', pairIds);
           pairIds.forEach((pairId) => subscribedPairIdsRef.current.add(pairId));
 
@@ -1152,11 +1310,11 @@ const IndianMarketsPage = () => {
             const symbol = symbolFromStockItem(item);
             if (!symbol) continue;
             const normalizedTarget = normalizeFavSymbol(symbol);
-            const existingIndiaFavorite = favouritesList.find(
-              (entry) =>
-                String(entry?.type || '').trim().toLowerCase() === 'india' &&
-                normalizeFavSymbol(parseIndiaFavouriteName(entry?.name).symbol) === normalizedTarget
-            );
+            const itemPairId = String(pairIdFromStockItem(item) || '').trim();
+            const existingIndiaFavorite = findIndiaFavouriteEntry(favouritesList, {
+              incomingPairId: itemPairId,
+              normalizedTarget,
+            });
             if (!existingIndiaFavorite) continue;
 
             const storedName = String(existingIndiaFavorite?.name || '').trim();
@@ -1165,7 +1323,7 @@ const IndianMarketsPage = () => {
               : { symbol: '', pairId: '' };
             const symbolForUnsubscribe = parsedStored.symbol || symbol;
             let pairId =
-              parsedStored.pairId || pairIdFromStockItem(item) || (await resolvePairIdForSymbol(symbolForUnsubscribe));
+              parsedStored.pairId || itemPairId || (await resolvePairIdForSymbol(symbolForUnsubscribe));
             pairId = String(pairId || '').trim();
             if (!pairId) continue;
 
@@ -1182,27 +1340,33 @@ const IndianMarketsPage = () => {
           }
 
           const pairIds = toRemove.map((entry) => entry.pairId);
-          await callSubscriptionsApi('/subscriptions/unsubscribe', pairIds);
-          pairIds.forEach((pairId) => subscribedPairIdsRef.current.delete(pairId));
+          pairIds.forEach((pid) => {
+            removedPairIdsRef.current.add(pid);
+            unsubscribingPairIdsRef.current.add(pid);
+          });
 
-          await removeFavourite(
-            toRemove.map(({ symbol, pairId }) => ({ id: pairId, name: symbol })),
-            'india'
-          );
-
-          const removeTargets = new Set(toRemove.map((entry) => entry.normalizedTarget));
-          const removePairIds = new Set(toRemove.map((entry) => entry.pairId));
           setFavouritesList((prev) =>
-            prev.filter((i) => {
-              if (String(i?.type || '').trim().toLowerCase() !== 'india') return true;
-              const parsed = parseIndiaFavouriteName(i?.name);
-              const nameMatches = removeTargets.has(normalizeFavSymbol(parsed.symbol));
-              const pairMatches = parsed.pairId
-                ? removePairIds.has(String(parsed.pairId).trim())
-                : true;
-              return !(nameMatches && pairMatches);
-            })
+            toRemove.reduce(
+              (list, { pairId, normalizedTarget }) =>
+                filterOutIndiaFavourite(list, { pairIdStr: pairId, normalizedTarget }),
+              prev
+            )
           );
+
+          try {
+            await callSubscriptionsApi('/subscriptions/unsubscribe', pairIds);
+            await removeFavourite(
+              toRemove.map(({ symbol, pairId }) => ({ id: pairId, name: symbol })),
+              'india'
+            );
+          } catch (removeErr) {
+            pairIds.forEach((pid) => removedPairIdsRef.current.delete(pid));
+            await fetchFavWatch();
+            throw removeErr;
+          } finally {
+            pairIds.forEach((pid) => unsubscribingPairIdsRef.current.delete(pid));
+          }
+
           showSuccess(
             `Removed ${toRemove.length} script${toRemove.length === 1 ? '' : 's'} from your list`
           );
@@ -1227,6 +1391,7 @@ const IndianMarketsPage = () => {
       favouritesList,
       showSuccess,
       showError,
+      fetchFavWatch,
     ]
   );
 
@@ -1264,15 +1429,129 @@ const IndianMarketsPage = () => {
 
   const handleModalToggleFavorite = useCallback(
     async (item) => {
-      const symbol = String(item?.pairsymbol || item?.pairname || '').trim();
+      const symbol = symbolFromStockItem(item);
+      const pairId = pairIdFromStockItem(item);
       if (!symbol) return;
-      await toggleFavorite(symbol, 'india');
+      const toggleName = pairId ? `${symbol}_${pairId}` : symbol;
+      await toggleFavorite(toggleName, 'india');
     },
-    [toggleFavorite]
+    [toggleFavorite, symbolFromStockItem, pairIdFromStockItem]
+  );
+
+  useEffect(() => {
+    if (!isSearchModalOpen) return undefined;
+    setFlatSearchLimit(FLAT_SEARCH_PAGE);
+  }, [
+    debouncedModalSearchQuery,
+    searchProductKind,
+    searchSegment,
+    searchExchange,
+    searchExpiry,
+    searchInstrumentType,
+    isSearchModalOpen,
+  ]);
+
+  useEffect(() => {
+    if (!isSearchModalOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') closeSearchModal();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isSearchModalOpen, closeSearchModal]);
+
+  const getStockFavToggleKey = useCallback(
+    (item) => {
+      const symbol = symbolFromStockItem(item);
+      const pairId = pairIdFromStockItem(item);
+      if (!symbol) return '';
+      return pairId ? itemKey(`${symbol}_${pairId}`, 'india') : itemKey(symbol, 'india');
+    },
+    [symbolFromStockItem, pairIdFromStockItem]
+  );
+
+  const renderSimpleSearchRow = useCallback(
+    (item) => {
+      const symbol = symbolFromStockItem(item);
+      const pairId = pairIdFromStockItem(item);
+      const favToggleKey = getStockFavToggleKey(item);
+      const isTogglingThis = togglingKey === favToggleKey;
+      const isFav = isStockItemFavourite(item);
+      const expiryKey = expiryKeyFromItem(item);
+      const expiryShort = formatExpiryShort(expiryKey);
+      const { underlying, contractLabel, rawCode } = parseIndiaSearchDisplay(symbol, item?.pairname);
+      const inst = String(item?.instrumentType || '').trim().toUpperCase()
+        || (symbol.endsWith('FUT') ? 'FUT' : symbol.endsWith('CE') ? 'CE' : symbol.endsWith('PE') ? 'PE' : '—');
+      const strike = Number(item?.strike);
+      const showStrike = Number.isFinite(strike) && strike > 0;
+      const exchange = String(item?.exchange || '').trim();
+
+      return (
+        <div
+          key={pairId || symbol}
+          className={`indiaSearchRow ${isFav ? 'indiaSearchRow--fav' : ''}`}
+        >
+          <button
+            type="button"
+            className="indiaSearchRowMain"
+            onClick={() => handleSelectStock(item)}
+          >
+            <div className="indiaSearchRowSymbolCol">
+              <div className="indiaSearchRowTitleLine">
+                {exchange ? (
+                  <span className="indiaSearchRowExchangePill">{exchange}</span>
+                ) : null}
+                <span className="indiaSearchRowUnderlying">{underlying}</span>
+                {contractLabel ? (
+                  <span className="indiaSearchRowContract">{contractLabel}</span>
+                ) : null}
+              </div>
+              <span className="indiaSearchRowRawCode" title={rawCode}>{rawCode}</span>
+            </div>
+            <div className="indiaSearchRowMetaCol">
+              <span className="indiaSearchRowExpiry">{expiryShort}</span>
+              {showStrike ? (
+                <span className="indiaSearchRowStrike">Strike {strike.toLocaleString('en-IN')}</span>
+              ) : null}
+            </div>
+            <span className={`indiaSearchRowType indiaSearchRowType--${inst.toLowerCase()}`}>{inst}</span>
+          </button>
+          <button
+            type="button"
+            className={isFav ? 'indiaSearchRowAction indiaSearchRowAction--remove' : 'indiaSearchRowAction indiaSearchRowAction--add'}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleModalToggleFavorite(item);
+            }}
+            disabled={isTogglingThis || bulkFavBusy}
+            aria-busy={isTogglingThis}
+            aria-label={isFav ? 'Remove from list' : 'Add to list'}
+          >
+            {isTogglingThis ? (
+              <span className="marketsSearchModalBtnSpinner" aria-hidden="true" />
+            ) : isFav ? (
+              'Remove'
+            ) : (
+              'Add'
+            )}
+          </button>
+        </div>
+      );
+    },
+    [
+      symbolFromStockItem,
+      pairIdFromStockItem,
+      getStockFavToggleKey,
+      togglingKey,
+      isStockItemFavourite,
+      handleSelectStock,
+      handleModalToggleFavorite,
+      bulkFavBusy,
+    ]
   );
 
   const handleMarketClick = useCallback(
-    async (marketId, marketType, explicitPairId = '') => {
+    async (marketId, marketType, explicitPairId = '', explicitExchange = '') => {
       const params = new URLSearchParams();
 
       if (marketId) params.set('market', String(marketId));
@@ -1283,22 +1562,13 @@ const IndianMarketsPage = () => {
         if (!pairId) {
           pairId = await resolvePairIdForSymbol(marketId);
         }
+        const exchange = String(explicitExchange || '').trim();
+        if (exchange) {
+          writeIndiaExchangeToSession(marketId, exchange);
+        }
         if (pairId) {
           params.set('pairid', String(pairId));
-          const marketKey = normalizeMarketSymbol(marketId);
-          if (marketKey) {
-            try {
-              const rawMap = sessionStorage.getItem(INDIA_PAIRID_NAV_STATE_KEY);
-              const parsedMap =
-                rawMap && typeof rawMap === 'string' ? JSON.parse(rawMap) : {};
-              const nextMap =
-                parsedMap && typeof parsedMap === 'object' ? parsedMap : {};
-              nextMap[marketKey] = String(pairId);
-              sessionStorage.setItem(INDIA_PAIRID_NAV_STATE_KEY, JSON.stringify(nextMap));
-            } catch {
-              // Ignore storage errors and continue with clean URL navigation.
-            }
-          }
+          writeIndiaPairIdToSession(marketId, pairId);
         }
       }
 
@@ -1473,13 +1743,13 @@ const IndianMarketsPage = () => {
             </button>
             {/* <div className="sortFilter">
               <label className="sortLabel">Sort by:</label>
-              <CustomSelect value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
                 {sortOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
-              </CustomSelect>
+              </select>
             </div> */}
           </div>
 
@@ -1488,6 +1758,8 @@ const IndianMarketsPage = () => {
 
         <IndiaMarkets
           searchQuery={searchQuery}
+          favouritesList={favouritesList}
+          watchlistList={watchlistList}
           favoritesSet={favoritesSet}
           watchlistSet={watchlistSet}
           itemKey={itemKey}
@@ -1501,81 +1773,77 @@ const IndianMarketsPage = () => {
       </div>
 
       {isSearchModalOpen && (
-        <div className="marketsSearchModalOverlay" onClick={closeSearchModal}>
-          <div className="marketsSearchModal marketsSearchModal--advanced" onClick={(e) => e.stopPropagation()}>
-            <div className="marketsSearchModalHeader">
-              <div>
-                <h3>Indian Markets Search</h3>
-                <p className="marketsSearchModalSub">
-                  {stockListLoading
-                    ? 'Loading instruments…'
-                    : `${totalMatchCount.toLocaleString()} match${totalMatchCount === 1 ? '' : 'es'} · ${optionChains.length} chain${optionChains.length === 1 ? '' : 's'} · ${stockList.length.toLocaleString()} indexed${lastSearchMs != null ? ` · ${lastSearchMs.toFixed(2)} ms` : ''
-                    }${workerFailed ? ' · worker off (sync)' : ''}`}
-                </p>
+        <div className="marketsSearchModalOverlay marketsSearchModalOverlay--fullscreen" onClick={closeSearchModal}>
+          <div className="marketsSearchModal marketsSearchModal--simple" onClick={(e) => e.stopPropagation()}>
+            <div className="indiaSearchHeader">
+              <div className="indiaSearchInputWrap">
+                <svg className="indiaSearchInputIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" strokeWidth="2" />
+                  <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <input
+                  type="text"
+                  value={modalSearchQuery}
+                  onChange={(e) => setModalSearchQuery(e.target.value)}
+                  placeholder="Search GOLD, CRUDEOIL, NIFTY, strike, expiry…"
+                  className="indiaSearchInput"
+                  autoFocus
+                />
+                <kbd className="indiaSearchEscHint">ESC</kbd>
               </div>
               <button type="button" className="marketsSearchModalClose" onClick={closeSearchModal} aria-label="Close">
                 ×
               </button>
             </div>
-            <div className="marketsSearchModalBody">
-              <input
-                type="text"
-                value={modalSearchQuery}
-                onChange={(e) => setModalSearchQuery(e.target.value)}
-                placeholder="Search symbol, strike, expiry, segment… (or use filters below)"
-                className="marketsSearchModalInput"
-                autoFocus
-              />
 
-              <div className="marketsSearchAdvToolbar">
-                <div className="marketsSearchChips" role="group" aria-label="Instrument type">
-                  {[
-                    { id: 'all', label: 'All' },
-                    { id: 'options', label: 'Options (CE / PE)' },
-                    { id: 'futures', label: 'Futures' },
-                    { id: 'equity', label: 'Cash / others' },
-                  ].map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={`marketsSearchChip ${searchProductKind === c.id ? 'marketsSearchChip--active' : ''}`}
-                      onClick={() => setSearchProductKind(c.id)}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="marketsSearchAdvToolbarRight">
-                  <div className="marketsSearchViewToggle" role="group" aria-label="Layout">
-                    <button
-                      type="button"
-                      className={searchViewMode === 'chain' ? 'active' : ''}
-                      onClick={() => setSearchViewMode('chain')}
-                    >
-                      Option chain
-                    </button>
-                    <button
-                      type="button"
-                      className={searchViewMode === 'classic' ? 'active' : ''}
-                      onClick={() => setSearchViewMode('classic')}
-                    >
-                      Classic pairs
-                    </button>
-                  </div>
-                  {searchViewMode === 'chain' && (
-                    <MarketsSearchCustomSelect
-                      className="marketsSearchStrikeSortWrap"
-                      value={searchStrikeSort}
-                      onChange={setSearchStrikeSort}
-                      options={modalStrikeSortOptions}
-                      withAll={false}
-                      ariaLabel="Strike sort"
-                    />
-                  )}
-                </div>
+            <div className="indiaSearchToolbar">
+              <div className="marketsSearchChips" role="group" aria-label="Product type">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'futures', label: 'Futures' },
+                  { id: 'options', label: 'Options' },
+                  { id: 'equity', label: 'Cash' },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`marketsSearchChip ${searchProductKind === c.id ? 'marketsSearchChip--active' : ''}`}
+                    onClick={() => setSearchProductKind(c.id)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
               </div>
+              <div className="marketsSearchChips indiaSearchExchangeChips" role="group" aria-label="Exchange">
+                <button
+                  type="button"
+                  className={`marketsSearchChip ${searchExchange === 'all' ? 'marketsSearchChip--active' : ''}`}
+                  onClick={() => setSearchExchange('all')}
+                >
+                  All Exch
+                </button>
+                {modalExchangeOptions.slice(0, 5).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`marketsSearchChip ${searchExchange === opt.value ? 'marketsSearchChip--active' : ''}`}
+                    onClick={() => setSearchExchange(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className={`indiaSearchFiltersToggle ${showSearchFilters ? 'indiaSearchFiltersToggle--open' : ''}`}
+                onClick={() => setShowSearchFilters((v) => !v)}
+              >
+                {showSearchFilters ? 'Hide filters' : 'More filters'}
+              </button>
+            </div>
 
-              <div className="marketsSearchFilterGrid">
+            {showSearchFilters ? (
+              <div className="indiaSearchFilterPanel">
                 <label className="marketsSearchFilterField">
                   <span className="marketsSearchFilterLabel">Segment</span>
                   <MarketsSearchCustomSelect
@@ -1584,16 +1852,6 @@ const IndianMarketsPage = () => {
                     options={modalSegmentOptions}
                     allLabel="All segments"
                     ariaLabel="Segment filter"
-                  />
-                </label>
-                <label className="marketsSearchFilterField">
-                  <span className="marketsSearchFilterLabel">Exchange</span>
-                  <MarketsSearchCustomSelect
-                    value={searchExchange}
-                    onChange={setSearchExchange}
-                    options={modalExchangeOptions}
-                    allLabel="All exchanges"
-                    ariaLabel="Exchange filter"
                   />
                 </label>
                 <label className="marketsSearchFilterField">
@@ -1613,7 +1871,7 @@ const IndianMarketsPage = () => {
                     value={searchInstrumentType}
                     onChange={setSearchInstrumentType}
                     options={modalInstrumentOptions}
-                    allLabel="All instrument types"
+                    allLabel="All types"
                     ariaLabel="Instrument type filter"
                   />
                 </label>
@@ -1628,249 +1886,56 @@ const IndianMarketsPage = () => {
                     setSearchInstrumentType('all');
                   }}
                 >
-                  Clear filters
+                  Reset
                 </button>
               </div>
+            ) : null}
 
-              {searchSelectionCount > 0 ? (
-                <div className="marketsSearchBulkBar" role="toolbar" aria-label="Bulk list actions">
-                  <span className="marketsSearchBulkBarCount">
-                    {searchSelectionCount} selected
-                  </span>
-                  <button
-                    type="button"
-                    className="marketsSearchModalScriptBtn marketsSearchModalScriptBtn--add"
-                    disabled={bulkFavBusy}
-                    onClick={() => bulkToggleSearchFavorites('add')}
-                  >
-                    Add selected
-                  </button>
-                  <button
-                    type="button"
-                    className="marketsSearchModalScriptBtn marketsSearchModalScriptBtn--remove"
-                    disabled={bulkFavBusy}
-                    onClick={() => bulkToggleSearchFavorites('remove')}
-                  >
-                    Remove selected
-                  </button>
-                  <button
-                    type="button"
-                    className="marketsSearchClearFilters"
-                    disabled={bulkFavBusy}
-                    onClick={() => setSearchSelectedByKey({})}
-                  >
-                    Clear selection
-                  </button>
+            <div className="indiaSearchMeta">
+              {stockListLoading
+                ? 'Loading instruments…'
+                : searchInputReady
+                  ? `${totalMatchCount.toLocaleString()} instrument${totalMatchCount === 1 ? '' : 's'}`
+                  : `Search from ${stockList.length.toLocaleString()} instruments`}
+            </div>
+
+            <div className="indiaSearchResults">
+              {stockListLoading ? (
+                <div className="marketsSearchModalState">Loading stock list…</div>
+              ) : !searchInputReady ? (
+                <div className="marketsSearchModalState">
+                  <p className="indiaSearchEmptyTitle">Find MCX / NSE instruments</p>
+                  <p className="indiaSearchEmptyHint">
+                    Type a symbol like <strong>GOLD</strong>, <strong>CRUDEOIL</strong>, or <strong>NIFTY</strong>.
+                    Use filters for futures, options, or exchange.
+                  </p>
                 </div>
-              ) : null}
-
-              {/* {isHitSetTruncated ? (
-                <p className="marketsSearchHitCap">
-                  Showing option-chain / grouping on the first {MAX_HITS_FOR_UI_AGG.toLocaleString()} matches of{' '}
-                  {totalMatchCount.toLocaleString()}. Narrow the query or filters for the full set.
-                </p>
-              ) : null} */}
-              <div style={{ paddingBottom: "20px"}}>
-                <div className="marketsSearchModalResults marketsSearchModalResults--scroll">
-                  {stockListLoading ? (
-                    <div className="marketsSearchModalState">Loading stock list…</div>
-                  ) : !searchInputReady ? (
-                    <div className="marketsSearchModalState">
-                      Type at least one character or choose filters (segment / expiry / etc.) to browse instruments.
-                      {workerIndexed && !workerFailed ? (
-                        <span className="marketsSearchModalStateHint">
-                          {' '}
-                          Large lists are indexed in a background thread — search stays fast.
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : totalMatchCount === 0 ? (
-                    <div className="marketsSearchModalState">No matching instruments — try a wider search or reset filters.</div>
-                  ) : searchViewMode === 'chain' && optionChains.length === 0 ? (
-                    <div className="marketsSearchModalState">
-                      <p style={{ margin: '0 0 12px' }}>
-                        No option-chain rows for this search. Chains need CE/PE symbols with a strike (try{' '}
-                        <strong>Options (CE / PE)</strong> filter or pick an expiry).
-                      </p>
+              ) : totalMatchCount === 0 ? (
+                <div className="marketsSearchModalState">No instruments found. Try a different symbol or reset filters.</div>
+              ) : (
+                <>
+                  <div className="indiaSearchTableHead">
+                    <span>Instrument</span>
+                    <span>Expiry</span>
+                    <span>Type</span>
+                    <span />
+                  </div>
+                  <div className="indiaSearchTableBody">
+                    {visibleFlatSearchResults.map((item) => renderSimpleSearchRow(item))}
+                  </div>
+                  {hasMoreFlatResults ? (
+                    <div className="marketsSearchLoadMoreWrap">
                       <button
                         type="button"
                         className="marketsSearchClearFilters"
-                        onClick={() => setSearchViewMode('classic')}
+                        onClick={() => setFlatSearchLimit((n) => n + FLAT_SEARCH_PAGE)}
                       >
-                        Switch to classic pairs view
+                        Load more ({(filteredStockList.length - flatSearchLimit).toLocaleString()} remaining)
                       </button>
                     </div>
-                  ) : showChainView ? (
-                    <div className="marketsSearchModalChainList">
-                      {optionChains.map((chain) => (
-                        <section key={chain.key} className="marketsSearchModalChain">
-                          <header className="marketsSearchModalChainBanner">
-                            <div className="marketsSearchModalChainBannerMain">
-                              <span className="marketsSearchModalChainUnd">{chain.underlying}</span>
-                              <span className="marketsSearchModalChainExp">{chain.expiryLabel}</span>
-                            </div>
-                            <div className="marketsSearchModalChainBannerMeta">
-                              {chain.exchange ? (
-                                <span className="marketsSearchModalChainPill">{chain.exchange}</span>
-                              ) : null}
-                              {chain.segment ? (
-                                <span className="marketsSearchModalChainPill">{chain.segment}</span>
-                              ) : null}
-                              {chain.instrumentType ? (
-                                <span className="marketsSearchModalChainPill">{chain.instrumentType}</span>
-                              ) : null}
-                            </div>
-                          </header>
-                          {chain.truncated ? (
-                            <p className="marketsSearchModalChainNote">
-                              Showing first {MAX_STRIKES_PER_CHAIN} strikes — narrow search to see more.
-                            </p>
-                          ) : null}
-                          <div className="marketsSearchModalChainTable" role="grid" aria-label={`Option chain ${chain.underlying}`}>
-                            <div className="marketsSearchModalChainTableHead" role="row">
-                              <span role="columnheader">Call (CE)</span>
-                              <span role="columnheader">Strike</span>
-                              <span role="columnheader">Put (PE)</span>
-                            </div>
-                            {chain.rows.map((row) => (
-                              <div key={`${chain.key}-${row.strike}`} className="marketsSearchModalChainRow" role="row">
-                                {renderChainSideCell(row.call, 'Call')}
-                                <div className="marketsSearchModalChainStrike" role="gridcell">
-                                  <span className="marketsSearchModalChainStrikeNum">{row.strike}</span>
-                                </div>
-                                {renderChainSideCell(row.put, 'Put')}
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      ))}
-                      {optionChains.length >= MAX_OPTION_CHAINS ? (
-                        <p className="marketsSearchModalChainFootnote">
-                          Showing top {MAX_OPTION_CHAINS} chains — refine search for a specific underlying or expiry.
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="marketsSearchModalResultsHeader marketsSearchModalResultsHeader--classic">
-                        <span className="marketsSearchModalResultsHeaderLabel">CALL (CE)</span>
-                        <span className="marketsSearchModalResultsHeaderLabel">PUT (PE)</span>
-                      </div>
-                      <div className="marketsSearchModalResultsGrid">
-                        {groupedSearchResultsVisible.map((group) => {
-                          const renderSide = (sideItem, sideLabel) => {
-                            if (!sideItem) {
-                              return (
-                                <div className="marketsSearchModalResultItem marketsSearchModalResultItem--empty">
-                                  <div className="marketsSearchModalResultEmpty">No {sideLabel}</div>
-                                </div>
-                              );
-                            }
-                            const symbol = String(sideItem.pairsymbol || sideItem.pairname || '').trim();
-                            const favToggleKey = itemKey(symbol, 'india');
-                            const isTogglingThis = togglingKey === favToggleKey;
-                            const isFav = indiaFavoriteSymbolsSet.has(normalizeFavSymbol(symbol));
-                            const strike = sideItem.strike != null ? String(sideItem.strike) : '';
-                            const expiry = sideItem.expirydate
-                              ? String(sideItem.expirydate).split(/[ T]/)[0]
-                              : '';
-                            const optionType = sideLabel === 'Call' ? 'CE' : 'PE';
-                            const cleanUnderlying = String(
-                              group.baseLabel || sideItem.pairname || sideItem.pairsymbol || ''
-                            )
-                              .replace(/\s+(CE|PE)\b/i, '')
-                              .trim();
-                            return (
-                              <div
-                                key={sideItem.pairid || `${sideItem.pairsymbol}-${sideItem.pairname}-${sideLabel}`}
-                                className={`marketsSearchModalResultItem ${isFav ? 'fav' : ''}`}
-                              >
-                                {renderSearchSelectCheckbox(sideItem)}
-                                <button
-                                  type="button"
-                                  className="marketsSearchModalResultMain"
-                                  onClick={() => handleSelectStock(sideItem)}
-                                >
-                                  <div className="marketsSearchModalResultTitleRow">
-                                    <div className="marketsSearchModalResultTitleMain">
-                                      <span className="marketsSearchModalResultUnderlying">
-                                        {cleanUnderlying || sideItem.pairname || sideItem.pairsymbol}
-                                      </span>
-                                      {strike ? (
-                                        <span className="marketsSearchModalResultStrike">{strike}</span>
-                                      ) : null}
-                                      <span
-                                        className={
-                                          optionType === 'CE'
-                                            ? 'marketsSearchModalResultOptionTag marketsSearchModalResultOptionTag--ce'
-                                            : 'marketsSearchModalResultOptionTag marketsSearchModalResultOptionTag--pe'
-                                        }
-                                      >
-                                        {optionType}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="marketsSearchModalResultMeta">
-                                    <span className="marketsSearchModalResultSymbol">{sideItem.pairsymbol}</span>
-                                    {sideItem.segment ? (
-                                      <span className="marketsSearchModalResultMetaChunk">{sideItem.segment}</span>
-                                    ) : null}
-                                    {expiry ? (
-                                      <span className="marketsSearchModalResultMetaChunk">{expiry}</span>
-                                    ) : null}
-                                  </div>
-                                </button>
-                                <button
-                                  type="button"
-                                  className={
-                                    isFav
-                                      ? 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--remove'
-                                      : 'marketsSearchModalScriptBtn marketsSearchModalScriptBtn--add'
-                                  }
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleModalToggleFavorite(sideItem);
-                                  }}
-                                  disabled={isTogglingThis || bulkFavBusy}
-                                  aria-busy={isTogglingThis}
-                                  aria-label={isFav ? 'Del' : 'Add'}
-                                >
-                                  {isTogglingThis ? (
-                                    <span className="marketsSearchModalBtnSpinner" aria-hidden="true" />
-                                  ) : isFav ? (
-                                    'Del'
-                                  ) : (
-                                    'Add'
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          };
-
-                          return (
-                            <div key={group.key} className="marketsSearchModalResultRow">
-                              {renderSide(group.call, 'Call')}
-                              {renderSide(group.put, 'Put')}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {hasMoreClassicGroups ? (
-                        <div className="marketsSearchLoadMoreWrap">
-                          <button
-                            type="button"
-                            className="marketsSearchClearFilters"
-                            onClick={() => setClassicGroupLimit((n) => n + CLASSIC_GROUPS_PAGE)}
-                          >
-                            Load more (
-                            {(groupedSearchResults.length - classicGroupLimit).toLocaleString()} CE/PE rows left)
-                          </button>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </div>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -23,7 +23,8 @@ export async function fetchIndiaCandles({ symbol, start, end, timeframe, signal 
   const { data } = await axios.get(base, {
     params: {
       // symbol: String(symbol || '').trim(),
-      symbol: 'RELIANCE.NS',
+      // symbol: 'RELIANCE.NS',
+      symbol: String(symbol || '').trim(),
       start: String(start || '').trim(),
       end: String(end || '').trim(),
       timeframe: String(timeframe || '1day').trim(),

@@ -34,10 +34,50 @@ function pickCryptoLeverageRaw(obj) {
   return Number.isFinite(n) && n >= 1 ? n : null;
 }
 
+/** Raw forex leverage from GET /users/profile. */
+function pickForexLeverageRaw(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const v =
+    obj.forexleverage ??
+    obj.forexLeverage ??
+    obj.forex_leverage ??
+    obj.data?.forexleverage ??
+    obj.user?.forexleverage;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+/** Raw Indian market leverage from GET /users/profile. */
+function pickIndiaLeverageRaw(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const v =
+    obj.indianleverage ??
+    obj.indiaLeverage ??
+    obj.indian_leverage ??
+    obj.data?.indianleverage ??
+    obj.user?.indianleverage;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+const PROFILE_LEVERAGE_MAX = 500;
+
 /** Clamp for trading math / API (align with forex panel max 150). */
-function resolveCryptoLeverage(raw) {
+// function resolveCryptoLeverage(raw) {
+//   if (raw == null || !Number.isFinite(raw) || raw < 1) return 1;
+//   return Math.min(150, Math.max(1, Math.round(raw)));
+// }
+
+/** Clamp profile leverage for trading math / API. */
+function resolveProfileLeverage(raw) {
   if (raw == null || !Number.isFinite(raw) || raw < 1) return 1;
   return Math.min(150, Math.max(1, Math.round(raw)));
+  return Math.min(PROFILE_LEVERAGE_MAX, Math.max(1, Math.round(raw)));
+}
+
+/** @deprecated use resolveProfileLeverage */
+function resolveCryptoLeverage(raw) {
+  return resolveProfileLeverage(raw);
 }
 
 /**
@@ -175,8 +215,18 @@ export const UserProvider = ({ children }) => {
     /** INR per 1 USDT from profile API (`usdtvalue`); null if unset or invalid — consumers fall back to 85. */
     usdtInrRate: pickUsdtInrRate(user),
     /** Crypto futures leverage from profile (`cryptoleverage`); 1 if missing — clamped 1–150. */
-    cryptoLeverage: resolveCryptoLeverage(pickCryptoLeverageRaw(user)),
+    // cryptoLeverage: resolveCryptoLeverage(pickCryptoLeverageRaw(user)),
+
+    /** Crypto futures leverage from profile (`cryptoleverage`); 1 if missing — clamped 1–500. */
+    cryptoLeverage: resolveProfileLeverage(pickCryptoLeverageRaw(user)),
     cryptoLeverageIsFromProfile: pickCryptoLeverageRaw(user) != null,
+
+    /** Forex leverage from profile (`forexleverage`); 1 if missing — clamped 1–500. */
+    forexLeverage: resolveProfileLeverage(pickForexLeverageRaw(user)),
+    forexLeverageIsFromProfile: pickForexLeverageRaw(user) != null,
+    /** Indian market leverage from profile (`indianleverage`); 1 if missing — clamped 1–500. */
+    indiaLeverage: resolveProfileLeverage(pickIndiaLeverageRaw(user)),
+    indiaLeverageIsFromProfile: pickIndiaLeverageRaw(user) != null,
   };
 
   return (

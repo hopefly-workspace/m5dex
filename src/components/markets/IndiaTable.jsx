@@ -1,12 +1,50 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { parseIndiaFavouriteName } from '../../services/favouritesWishlistApi';
 
 const PRICE_FLASH_DURATION_MS = 600;
 
+/** Stable favourite key: prefer pairSymbol + pairId (matches API `symbol_pairId` storage). */
+function resolveIndiaToggleName(market) {
+  const pairId = String(
+    market?.pairid ?? market?.pairId ?? market?.instrument_token ?? market?.instrumentToken ?? ''
+  ).trim();
+
+  let symbol = String(market?.pairSymbol || market?.symbol || market?.id || '').trim();
+  if (/^\d+$/.test(symbol) && market?.pairSymbol) {
+    symbol = String(market.pairSymbol).trim();
+  }
+
+  if (symbol.includes(':')) {
+    symbol = symbol.split(':').slice(1).join(':').trim();
+  }
+
+  const parsed = parseIndiaFavouriteName(symbol);
+  const sym = (parsed.symbol || symbol).trim();
+  const pid = pairId || parsed.pairId;
+  if (pid && sym) return `${sym}_${pid}`;
+  return sym || symbol;
+}
+
 const IndiaTableRow = memo(({ market, onMarketClick, formatPrice, isFavorite, isWatchlist, onToggleFavorite, onToggleWatchlist, priceFlash }) => {
-  const name = market.symbol || market.id;
-  const tradeName = market.symbol || market.id;
+  const toggleName = resolveIndiaToggleName(market);
+
+  let name = market.symbol || market.id;
+  if (/^\d+$/.test(name) && market.base) {
+    name = market.base.toUpperCase().replace(/[:/\-\s_.]/g, '');
+  } else if (name && name.includes(':')) {
+    name = name.split(':').slice(1).join(':').trim();
+  }
+
+  let tradeName = market.symbol || market.id;
+  if (/^\d+$/.test(tradeName) && market.base) {
+    tradeName = market.base.toUpperCase().replace(/[:/\-\s_.]/g, '');
+  } else if (tradeName && tradeName.includes(':')) {
+    tradeName = tradeName.split(':').slice(1).join(':').trim();
+  }
+
   const type = market.marketType || 'india';
   const pairId = String(market.pairid ?? market.pairId ?? market.instrument_token ?? market.instrumentToken ?? '').trim();
+  const exchange = String(market.exchange || '').trim();
   const change24h = Number(market.change24h ?? 0);
   const isLoading = Boolean(market?.isLoading);
 
@@ -23,15 +61,15 @@ const IndiaTableRow = memo(({ market, onMarketClick, formatPrice, isFavorite, is
     if (!e.target.closest('.marketCell')) return;
     e.preventDefault();
     e.stopPropagation();
-    onMarketClick?.(name, type, pairId);
-  }, [name, type, pairId, onMarketClick]);
+    onMarketClick?.(name, type, pairId, exchange);
+  }, [name, type, pairId, exchange, onMarketClick]);
 
   const handleFavoriteClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onToggleFavorite?.(name, type);
-  }, [name, type, onToggleFavorite]);
+    onToggleFavorite?.(toggleName, type);
+  }, [toggleName, type, onToggleFavorite]);
 
   const handleWatchlistClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
@@ -44,15 +82,15 @@ const IndiaTableRow = memo(({ market, onMarketClick, formatPrice, isFavorite, is
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onMarketClick?.(tradeName, type, pairId);
-  }, [tradeName, type, pairId, onMarketClick]);
+    onMarketClick?.(tradeName, type, pairId, exchange);
+  }, [tradeName, type, pairId, exchange, onMarketClick]);
 
   const handleRemoveClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onToggleFavorite?.(name, type);
-  }, [name, type, onToggleFavorite]);
+    onToggleFavorite?.(toggleName, type);
+  }, [toggleName, type, onToggleFavorite]);
 
   return (
     <tr
@@ -149,10 +187,12 @@ const IndiaTableRow = memo(({ market, onMarketClick, formatPrice, isFavorite, is
 IndiaTableRow.displayName = 'IndiaTableRow';
 
 const IndiaMobileCard = memo(({ market, onMarketClick, formatPrice, isFavorite, isWatchlist, onToggleFavorite, onToggleWatchlist, priceFlash }) => {
+  const toggleName = resolveIndiaToggleName(market);
   const name = market.symbol || market.id;
   const tradeName = market.symbol || market.id;
   const type = market.marketType || 'india';
   const pairId = String(market.pairid ?? market.pairId ?? market.instrument_token ?? market.instrumentToken ?? '').trim();
+  const exchange = String(market.exchange || '').trim();
   const change24h = Number(market.change24h ?? 0);
   const isLoading = Boolean(market?.isLoading || market?.lastUpdate === 0);
 
@@ -168,15 +208,15 @@ const IndiaMobileCard = memo(({ market, onMarketClick, formatPrice, isFavorite, 
     if (e.target.closest('.favoriteBtn') || e.target.closest('.watchlistBtn') || e.target.closest('.tradeBtn') || e.target.closest('.removeListBtn')) return;
     e.preventDefault();
     e.stopPropagation();
-    onMarketClick?.(name, type, pairId);
-  }, [name, type, pairId, onMarketClick]);
+    onMarketClick?.(name, type, pairId, exchange);
+  }, [name, type, pairId, exchange, onMarketClick]);
 
   const handleFavoriteClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onToggleFavorite?.(name, type);
-  }, [name, type, onToggleFavorite]);
+    onToggleFavorite?.(toggleName, type);
+  }, [toggleName, type, onToggleFavorite]);
 
   const handleWatchlistClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
@@ -189,15 +229,15 @@ const IndiaMobileCard = memo(({ market, onMarketClick, formatPrice, isFavorite, 
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onMarketClick?.(tradeName, type, pairId);
-  }, [tradeName, type, pairId, onMarketClick]);
+    onMarketClick?.(tradeName, type, pairId, exchange);
+  }, [tradeName, type, pairId, exchange, onMarketClick]);
 
   const handleRemoveClick = useCallback((e) => {
     if (e && typeof e.isTrusted === 'boolean' && !e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-    onToggleFavorite?.(name, type);
-  }, [name, type, onToggleFavorite]);
+    onToggleFavorite?.(toggleName, type);
+  }, [toggleName, type, onToggleFavorite]);
 
   return (
     <div className={`indiaMobileCard ${isLoading ? 'indiaMobileCardLoading' : ''}`} onClick={isLoading ? undefined : handleCardClick}>

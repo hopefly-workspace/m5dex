@@ -7,7 +7,9 @@ import {
   getLiquidationPriceIsolatedShort,
   getOrderCost,
   getMaxNotional,
+  getOrderMargin,
   formatLiquidationPrice,
+  getForexMarginNotionalUsdt,
   getIndiaNotionalInr,
   getIndiaMarginInr,
   getIndiaMarginUsdt,
@@ -23,7 +25,9 @@ import {
   getIndiaDisplaySymbol,
   indiaApiSymbolMatchesPair,
   indiaTickMatchesPair,
+  indiaTickExchange,
   indiaTickPairId,
+  resolveIndiaOrderExchange,
 } from '../utils/indiaPairResolve';
 import { validateNumber, parseDecimalInput } from '../utils/validators';
 import {
@@ -151,14 +155,14 @@ const IndiaMarginSummaryCard = ({
       </div>
       <div className="tp-india-margin-card__inr">
         {primaryPrefix}
-        {formatNumber(primaryValue, showInr ? 2 : 4)}
+        {formatNumber(primaryValue, showInr ? 2 : 6)}
         <span className="tp-india-margin-card__inr-unit">{primaryUnit}</span>
       </div>
       <div className="tp-india-calc-row tp-india-margin-card__row">
         <span>Notional ({notionalUnit})</span>
         <span>
           {showInr ? '₹' : ''}
-          {formatNumber(notionalValue, showInr ? 2 : 4)}
+          {formatNumber(notionalValue, showInr ? 2 : 6)}
         </span>
       </div>
       <div className="tp-india-calc-row tp-india-margin-card__row tp-india-margin-card__row--usdt">
@@ -183,12 +187,13 @@ const TradingPanel = ({
   marketData = null,
   onOrderSuccess,
   pairId: pairIdProp = '',
+  indiaExchange = '',
   tradingSessionClosed = false,
   tradingSessionMessage = '',
 }) => {
   const { walletData, isLoading: balanceLoading, refreshWallet } = useWalletData();
   const { showSuccess, showError } = useToast();
-  const { usdtInrRate, cryptoLeverage: cryptoLev, cryptoLeverageIsFromProfile } = useUser();
+  const { usdtInrRate, cryptoLeverage: cryptoLev, cryptoLeverageIsFromProfile, forexLeverage: forexLev, forexLeverageIsFromProfile, indiaLeverage: indiaLev, indiaLeverageIsFromProfile } = useUser();
   const inrPerUsdt = usdtInrRate != null && usdtInrRate > 0 ? usdtInrRate : INDIA_INR_PER_USDT;
   const rateFromProfile = usdtInrRate != null && usdtInrRate > 0;
   const walletKey = getWalletKeyForMarketType(marketType);
@@ -250,12 +255,24 @@ const TradingPanel = ({
 
   const resolvedPairId = useMemo(() => {
     const fromProp = String(pairIdProp ?? '').trim();
+    if (fromProp) return fromProp;
     if (marketData && indiaTickMatchesPair(marketData, pair)) {
-      const tickId = indiaTickPairId(marketData);
-      if (tickId) return tickId;
+      return indiaTickPairId(marketData) || '';
     }
-    return fromProp;
+    return '';
   }, [pairIdProp, marketData, pair]);
+
+  const indiaOrderExchange = useMemo(() => {
+    if (!isIndia) return '';
+    return (
+      resolveIndiaOrderExchange({
+        exchange: indiaExchange,
+        symbol: pair,
+        pairId: resolvedPairId,
+        raw: marketData,
+      }) || indiaTickExchange(marketData)
+    );
+  }, [isIndia, indiaExchange, pair, resolvedPairId, marketData]);
 
   const [side, setSide] = useState(defaultSide);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
@@ -277,6 +294,23 @@ const TradingPanel = ({
   const [sliderPercent, setSliderPercent] = useState(0);
   const [indiaCalcCurrency, setIndiaCalcCurrency] = useState('usdt');
 
+  /** Profile leverage per market — margin = notional ÷ leverage. */
+  const profileLeverage = useMemo(() => {
+    if (isCrypto) return cryptoLev >= 1 ? cryptoLev : 1;
+    if (isForex) return forexLev >= 1 ? forexLev : 1;
+    if (isIndia) return indiaLev >= 1 ? indiaLev : 1;
+    return 1;
+  }, [isCrypto, isForex, isIndia, cryptoLev, forexLev, indiaLev]);
+
+  const activeLeverage = SHOW_LEVERAGE_CONTROLS ? (leverage || profileLeverage) : profileLeverage;
+
+  const activeLeverageIsFromProfile = useMemo(() => {
+    if (isCrypto) return cryptoLeverageIsFromProfile;
+    if (isForex) return forexLeverageIsFromProfile;
+    if (isIndia) return indiaLeverageIsFromProfile;
+    return false;
+  }, [isCrypto, isForex, isIndia, cryptoLeverageIsFromProfile, forexLeverageIsFromProfile, indiaLeverageIsFromProfile]);
+
   useEffect(() => {
     if (!isIndia) setIndiaCalcCurrency('usdt');
   }, [isIndia]);
@@ -289,13 +323,13 @@ const TradingPanel = ({
     const t = String(marketType || '').toLowerCase().trim();
     if (t === 'india' || t === 'indian') {
       setLotSize(INDIA_DEFAULT_LOT);
-      setLeverage(100);
     }
     if (t === 'forex') {
       setForexLotSize(FOREX_DEFAULT_LOT);
     }
+    setLeverage(profileLeverage);
     setMarketFieldErrors({ crypto: null, forex: null, india: null });
-  }, [marketType]);
+  }, [marketType, profileLeverage]);
 
   useEffect(() => {
     if (!isForex || !normalizedForexPair) {
@@ -436,8 +470,8 @@ const TradingPanel = ({
   }, [isCrypto, cryptoQtyParsed, cryptoSliderRefPrice]);
 
   const cryptoMaxOrderValueUsdt = useMemo(
-    () => (isCrypto ? getMaxNotional(availableBalance, cryptoLev) : 0),
-    [isCrypto, availableBalance, cryptoLev]
+    () => (isCrypto ? getMaxNotional(availableBalance, activeLeverage) : 0),
+    [isCrypto, availableBalance, activeLeverage]
   );
 
   const cryptoOrderExceedsBalance = useMemo(() => {
@@ -459,31 +493,36 @@ const TradingPanel = ({
     return lastPrice != null && !Number.isNaN(lastPrice) && lastPrice > 0 ? lastPrice : null;
   }, [isForex, orderType, price, lastPrice]);
 
-  const forexOrderQuantity = useMemo(() => {
+  const forexLotCount = useMemo(() => {
     if (!isForex) return null;
+    const lotParsed = parseDecimalInput(forexLotSize);
+    return Number.isFinite(lotParsed) && lotParsed > 0 ? lotParsed : null;
+  }, [isForex, forexLotSize]);
+
+  const forexOrderQuantity = useMemo(() => {
+    if (!isForex || forexLotCount == null) return null;
     const uPer = Number(forexQuantityPerLot);
     if (!Number.isFinite(uPer) || uPer <= 0) return null;
-    const lotParsed = parseDecimalInput(forexLotSize);
-    const lot = Number.isFinite(lotParsed) && lotParsed > 0 ? lotParsed : 0;
-    if (lot <= 0) return null;
-    return lot * uPer;
-  }, [isForex, forexLotSize, forexQuantityPerLot]);
+    return forexLotCount * uPer;
+  }, [isForex, forexLotCount, forexQuantityPerLot]);
 
-  const forexNotionalUsdt = useMemo(() => {
-    if (!isForex || forexOrderQuantity == null || forexSliderRefPrice == null) return null;
-    return forexOrderQuantity * forexSliderRefPrice;
-  }, [isForex, forexOrderQuantity, forexSliderRefPrice]);
+  /** Position notional for margin: price × lots × units-per-lot. */
+  const forexMarginNotionalUsdt = useMemo(() => {
+    if (!isForex || forexLotCount == null || forexSliderRefPrice == null) return null;
+    const uPer = Number(forexQuantityPerLot);
+    if (!Number.isFinite(uPer) || uPer <= 0) return null;
+    return getForexMarginNotionalUsdt(forexLotCount, uPer, forexSliderRefPrice);
+  }, [isForex, forexLotCount, forexQuantityPerLot, forexSliderRefPrice]);
 
   const forexMaxNotionalUsdt = useMemo(
-    () => (isForex ? getMaxNotional(availableBalance, leverage || 1) : 0),
-    [isForex, availableBalance, leverage]
+    () => (isForex ? getMaxNotional(availableBalance, activeLeverage) : 0),
+    [isForex, availableBalance, activeLeverage]
   );
 
   const forexMarginUsdtLive = useMemo(() => {
-    if (!isForex || forexNotionalUsdt == null) return null;
-    const lev = leverage || 1;
-    return lev >= 1 ? forexNotionalUsdt / lev : null;
-  }, [isForex, forexNotionalUsdt, leverage]);
+    if (!isForex || forexMarginNotionalUsdt == null) return null;
+    return getOrderMargin(forexMarginNotionalUsdt, activeLeverage) || null;
+  }, [isForex, forexMarginNotionalUsdt, activeLeverage]);
 
   /** True when required margin or notional exceeds what the wallet can support at current leverage. */
   const forexOrderExceedsBalance = useMemo(() => {
@@ -496,25 +535,25 @@ const TradingPanel = ({
     ) {
       return true;
     }
-    if (forexNotionalUsdt != null && forexMaxNotionalUsdt > 0) {
-      return forexNotionalUsdt > forexMaxNotionalUsdt + 1e-6;
+    if (forexMarginNotionalUsdt != null && forexMaxNotionalUsdt > 0) {
+      return forexMarginNotionalUsdt > forexMaxNotionalUsdt + 1e-6;
     }
     return false;
   }, [
     isForex,
     forexMarginUsdtLive,
     availableBalance,
-    forexNotionalUsdt,
+    forexMarginNotionalUsdt,
     forexMaxNotionalUsdt,
   ]);
 
   const forexSubmitDisabledForBalance = isForex && forexOrderExceedsBalance;
 
   const LEVERAGE_MIN = 1;
-  const LEVERAGE_MAX = 100;
-  const LEVERAGE_MARKERS = [1, 30, 60, 80, 100];
+  const LEVERAGE_MAX = 500;
+  const LEVERAGE_MARKERS = [1, 30, 60, 80, 100, 200, 500];
 
-  const leverageOptions = [1, 2, 3, 5, 10, 20, 50, 100, 125, 150];
+  const leverageOptions = [1, 2, 3, 5, 10, 20, 50, 100, 125, 150, 200, 500];
 
   /** India: full BBO required for margin and order entry; market uses bid/ask by side (no last-trade fallback). */
   const effectiveEntryPrice =
@@ -624,7 +663,7 @@ const TradingPanel = ({
     const ep = indiaRefPriceForSizing;
     const lot = indiaLotCount ?? 0;
     const qty = indiaOrderQuantity ?? 0;
-    const lev = leverage || 1;
+    const lev = activeLeverage;
     if (ep == null || ep <= 0 || !Number.isFinite(lot) || lot <= 0 || !Number.isFinite(qty) || qty <= 0) {
       return {
         marginUsdt: 0,
@@ -640,7 +679,7 @@ const TradingPanel = ({
     const maxQty = getIndiaMaxQuantity(lot, ep, lev, availableBalance, inrPerUsdt);
     const positionNotionalUsdt = marginUsdt * lev;
     return { marginUsdt, notionalInr, marginInr, maxQty, positionNotionalUsdt };
-  }, [isIndia, indiaRefPriceForSizing, indiaLotCount, indiaOrderQuantity, leverage, availableBalance, inrPerUsdt]);
+  }, [isIndia, indiaRefPriceForSizing, indiaLotCount, indiaOrderQuantity, activeLeverage, availableBalance, inrPerUsdt]);
   const indiaOrderExceedsBalance = useMemo(() => {
     if (!isIndia || !indiaSummary) return false;
     return Number(indiaSummary.marginUsdt || 0) > availableBalance + 1e-8;
@@ -681,20 +720,19 @@ const TradingPanel = ({
         liqPrice: '--',
         cost: indiaSummary.marginUsdt,
         max: indiaSummary.maxQty,
-        maxNotionalUsdt: getMaxNotional(availableBalance, leverage || 1),
+        maxNotionalUsdt: getMaxNotional(availableBalance, activeLeverage),
         isIndia: true,
       };
     }
-    const lev = leverage || 1;
+    const lev = activeLeverage;
     if (isCrypto) {
       const qty = parseDecimalInput(size);
       const q = !Number.isNaN(qty) && qty > 0 ? qty : 0;
       const ep = entryPriceNumBuySide;
       const positionNotional = ep != null && ep > 0 && q > 0 ? q * ep : 0;
-      const lev = cryptoLev >= 1 ? cryptoLev : 1;
       const cost = positionNotional;
-      const margin = positionNotional > 0 ? positionNotional / lev : 0;
-      const maxNotional = getMaxNotional(availableBalance, cryptoLev);
+      const margin = getOrderMargin(positionNotional, activeLeverage);
+      const maxNotional = getMaxNotional(availableBalance, activeLeverage);
       const maxBase = ep != null && ep > 0 && maxNotional > 0 ? maxNotional / ep : 0;
       const liqLong =
         ep != null && ep > 0 && positionNotional > 0
@@ -712,14 +750,20 @@ const TradingPanel = ({
       const lotN = parseDecimalInput(forexLotSize);
       const lot = Number.isFinite(lotN) && lotN > 0 ? lotN : 0;
       const uPerLot = Number(forexQuantityPerLot);
-      const q =
-        lot > 0 && Number.isFinite(uPerLot) && uPerLot > 0 ? lot * uPerLot : 0;
       const ep = entryPriceNumBuySide;
-      const positionNotional = ep != null && ep > 0 && q > 0 ? q * ep : 0;
-      const margin = positionNotional > 0 ? positionNotional / lev : 0;
+      const marginNotional =
+        ep != null && ep > 0 && lot > 0 && Number.isFinite(uPerLot) && uPerLot > 0
+          ? getForexMarginNotionalUsdt(lot, uPerLot, ep)
+          : 0;
+      const contractNotional = marginNotional;
+      const margin = getOrderMargin(marginNotional, lev);
       const maxNotional = getMaxNotional(availableBalance, lev);
+      const maxLots =
+        ep != null && ep > 0 && maxNotional > 0 && Number.isFinite(uPerLot) && uPerLot > 0
+          ? maxNotional / (ep * uPerLot)
+          : 0;
       const liqLong =
-        ep != null && ep > 0 && positionNotional > 0
+        ep != null && ep > 0 && marginNotional > 0
           ? getLiquidationPriceIsolatedLong(ep, lev)
           : null;
       return {
@@ -729,8 +773,10 @@ const TradingPanel = ({
           (n) => getPriceDecimals(n, 'forex')
         ),
         cost: margin,
-        notional: positionNotional,
+        notional: marginNotional,
+        contractNotional,
         max: maxNotional,
+        maxLots,
         isIndia: false,
       };
     }
@@ -752,10 +798,9 @@ const TradingPanel = ({
     indiaSummary,
     isCrypto,
     isForex,
-    cryptoLev,
+    activeLeverage,
     entryPriceNumBuySide,
     size,
-    leverage,
     availableBalance,
     forexLotSize,
     forexQuantityPerLot,
@@ -767,20 +812,19 @@ const TradingPanel = ({
         liqPrice: '--',
         cost: indiaSummary.marginUsdt,
         max: indiaSummary.maxQty,
-        maxNotionalUsdt: getMaxNotional(availableBalance, leverage || 1),
+        maxNotionalUsdt: getMaxNotional(availableBalance, activeLeverage),
         isIndia: true,
       };
     }
-    const lev = leverage || 1;
+    const lev = activeLeverage;
     if (isCrypto) {
       const qty = parseDecimalInput(size);
       const q = !Number.isNaN(qty) && qty > 0 ? qty : 0;
       const ep = entryPriceNumSellSide;
       const positionNotional = ep != null && ep > 0 && q > 0 ? q * ep : 0;
-      const lev = cryptoLev >= 1 ? cryptoLev : 1;
       const cost = positionNotional;
-      const margin = positionNotional > 0 ? positionNotional / lev : 0;
-      const maxNotional = getMaxNotional(availableBalance, cryptoLev);
+      const margin = getOrderMargin(positionNotional, activeLeverage);
+      const maxNotional = getMaxNotional(availableBalance, activeLeverage);
       const maxBase = ep != null && ep > 0 && maxNotional > 0 ? maxNotional / ep : 0;
       const liqShort =
         ep != null && ep > 0 && positionNotional > 0
@@ -798,14 +842,20 @@ const TradingPanel = ({
       const lotN = parseDecimalInput(forexLotSize);
       const lot = Number.isFinite(lotN) && lotN > 0 ? lotN : 0;
       const uPerLot = Number(forexQuantityPerLot);
-      const q =
-        lot > 0 && Number.isFinite(uPerLot) && uPerLot > 0 ? lot * uPerLot : 0;
       const ep = entryPriceNumSellSide;
-      const positionNotional = ep != null && ep > 0 && q > 0 ? q * ep : 0;
-      const margin = positionNotional > 0 ? positionNotional / lev : 0;
+      const marginNotional =
+        ep != null && ep > 0 && lot > 0 && Number.isFinite(uPerLot) && uPerLot > 0
+          ? getForexMarginNotionalUsdt(lot, uPerLot, ep)
+          : 0;
+      const contractNotional = marginNotional;
+      const margin = getOrderMargin(marginNotional, lev);
       const maxNotional = getMaxNotional(availableBalance, lev);
+      const maxLots =
+        ep != null && ep > 0 && maxNotional > 0 && Number.isFinite(uPerLot) && uPerLot > 0
+          ? maxNotional / (ep * uPerLot)
+          : 0;
       const liqShort =
-        ep != null && ep > 0 && positionNotional > 0
+        ep != null && ep > 0 && marginNotional > 0
           ? getLiquidationPriceIsolatedShort(ep, lev)
           : null;
       return {
@@ -815,8 +865,10 @@ const TradingPanel = ({
           (n) => getPriceDecimals(n, 'forex')
         ),
         cost: margin,
-        notional: positionNotional,
+        notional: marginNotional,
+        contractNotional,
         max: maxNotional,
+        maxLots,
         isIndia: false,
       };
     }
@@ -838,10 +890,9 @@ const TradingPanel = ({
     indiaSummary,
     isCrypto,
     isForex,
-    cryptoLev,
+    activeLeverage,
     entryPriceNumSellSide,
     size,
-    leverage,
     availableBalance,
     forexLotSize,
     forexQuantityPerLot,
@@ -871,7 +922,7 @@ const TradingPanel = ({
     setSliderPercent(value);
     if (isIndia) {
       const refPx = indiaRefPriceForSizing;
-      const lev = leverage || 1;
+      const lev = activeLeverage;
       const unitsPerLot = Number(quantityPerLot);
       const maxNotionalInr = availableBalance * lev * inrPerUsdt;
       const maxLots =
@@ -892,7 +943,7 @@ const TradingPanel = ({
     }
     if (isCrypto) {
       const refPx = cryptoSliderRefPrice;
-      const maxNotional = getMaxNotional(availableBalance, cryptoLev);
+      const maxNotional = getMaxNotional(availableBalance, activeLeverage);
       const maxBase =
         refPx != null && refPx > 0 && maxNotional > 0 ? maxNotional / refPx : 0;
       if (maxBase > 0) {
@@ -906,11 +957,16 @@ const TradingPanel = ({
     }
     if (isForex) {
       const refPx = forexSliderRefPrice;
-      const lev = leverage || 1;
-      const maxNotional = getMaxNotional(availableBalance, lev);
-      const u = Number(forexQuantityPerLot);
-      if (refPx != null && refPx > 0 && maxNotional > 0 && Number.isFinite(u) && u > 0) {
-        const maxLots = maxNotional / (u * refPx);
+      const uPerLot = Number(forexQuantityPerLot);
+      const maxNotional = getMaxNotional(availableBalance, activeLeverage);
+      if (
+        refPx != null &&
+        refPx > 0 &&
+        maxNotional > 0 &&
+        Number.isFinite(uPerLot) &&
+        uPerLot > 0
+      ) {
+        const maxLots = maxNotional / (refPx * uPerLot);
         const lots = (maxLots * value) / 100;
         const dec = decimalsForValue(lots);
         setForexLotSize(lots > 0 ? formatNumber(lots, dec) : '');
@@ -938,7 +994,7 @@ const TradingPanel = ({
     setMarketFieldErrors((prev) => ({ ...prev, crypto: null }));
     if (isCrypto) {
       const refPx = cryptoSliderRefPrice;
-      const maxNotional = getMaxNotional(availableBalance, cryptoLev);
+      const maxNotional = getMaxNotional(availableBalance, activeLeverage);
       const maxBase =
         refPx != null && refPx > 0 && maxNotional > 0 ? maxNotional / refPx : 0;
       if (maxBase > 0 && raw !== '') {
@@ -967,7 +1023,7 @@ const TradingPanel = ({
     setLotSize(raw);
     setMarketFieldErrors((prev) => ({ ...prev, india: null }));
     const refPx = indiaRefPriceForSizing;
-    const lev = leverage || 1;
+    const lev = activeLeverage;
     const unitsPerLot = Number(quantityPerLot);
     const maxNotionalInr = availableBalance * lev * inrPerUsdt;
     if (
@@ -993,11 +1049,17 @@ const TradingPanel = ({
     setForexLotSize(raw);
     setMarketFieldErrors((prev) => ({ ...prev, forex: null }));
     const refPx = forexSliderRefPrice;
-    const lev = leverage || 1;
-    const maxNotional = getMaxNotional(availableBalance, lev);
-    const u = Number(forexQuantityPerLot);
-    if (refPx != null && refPx > 0 && maxNotional > 0 && Number.isFinite(u) && u > 0 && raw !== '') {
-      const maxLots = maxNotional / (u * refPx);
+    const uPerLot = Number(forexQuantityPerLot);
+    const maxNotional = getMaxNotional(availableBalance, activeLeverage);
+    if (
+      refPx != null &&
+      refPx > 0 &&
+      maxNotional > 0 &&
+      Number.isFinite(uPerLot) &&
+      uPerLot > 0 &&
+      raw !== ''
+    ) {
+      const maxLots = maxNotional / (refPx * uPerLot);
       const num = parseDecimalInput(raw);
       if (!Number.isNaN(num) && num >= 0 && maxLots > 0) {
         setSliderPercent(Math.min(100, (num / maxLots) * 100));
@@ -1159,8 +1221,8 @@ const TradingPanel = ({
           const lotN = indiaLotCount;
           const qtyN = indiaOrderQuantity;
           if (lotN != null && lotN > 0 && qtyN != null && qtyN > 0) {
-            const marginUsdt = getIndiaMarginUsdt(lotN, qtyN, ep, leverage || 1, inrPerUsdt);
-            const marginInrErr = getIndiaMarginInr(lotN, qtyN, ep, leverage || 1);
+            const marginUsdt = getIndiaMarginUsdt(lotN, qtyN, ep, activeLeverage, inrPerUsdt);
+            const marginInrErr = getIndiaMarginInr(lotN, qtyN, ep, activeLeverage);
             if (marginUsdt > availableBalance + 1e-8) {
               errors.quantity = 'Required margin exceeds available balance. Reduce lot size or add funds.';
             }
@@ -1191,9 +1253,10 @@ const TradingPanel = ({
         }
         if (!errors.quantity && !errors.price && Number.isFinite(qtyNum) && qtyNum > 0 && ep != null && ep > 0) {
           const notional = qtyNum * ep;
-          const maxNotionalAtLev = getMaxNotional(availableBalance, cryptoLev);
-          if (notional > maxNotionalAtLev + 1e-8) {
-            errors.quantity = `Order value (~${formatNumber(notional, 2)} USDT) exceeds max at ${cryptoLev}× (~${formatNumber(maxNotionalAtLev, 2)} USDT notional). Margin available: ~${formatNumber(availableBalance, 2)} USDT`;
+          const margin = getOrderMargin(notional, activeLeverage);
+          const maxNotionalAtLev = getMaxNotional(availableBalance, activeLeverage);
+          if (margin > availableBalance + 1e-8 || notional > maxNotionalAtLev + 1e-8) {
+            errors.quantity = `Required margin ~${formatNumber(margin, 2)} USDT exceeds available ~${formatNumber(availableBalance, 2)} USDT at ${activeLeverage}× leverage (max notional ~${formatNumber(maxNotionalAtLev, 2)} USDT).`;
           }
         }
       } else if (isForex) {
@@ -1235,18 +1298,18 @@ const TradingPanel = ({
           ep != null &&
           ep > 0
         ) {
-          const notional = lotNum * forexQuantityPerLot * ep;
-          const maxN = getMaxNotional(availableBalance, leverage || 1);
-          if (notional > maxN + 1e-8) {
-            const estMargin = notional / (leverage || 1);
-            errors.lotsize = `Required margin ~${formatNumber(estMargin, 2)} USDT exceeds available ~${formatNumber(availableBalance, 2)} USDT (max notional ~${formatNumber(maxN, 2)} USDT at ${leverage || 1}×). Reduce lots or add funds.`;
+          const notional = getForexMarginNotionalUsdt(lotNum, forexQuantityPerLot, ep);
+          const margin = getOrderMargin(notional, activeLeverage);
+          const maxN = getMaxNotional(availableBalance, activeLeverage);
+          if (margin > availableBalance + 1e-8 || notional > maxN + 1e-8) {
+            errors.lotsize = `Required margin ~${formatNumber(margin, 2)} USDT exceeds available ~${formatNumber(availableBalance, 2)} USDT (max notional ~${formatNumber(maxN, 2)} USDT at ${activeLeverage}×). Reduce lots or add funds.`;
           }
         }
       } else {
         const qty = validateNumber(size, { required: true, min: 0.00000001 });
         if (!qty.isValid) errors.quantity = qty.error;
 
-        const maxNotional = getMaxNotional(availableBalance, leverage || 1);
+        const maxNotional = getMaxNotional(availableBalance, activeLeverage);
         const sizeNum = parseDecimalInput(size);
         if (!Number.isNaN(sizeNum) && sizeNum > 0 && maxNotional > 0 && sizeNum > maxNotional) {
           errors.quantity = `Size cannot exceed max ${formatNumber(maxNotional)} ${sizeUnit}`;
@@ -1332,10 +1395,10 @@ const TradingPanel = ({
       }
 
       if (isIndia) {
-        const lev = validateNumber(leverage, { required: true, min: 1, max: 100, integer: true });
+        const lev = validateNumber(activeLeverage, { required: true, min: 1, max: 500, integer: true });
         if (!lev.isValid) errors.leverage = lev.error;
       } else if (!isCrypto) {
-        const lev = validateNumber(leverage, { required: true, min: 1, max: 150, integer: true });
+        const lev = validateNumber(activeLeverage, { required: true, min: 1, max: 500, integer: true });
         if (!lev.isValid) errors.leverage = lev.error;
       }
 
@@ -1348,7 +1411,7 @@ const TradingPanel = ({
       lastPrice,
       size,
       availableBalance,
-      leverage,
+      activeLeverage,
       pair,
       tpSlChecked,
       takeProfit,
@@ -1366,7 +1429,6 @@ const TradingPanel = ({
       quantityPerLot,
       indiaQtyPerLotLoading,
       indiaOrderQuantity,
-      cryptoLev,
       cryptoAssetType,
       cryptoBaseSymbol,
       forexLotSize,
@@ -1431,7 +1493,7 @@ const TradingPanel = ({
     const qtyN = indiaOrderQuantity ?? 0;
     const marginUsdtIndia =
       isIndia && lotN != null && lotN > 0 && qtyN > 0 && Number.isFinite(orderPrice)
-        ? getIndiaMarginUsdt(lotN, qtyN, orderPrice, leverage || 1, inrPerUsdt)
+        ? getIndiaMarginUsdt(lotN, qtyN, orderPrice, activeLeverage, inrPerUsdt)
         : 0;
 
     const cryptoQtySubmit = parseDecimalInput(size);
@@ -1444,7 +1506,7 @@ const TradingPanel = ({
         ? cryptoQtySubmit * orderPrice
         : 0;
     const cryptoMarginSubmit =
-      isCrypto && cryptoNotionalSubmit > 0 && cryptoLev >= 1 ? cryptoNotionalSubmit / cryptoLev : 0;
+      isCrypto && cryptoNotionalSubmit > 0 ? getOrderMargin(cryptoNotionalSubmit, activeLeverage) : 0;
 
     const forexLotSubmit = parseDecimalInput(forexLotSize);
     const forexQtyTotalSubmit =
@@ -1457,13 +1519,16 @@ const TradingPanel = ({
         : 0;
     const forexNotionalSubmit =
       isForex &&
-        forexQtyTotalSubmit > 0 &&
+        Number.isFinite(forexLotSubmit) &&
+        forexLotSubmit > 0 &&
+        forexQuantityPerLot != null &&
+        forexQuantityPerLot > 0 &&
         Number.isFinite(orderPrice) &&
         orderPrice > 0
-        ? forexQtyTotalSubmit * orderPrice
+        ? getForexMarginNotionalUsdt(forexLotSubmit, forexQuantityPerLot, orderPrice)
         : 0;
     const forexMarginSubmit =
-      isForex && forexNotionalSubmit > 0 ? forexNotionalSubmit / (leverage || 1) : 0;
+      isForex && forexNotionalSubmit > 0 ? getOrderMargin(forexNotionalSubmit, activeLeverage) : 0;
 
     const payload = {
       mode,
@@ -1481,12 +1546,13 @@ const TradingPanel = ({
       type: isIndia ? 'indian' : marketType,
       tradeprofit: tpSlChecked && takeProfit.trim() !== '' ? parseDecimalInput(takeProfit) : 0,
       stoploss: tpSlChecked && stopLoss.trim() !== '' ? parseDecimalInput(stopLoss) : 0,
-      leverage: isCrypto ? Number(cryptoLev) : Number(leverage),
+      leverage: Number(activeLeverage),
       liveprice,
       ...(isIndia && {
         lotsize: lotN,
         pairid: resolvedPairId,
         quantity: qtyN,
+        exchange: indiaOrderExchange,
       }),
       ...(isForex &&
         !isIndia && {
@@ -1575,7 +1641,7 @@ const TradingPanel = ({
     tpSlChecked,
     takeProfit,
     stopLoss,
-    leverage,
+    activeLeverage,
     marketType,
     validateOrderForm,
     showError,
@@ -1585,7 +1651,6 @@ const TradingPanel = ({
     isIndia,
     isCrypto,
     isForex,
-    cryptoLev,
     lotSize,
     indiaLotCount,
     indiaOrderQuantity,
@@ -1647,7 +1712,7 @@ const TradingPanel = ({
           </span>
         </div>
         <p className="tp-preview-card__note">
-          Leverage {cryptoLev}×{cryptoLeverageIsFromProfile ? ' from your profile' : ' (default 1× until profile sets cryptoleverage)'}
+          Leverage {activeLeverage}×{activeLeverageIsFromProfile ? ' from your profile' : ' (default 1× until profile sets leverage)'}
           . Est. margin = order value ÷ leverage. Indicative liq. (~0.4% maintenance, cross-style). Not financial advice.
         </p>
       </div>
@@ -1677,7 +1742,7 @@ const TradingPanel = ({
             role="row"
           >
             <span className="tp-forex-preview__td tp-forex-preview__td--label" role="rowheader">
-              Notional
+              Lot value
             </span>
             <span className="tp-forex-preview__td tp-forex-preview__td--val" role="cell">
               {(buySummary.notional ?? 0) > 0 ? (
@@ -1735,14 +1800,14 @@ const TradingPanel = ({
               <strong>{formatCurrency(buySummary.max)}</strong> {sizeUnit}{' '}
               <span className="tp-forex-preview__hint-inline">
                 {SHOW_LEVERAGE_CONTROLS
-                  ? `at ${leverage || 1}× · wallet`
+                  ? `at ${activeLeverage}× · wallet`
                   : 'wallet balance · account leverage'}
               </span>
             </span>
           </div>
         </div>
         <p className="tp-forex-preview__foot">
-          Isolated margin model (~0.4% maintenance). Long/short use bid vs ask when market. Indicative only.
+          Margin = notional ÷ {activeLeverage}× leverage{activeLeverageIsFromProfile ? ' (profile)' : ''}. Isolated model (~0.4% maintenance). Indicative only.
         </p>
       </div>
     ) : (
@@ -1779,14 +1844,14 @@ const TradingPanel = ({
               <span
                 className="tp-pill tp-pill--lev tp-pill--readonly"
                 title={
-                  cryptoLeverageIsFromProfile
+                  activeLeverageIsFromProfile
                     ? 'Crypto leverage from your profile (cryptoleverage)'
                     : 'Using 1× until your profile returns cryptoleverage'
                 }
               >
-                Leverage: {cryptoLev}x
+                Leverage: {activeLeverage}x
                 <span className="tp-pill__suffix">
-                  {cryptoLeverageIsFromProfile ? ' · profile' : ' · default'}
+                  {activeLeverageIsFromProfile ? ' · profile' : ' · default'}
                 </span>
               </span>
             </div>
@@ -1864,7 +1929,7 @@ const TradingPanel = ({
             >
               <span className="tp-avbl-label">Avbl</span>
               <span className="tp-avbl-value">
-                {balanceLoading ? '--' : formatNumber(indiaAvailableDisplay, isIndia && indiaCalcCurrency === 'inr' ? 2 : 4)} {indiaDisplayUnit}
+                {balanceLoading ? '--' : formatNumber(indiaAvailableDisplay, isIndia && indiaCalcCurrency === 'inr' ? 2 : 6)} {indiaDisplayUnit}
               </span>
               <button
                 type="button"
@@ -1964,18 +2029,20 @@ const TradingPanel = ({
                       <strong>
                         {indiaCalcCurrency === 'inr'
                           ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
-                          : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
+                          : `${formatNumber(indiaSummary.marginUsdt, 6)} ${sizeUnit}`}
                       </strong>
                       {' · '}
                       Notional:{' '}
                       <strong>
                         {indiaCalcCurrency === 'inr'
                           ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
-                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
+                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 6)} ${sizeUnit}`}
                       </strong>
                       {indiaSizingUsesLtpFallback ? (
                         <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
                       ) : null}
+                      {' · '}
+                      {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'}
                     </p>
                   )}
                 {indiaMarketNoExecutableBook && (
@@ -2021,12 +2088,12 @@ const TradingPanel = ({
                       Order value <strong>{formatNumber(cryptoOrderValueUsdt, 2)} USDT</strong>
                       <span className="tp-crypto-order-hint__meta">
                         {' '}
-                        · {cryptoLev}×{cryptoLeverageIsFromProfile ? ' (profile)' : ' (default)'} · est. margin{' '}
-                        <strong>{formatNumber(cryptoOrderValueUsdt / cryptoLev, 2)} USDT</strong>
+                        · {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'} · est. margin{' '}
+                        <strong>{formatNumber(getOrderMargin(cryptoOrderValueUsdt, activeLeverage), 6)} USDT</strong>
                       </span>
                       {cryptoOrderExceedsBalance && (
                         <span className="tp-crypto-order-hint__alert" role="status">
-                          Exceeds max at {cryptoLev}× (~{formatNumber(cryptoMaxOrderValueUsdt, 2)} USDT notional)
+                          Exceeds max at {activeLeverage}× (~{formatNumber(cryptoMaxOrderValueUsdt, 2)} USDT notional)
                         </span>
                       )}
                     </>
@@ -2096,24 +2163,29 @@ const TradingPanel = ({
                           {' · '}
                         </span>
                       ) : null}
-                      1 lot = <strong>{formatNumber(forexQuantityPerLot, 4)}</strong> units · total = lots × units
+                      1 lot = <strong>{formatNumber(forexQuantityPerLot, 6)}</strong> units · total = lots × units
                     </p>
                   )}
-                  {forexNotionalUsdt != null && forexMarginUsdtLive != null && (
+                  {forexMarginNotionalUsdt != null && forexMarginUsdtLive != null && (
                     <p
                       className={`tp-crypto-order-hint${forexOrderExceedsBalance ? ' tp-crypto-order-hint--exceeds' : ''}`}
                     >
-                      Notional <strong>{formatNumber(forexNotionalUsdt, 2)} USDT</strong>
+                      Position value <strong>{formatNumber(forexMarginNotionalUsdt, 2)} USDT</strong>
                       <span className="tp-crypto-order-hint__meta">
                         {' '}
-                        · Est. margin <strong>{formatNumber(forexMarginUsdtLive, 2)} USDT</strong>
-                        {SHOW_LEVERAGE_CONTROLS ? (
-                          <> · {leverage || 1}×</>
+                        · Est. margin <strong>{formatNumber(forexMarginUsdtLive, 6)} USDT</strong>
+                        {' '}
+                        · {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'}
+                        {forexOrderQuantity != null && forexOrderQuantity > 0 ? (
+                          <>
+                            {' '}
+                            · Qty <strong>{formatNumber(forexOrderQuantity, 4)}</strong>
+                          </>
                         ) : null}
                       </span>
                       {forexOrderExceedsBalance && (
                         <span className="tp-crypto-order-hint__alert" role="status">
-                          Est. margin {formatNumber(forexMarginUsdtLive ?? 0, 2)} USDT exceeds available{' '}
+                          Est. margin {formatNumber(forexMarginUsdtLive ?? 0, 6)} USDT exceeds available{' '}
                           {formatNumber(availableBalance, 2)} USDT — reduce lots or add funds.
                         </span>
                       )}
@@ -2148,7 +2220,7 @@ const TradingPanel = ({
             )} */}
             {!isIndia && isCrypto && (
               <div className={`tp-alloc-row${cryptoOrderExceedsBalance ? ' tp-alloc-row--exceeds' : ''}`}>
-                <span className="tp-alloc-row__label">Size vs max (balance × {cryptoLev}×)</span>
+                <span className="tp-alloc-row__label">Size vs max (balance × {activeLeverage}×)</span>
                 <span className="tp-alloc-row__pct">{Math.round(sliderPercent)}%</span>
               </div>
             )}
@@ -2176,7 +2248,7 @@ const TradingPanel = ({
                         background:
                           isForex && forexOrderExceedsBalance
                             ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
-                            : `linear-gradient(to right, var(--brand-primary, #ffd50077) 0%, var(--brand-primary, #ffd50077) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
+                            : `linear-gradient(to right, var(--brand-primary, #3b82f6) 0%, var(--brand-primary, #3b82f6) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
                       }
                       : undefined
                   }
@@ -2341,7 +2413,7 @@ const TradingPanel = ({
             >
               <span className="tp-avbl-label">Avbl</span>
               <span className="tp-avbl-value">
-                {balanceLoading ? '--' : formatNumber(indiaAvailableDisplay, isIndia && indiaCalcCurrency === 'inr' ? 2 : 4)} {indiaDisplayUnit}
+                {balanceLoading ? '--' : formatNumber(indiaAvailableDisplay, isIndia && indiaCalcCurrency === 'inr' ? 2 : 6)} {indiaDisplayUnit}
               </span>
               <button
                 type="button"
@@ -2394,7 +2466,7 @@ const TradingPanel = ({
                         [{indiaDisplaySymbol || indiaPairSymbol || pair}]
                       </span>
                       {' '}
-                      1 lot = <strong>{formatNumber(quantityPerLot, 4)}</strong> units · total = lot × units (read-only)
+                      1 lot = <strong>{formatNumber(quantityPerLot, 6)}</strong> units · total = lot × units (read-only)
                     </p>
                   )}
                   {!indiaQtyPerLotLoading && quantityPerLot == null && resolvedPairId && (
@@ -2414,18 +2486,20 @@ const TradingPanel = ({
                       <strong>
                         {indiaCalcCurrency === 'inr'
                           ? `₹${formatNumber(indiaSummary.marginInr, 2)} INR`
-                          : `${formatNumber(indiaSummary.marginUsdt, 4)} ${sizeUnit}`}
+                          : `${formatNumber(indiaSummary.marginUsdt, 6)} ${sizeUnit}`}
                       </strong>
                       {' · '}
                       Notional:{' '}
                       <strong>
                         {indiaCalcCurrency === 'inr'
                           ? `₹${formatNumber(indiaSummary.notionalInr, 2)} INR`
-                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 4)} ${sizeUnit}`}
+                          : `${formatNumber(indiaSummary.positionNotionalUsdt, 6)} ${sizeUnit}`}
                       </strong>
                       {indiaSizingUsesLtpFallback ? (
                         <span className="tp-india-qty-hint__ltp"> · est. from LTP</span>
                       ) : null}
+                      {' · '}
+                      {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'}
                     </p>
                   )}
                 {indiaMarketNoExecutableBook && (
@@ -2471,12 +2545,12 @@ const TradingPanel = ({
                       Order value <strong>{formatNumber(cryptoOrderValueUsdt, 2)} USDT</strong>
                       <span className="tp-crypto-order-hint__meta">
                         {' '}
-                        · {cryptoLev}×{cryptoLeverageIsFromProfile ? ' (profile)' : ' (default)'} · est. margin{' '}
-                        <strong>{formatNumber(cryptoOrderValueUsdt / cryptoLev, 2)} USDT</strong>
+                        · {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'} · est. margin{' '}
+                        <strong>{formatNumber(getOrderMargin(cryptoOrderValueUsdt, activeLeverage), 6)} USDT</strong>
                       </span>
                       {cryptoOrderExceedsBalance && (
                         <span className="tp-crypto-order-hint__alert" role="status">
-                          Exceeds max at {cryptoLev}× (~{formatNumber(cryptoMaxOrderValueUsdt, 2)} USDT notional)
+                          Exceeds max at {activeLeverage}× (~{formatNumber(cryptoMaxOrderValueUsdt, 6)} USDT notional)
                         </span>
                       )}
                     </>
@@ -2549,21 +2623,26 @@ const TradingPanel = ({
                       1 lot = <strong>{formatNumber(forexQuantityPerLot, 4)}</strong> units · total = lots × units
                     </p>
                   )}
-                  {forexNotionalUsdt != null && forexMarginUsdtLive != null && (
+                  {forexMarginNotionalUsdt != null && forexMarginUsdtLive != null && (
                     <p
                       className={`tp-crypto-order-hint${forexOrderExceedsBalance ? ' tp-crypto-order-hint--exceeds' : ''}`}
                     >
-                      Notional <strong>{formatNumber(forexNotionalUsdt, 2)} USDT</strong>
+                      Position value <strong>{formatNumber(forexMarginNotionalUsdt, 2)} USDT</strong>
                       <span className="tp-crypto-order-hint__meta">
                         {' '}
-                        · Est. margin <strong>{formatNumber(forexMarginUsdtLive, 2)} USDT</strong>
-                        {SHOW_LEVERAGE_CONTROLS ? (
-                          <> · {leverage || 1}×</>
+                        · Est. margin <strong>{formatNumber(forexMarginUsdtLive, 6)} USDT</strong>
+                        {' '}
+                        · {activeLeverage}×{activeLeverageIsFromProfile ? ' (profile)' : ' (default)'}
+                        {forexOrderQuantity != null && forexOrderQuantity > 0 ? (
+                          <>
+                            {' '}
+                            · Qty <strong>{formatNumber(forexOrderQuantity, 4)}</strong>
+                          </>
                         ) : null}
                       </span>
                       {forexOrderExceedsBalance && (
                         <span className="tp-crypto-order-hint__alert" role="status">
-                          Est. margin {formatNumber(forexMarginUsdtLive ?? 0, 2)} USDT exceeds available{' '}
+                          Est. margin {formatNumber(forexMarginUsdtLive ?? 0, 6)} USDT exceeds available{' '}
                           {formatNumber(availableBalance, 2)} USDT — reduce lots or add funds.
                         </span>
                       )}
@@ -2598,7 +2677,7 @@ const TradingPanel = ({
             )} */}
             {!isIndia && isCrypto && (
               <div className={`tp-alloc-row${cryptoOrderExceedsBalance ? ' tp-alloc-row--exceeds' : ''}`}>
-                <span className="tp-alloc-row__label">Size vs max (balance × {cryptoLev}×)</span>
+                <span className="tp-alloc-row__label">Size vs max (balance × {activeLeverage}×)</span>
                 <span className="tp-alloc-row__pct">{Math.round(sliderPercent)}%</span>
               </div>
             )}
@@ -2626,7 +2705,7 @@ const TradingPanel = ({
                         background:
                           isForex && forexOrderExceedsBalance
                             ? `linear-gradient(to right, #f87171 0%, #f87171 ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`
-                            : `linear-gradient(to right, var(--brand-primary, #ffd50077) 0%, var(--brand-primary, #ffd50077) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
+                            : `linear-gradient(to right, var(--brand-primary, #3b82f6) 0%, var(--brand-primary, #3b82f6) ${sliderPercent}%, var(--bg-tertiary) ${sliderPercent}%, var(--bg-tertiary) 100%)`,
                       }
                       : undefined
                   }

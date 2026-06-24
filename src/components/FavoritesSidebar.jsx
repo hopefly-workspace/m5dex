@@ -5,7 +5,9 @@ import {
   parseIndiaFavouriteName,
   isForexGroupType,
 } from '../services/favouritesWishlistApi';
-import { indiaTickPairId } from '../utils/indiaPairResolve';
+// import { indiaTickPairId } from '../utils/indiaPairResolve';
+import { extractIndiaFavouritePairId } from '../services/indiaTicksSubscription';
+import { indiaTickPairId, findIndiaMarketTick } from '../utils/indiaPairResolve';
 import {
   formatPrice as formatPriceUtil,
   getSafeNumber,
@@ -34,14 +36,14 @@ const MARKET_ORDER = ['crypto', 'forex', 'india'];
 const getPriceNum = (d) =>
   Number(
     d?.price ??
-      d?.p ??
-      d?.index ??
-      d?.last ??
-      d?.lastPrice ??
-      d?.close ??
-      d?.c ??
-      d?.ltp ??
-      0
+    d?.p ??
+    d?.index ??
+    d?.last ??
+    d?.lastPrice ??
+    d?.close ??
+    d?.c ??
+    d?.ltp ??
+    0
   ) || 0;
 const getChangeNum = (d) => getSafeNumber(d?.change24h ?? d?.change);
 
@@ -64,15 +66,15 @@ const getBidAskPrice = (d, computedMid) => {
     toPositiveNum(computedMid) ??
     (d
       ? toPositiveNum(
-          d?.price ??
-            d?.p ??
-            d?.index ??
-            d?.last ??
-            d?.lastPrice ??
-            d?.close ??
-            d?.c ??
-            d?.ltp
-        )
+        d?.price ??
+        d?.p ??
+        d?.index ??
+        d?.last ??
+        d?.lastPrice ??
+        d?.close ??
+        d?.c ??
+        d?.ltp
+      )
       : null);
   const rawBid = firstDefinedRaw([
     d?.bid,
@@ -108,11 +110,11 @@ const getBidAskPrice = (d, computedMid) => {
 };
 
 /** Aligns with India markets list: compare symbols with/without exchange prefix. */
-const normalizeIndiaMarketText = (value) =>
-  String(value || '')
-    .toUpperCase()
-    .trim()
-    .replace(/[:/\-\s_.]/g, '');
+// const normalizeIndiaMarketText = (value) =>
+//   String(value || '')
+//     .toUpperCase()
+//     .trim()
+//     .replace(/[:/\-\s_.]/g, '');
 
 const FavoritesSidebar = ({
   open,
@@ -121,52 +123,66 @@ const FavoritesSidebar = ({
   selectedMarketType,
   onSelectPair,
   marketDataList = [],
+  indiaMarketDataList = [],
+  indiaPairIdMap = null,
   favouritesList = [],
   favouritesLoading,
   isAuthenticated,
 }) => {
   const findMarketRow = useCallback(
     (symbol, item) => {
-      if (!symbol || !Array.isArray(marketDataList) || marketDataList.length === 0) return null;
+      // if (!symbol || !Array.isArray(marketDataList) || marketDataList.length === 0) return null;
       const type = String(item?.type || 'crypto').toLowerCase().trim();
 
       if (type === 'india') {
-        const { pairId } = parseIndiaFavouriteName(item?.name || '');
-        const pairIdKey = String(pairId || '').trim().toLowerCase();
-        if (pairIdKey) {
-          const byPairId = marketDataList.find((t) => {
-            const candidates = [
-              t?.pairid,
-              t?.pairId,
-              t?.instrument_token,
-              t?.instrumentToken,
-              t?.token,
-              t?.id,
-            ];
-            return candidates.some((v) => String(v ?? '').trim().toLowerCase() === pairIdKey);
-          });
-          if (byPairId) return byPairId;
-        }
+        // const { pairId } = parseIndiaFavouriteName(item?.name || '');
+        // const pairIdKey = String(pairId || '').trim().toLowerCase();
+        // if (pairIdKey) {
+        //   const byPairId = marketDataList.find((t) => {
+        //     const candidates = [
+        //       t?.pairid,
+        //       t?.pairId,
+        //       t?.instrument_token,
+        //       t?.instrumentToken,
+        //       t?.token,
+        //       t?.id,
+        //     ];
+        //     return candidates.some((v) => String(v ?? '').trim().toLowerCase() === pairIdKey);
+        //   });
+        //   if (byPairId) return byPairId;
+        // }
 
-        const indiaKey = normalizeSymbol(symbol);
-        const indiaFlat = normalizeIndiaMarketText(symbol);
-        for (const t of marketDataList) {
-          const raw =
-            t.symbol || t.id || t.Symbol || t.instrument || t.pair || t.market || '';
-          const sid = normalizeSymbol(raw);
-          if (sid && sid === indiaKey) return t;
-          const afterColon = String(raw).includes(':')
-            ? String(raw)
-                .split(':')
-                .slice(1)
-                .join(':')
-                .trim()
-            : raw;
-          if (normalizeSymbol(afterColon) === indiaKey) return t;
-          if (normalizeIndiaMarketText(raw) === indiaFlat) return t;
-        }
-        return null;
+        // const indiaKey = normalizeSymbol(symbol);
+        // const indiaFlat = normalizeIndiaMarketText(symbol);
+        // for (const t of marketDataList) {
+        //   const raw =
+        //     t.symbol || t.id || t.Symbol || t.instrument || t.pair || t.market || '';
+        //   const sid = normalizeSymbol(raw);
+        //   if (sid && sid === indiaKey) return t;
+        //   const afterColon = String(raw).includes(':')
+        //     ? String(raw)
+        //       .split(':')
+        //       .slice(1)
+        //       .join(':')
+        //       .trim()
+        //     : raw;
+        //   if (normalizeSymbol(afterColon) === indiaKey) return t;
+        //   if (normalizeIndiaMarketText(raw) === indiaFlat) return t;
+        // }
+        // return null;
+
+        const pairId = extractIndiaFavouritePairId(item, indiaPairIdMap);
+        const lists = [indiaMarketDataList, marketDataList].filter(
+          (list) => Array.isArray(list) && list.length > 0
+        );
+        if (!lists.length) return null;
+        return findIndiaMarketTick(lists, {
+          symbol,
+          pairId,
+        });
       }
+
+      if (!symbol || !Array.isArray(marketDataList) || marketDataList.length === 0) return null;
 
       const key = normalizeSymbol(symbol);
       if (!key) return null;
@@ -179,7 +195,7 @@ const FavoritesSidebar = ({
         }) || null
       );
     },
-    [marketDataList]
+    [marketDataList, indiaMarketDataList, indiaPairIdMap]
   );
 
 
@@ -211,7 +227,8 @@ const FavoritesSidebar = ({
       if (type === 'india') {
         const parsed = parseIndiaFavouriteName(item.name);
         const symbolOnly = parsed.symbol || item.name;
-        let pairIdOnly = parsed.pairId;
+        // let pairIdOnly = parsed.pairId;
+        let pairIdOnly = parsed.pairId || extractIndiaFavouritePairId(item, indiaPairIdMap);
         const symbol = normalizeSymbol(symbolOnly);
         if (!pairIdOnly) {
           const row = findMarketRow(symbol, item);
@@ -229,7 +246,7 @@ const FavoritesSidebar = ({
       const fullName = String(item.fullName || item.name || '').trim();
       onSelectPair?.(symbol, type, fullName);
     },
-    [onSelectPair, onClose, findMarketRow]
+    [onSelectPair, onClose, findMarketRow, indiaPairIdMap]
   );
 
   return (
@@ -316,8 +333,8 @@ const FavoritesSidebar = ({
                       const displaySymbol =
                         type === 'india'
                           ? formatOptionSymbol(symbolForMatch, {
-                              stripInstrumentSuffix: Boolean(indiaTag),
-                            })
+                            stripInstrumentSuffix: Boolean(indiaTag),
+                          })
                           : symbolForMatch;
 
                       return (
@@ -364,10 +381,12 @@ const FavoritesSidebar = ({
                             </div>
                           </td>
                           <td className="favoritesSidebarTd favoritesSidebarTd--num favoritesSidebarTd--bid">
-                            {formatPriceUtil(bid)}
+                            {/* {formatPriceUtil(bid)} */}
+                            {fmt(bid)}
                           </td>
                           <td className="favoritesSidebarTd favoritesSidebarTd--num favoritesSidebarTd--ask">
-                            {formatPriceUtil(ask)}
+                            {/* {formatPriceUtil(ask)} */}
+                            {fmt(ask)}
                           </td>
                           {/* <td
                             className={`favoritesSidebarTd favoritesSidebarTd--num favoritesSidebarTd--ltp favoritesSidebarLtp--${movement}`}

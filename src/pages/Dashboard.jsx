@@ -8,7 +8,17 @@ import {
   parseIndiaFavouriteName,
   normalizeAppMarketTypeParam,
 } from '../services/favouritesWishlistApi';
-import { findIndiaPairIdInTradeList } from '../utils/indiaPairResolve';
+// import { findIndiaPairIdInTradeList } from '../utils/indiaPairResolve';
+// import { findIndiaPairIdInTradeList, findIndiaMarketTick, indiaTickPairId, indiaTickSymbolKey } from '../utils/indiaPairResolve';
+import { findIndiaPairIdInTradeList, findIndiaMarketTick, indiaTickExchange, indiaTickPairId, indiaTickSymbolKey } from '../utils/indiaPairResolve';
+import { useIndiaFavouritesSubscription } from '../hooks/useIndiaFavouritesSubscription';
+// import { readIndiaPairIdSessionMap } from '../services/indiaTicksSubscription';
+import {
+  readIndiaExchangeFromSession,
+  readIndiaPairIdSessionMap,
+  writeIndiaExchangeToSession,
+} from '../services/indiaTicksSubscription';
+import { fetchIndiaStockList, findIndiaStockItemInStockList } from '../services/indiaStockList';
 import { checkTradingMarket, resolveCheckMarketSessionForDashboard } from '../services/tradingApi';
 import Header from '../components/Header';
 import TradingBar from '../components/TradingBar';
@@ -52,23 +62,60 @@ const normalizeIndiaTradesList = (list) => {
     return Number.isFinite(n) ? n : fallback;
   };
   return (list || []).map((x) => {
+
+    const sym = x?.symbol ?? x?.Symbol ?? '';
+    const symLooksNumeric =
+      sym != null && sym !== '' && /^\d+$/.test(String(sym).trim());
+    const pairsymbol =
+      x?.pairsymbol ||
+      x?.pairSymbol ||
+      x?.tradingsymbol ||
+      x?.tradingSymbol ||
+      (symLooksNumeric ? '' : sym) ||
+      '';
+
     const price = toNum(x?.price ?? x?.ltp ?? x?.p ?? x?.index ?? x?.last ?? x?.close, 0);
     const bidRaw = toNum(x?.bid ?? x?.b ?? x?.bidPrice ?? x?.best_bid ?? x?.bestBid, 0);
     const askRaw = toNum(x?.ask ?? x?.a ?? x?.askPrice ?? x?.best_ask ?? x?.bestAsk, 0);
     const bid = bidRaw > 0 ? bidRaw : price > 0 ? price : 0;
     const ask = askRaw > 0 ? askRaw : price > 0 ? price : 0;
+
+    const rawHigh = toNum(x?.high ?? x?.high24h ?? x?.h, 0);
+    const rawLow = toNum(x?.low ?? x?.low24h ?? x?.l, 0);
+    const open = toNum(x?.open ?? x?.o, 0);
+    const close = toNum(x?.close ?? x?.c, price);
     return {
       ...x,
+      pairsymbol: pairsymbol || x?.pairsymbol,
+      pairSymbol: pairsymbol || x?.pairSymbol,
+      symbol: pairsymbol || sym,
       price,
+      ltp: toNum(x?.ltp, price) || price,
       index: price,
       bid,
       ask,
+      open,
+      close,
+      high: rawHigh > 0 ? rawHigh : price > 0 ? price : 0,
+      low: rawLow > 0 ? rawLow : price > 0 ? price : 0,
+      high24h: rawHigh > 0 ? rawHigh : price > 0 ? price : 0,
+      low24h: rawLow > 0 ? rawLow : price > 0 ? price : 0,
+      change: toNum(x?.change ?? x?.change24h ?? x?.change_pct, 0),
       change24h: toNum(x?.change24h ?? x?.change_pct ?? x?.change ?? 0, 0),
+      change_pct: toNum(x?.change_pct ?? x?.change24h ?? x?.change, 0),
+      volume: toNum(x?.volume ?? x?.vol ?? x?.volume24h, 0),
       volume24h: toNum(x?.volume24h ?? x?.volume ?? x?.vol ?? 0, 0),
-      high24h: toNum(x?.high24h ?? x?.high ?? 0, 0),
-      low24h: toNum(x?.low24h ?? x?.low ?? 0, 0),
+      // high24h: toNum(x?.high24h ?? x?.high ?? 0, 0),
+      // low24h: toNum(x?.low24h ?? x?.low ?? 0, 0),
     };
   });
+};
+
+const appendIndiaWsToken = (url) => {
+  if (!url) return url;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  if (!token || url.includes('token=')) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
 };
 
 const LOCK_ICON = (
@@ -193,7 +240,8 @@ const Dashboard = () => {
   const wsUrlIndiaAll = useMemo(() => {
     const raw = import.meta.env.VITE_WS_INDIA_URL;
     if (!raw) return null;
-    return String(raw).replace(/\/+$/, '');
+    // return String(raw).replace(/\/+$/, '');
+    return appendIndiaWsToken(String(raw).replace(/\/+$/, ''));
   }, []);
 
   const { tradesData: tradesDataCrypto } = useAvaxTradesWebSocket(wsUrlCrypto, null, WS_OPTIONS);
@@ -230,6 +278,22 @@ const Dashboard = () => {
     return indiaInstrumentPairId;
   }, [marketType, indiaInstrumentPairId]);
 
+  const indiaExtraPairIds = useMemo(
+    () => (indiaInstrumentPairId ? [indiaInstrumentPairId] : []),
+    [indiaInstrumentPairId],
+  );
+
+  const { resolvedPairIdMap } = useIndiaFavouritesSubscription({
+    enabled: isAuthenticated,
+    favouritesList,
+    extraPairIds: indiaExtraPairIds,
+  });
+
+  const indiaFavouritesPairIdMap = useMemo(() => {
+    const session = readIndiaPairIdSessionMap();
+    return { ...session, ...resolvedPairIdMap };
+  }, [resolvedPairIdMap]);
+
   /** Keep URL ?pairid= in sync with resolved instrument (session / live feed). */
   useEffect(() => {
     const t = String(marketType || '').trim().toLowerCase();
@@ -262,12 +326,18 @@ const Dashboard = () => {
 
   const wsUrl = useMemo(() => {
     const t = String(marketType || '').toLowerCase().trim();
-    if (t === 'india' && indiaInstrumentPairId) {
-      return `${import.meta.env.VITE_WS_INDIA_URL}/${indiaInstrumentPairId}`;
+    if (t === 'india') {
+      const base = String(import.meta.env.VITE_WS_INDIA_URL || '').replace(/\/+$/, '');
+      if (indiaInstrumentPairId && base) {
+        return appendIndiaWsToken(`${base}/${indiaInstrumentPairId}`);
+      }
+      return wsUrlIndiaAll;
+      // if (t === 'india' && indiaInstrumentPairId) {
+      //   return `${import.meta.env.VITE_WS_INDIA_URL}/${indiaInstrumentPairId}`;
     }
     const base = (getWsBase(marketType) || '').replace(/\/+$/, '');
     return base.endsWith('/all') ? base : `${base}/all`;
-  }, [marketType, indiaInstrumentPairId]);
+  }, [marketType, indiaInstrumentPairId, wsUrlIndiaAll]);
 
   const { tradesData, isConnected } = useAvaxTradesWebSocket(wsUrl, null, WS_OPTIONS);
 
@@ -277,27 +347,81 @@ const Dashboard = () => {
     return normalizeIndiaTradesList(tradesData);
   }, [tradesData, marketType]);
 
+  const indiaSidebarMarketData = useMemo(() => {
+    const broadcast = Array.isArray(normalizedIndiaAllTradesData) ? normalizedIndiaAllTradesData : [];
+    if (String(marketType || '').toLowerCase().trim() !== 'india') return broadcast;
+    const active = Array.isArray(normalizedTradesData) ? normalizedTradesData : [];
+    if (!active.length) return broadcast;
+    const seen = new Set(
+      broadcast.map((t) => indiaTickPairId(t) || indiaTickSymbolKey(t)).filter(Boolean)
+    );
+    const extra = active.filter((t) => {
+      const k = indiaTickPairId(t) || indiaTickSymbolKey(t);
+      return k && !seen.has(k);
+    });
+    return extra.length ? [...broadcast, ...extra] : broadcast;
+  }, [normalizedIndiaAllTradesData, normalizedTradesData, marketType]);
+
   const allMarketsTradesData = useMemo(() => {
-    const bySymbol = new Map();
-    const addAll = (list) => {
+    const byKey = new Map();
+
+    const addGenericTicks = (list) => {
+      // const bySymbol = new Map();
+      // const addAll = (list) => {
       (list || []).forEach((t) => {
-        const raw = t.symbol || t.id || t.Symbol || t.instrument || t.pair || t.market || '';
+        const raw =
+          t.symbol ||
+          t.pairsymbol ||
+          t.pairSymbol ||
+          t.tradingsymbol ||
+          t.tradingSymbol ||
+          t.id ||
+          t.Symbol ||
+          t.instrument ||
+          t.pair ||
+          t.market ||
+          '';
+        // const raw = t.symbol || t.id || t.Symbol || t.instrument || t.pair || t.market || '';
         const key = normalizeSymbol(raw);
         if (!key) return;
-        const existing = bySymbol.get(key);
+        // const existing = bySymbol.get(key);
+        const existing = byKey.get(key);
         const ts = t.lastUpdate ?? t.timestamp ?? t.time ?? t.T ?? 0;
         if (!existing || ts > (existing.lastUpdate ?? 0)) {
-          bySymbol.set(key, { ...t, id: key, symbol: key, lastUpdate: ts });
+          byKey.set(key, { ...t, lastUpdate: ts });
         }
       });
     };
-    addAll(tradesDataCrypto);
-    addAll(tradesDataForex);
-    addAll(tradesDataMetals);
-    addAll(tradesDataIndices);
-    addAll(normalizedIndiaAllTradesData);
-    addAll(normalizedTradesData);
-    return Array.from(bySymbol.values());
+
+    const addIndiaTicks = (list) => {
+      (list || []).forEach((t) => {
+        const pid = indiaTickPairId(t);
+        const sym = indiaTickSymbolKey(t);
+        const key = pid ? `india:${pid}` : sym ? `india:${sym}` : '';
+        if (!key) return;
+        const existing = byKey.get(key);
+        const ts = t.lastUpdate ?? t.timestamp ?? t.time ?? t.T ?? 0;
+        if (!existing || ts > (existing.lastUpdate ?? 0)) {
+          // bySymbol.set(key, { ...t, id: key, symbol: key, lastUpdate: ts });
+          byKey.set(key, { ...t, lastUpdate: ts });
+        }
+      });
+    };
+    // addAll(tradesDataCrypto);
+    // addAll(tradesDataForex);
+    // addAll(tradesDataMetals);
+    // addAll(tradesDataIndices);
+    // addAll(normalizedIndiaAllTradesData);
+    // addAll(normalizedTradesData);
+    // return Array.from(bySymbol.values());
+
+    addGenericTicks(tradesDataCrypto);
+    addGenericTicks(tradesDataForex);
+    addGenericTicks(tradesDataMetals);
+    addGenericTicks(tradesDataIndices);
+    addIndiaTicks(normalizedIndiaAllTradesData);
+    addIndiaTicks(normalizedTradesData);
+    return Array.from(byKey.values());
   }, [
     normalizedTradesData,
     normalizedIndiaAllTradesData,
@@ -326,42 +450,48 @@ const Dashboard = () => {
       const activeList = Array.isArray(normalizedTradesData) ? normalizedTradesData : [];
       const fallbackList = Array.isArray(normalizedIndiaAllTradesData) ? normalizedIndiaAllTradesData : [];
 
-      if (!activeList.length && !fallbackList.length) return null;
+      // if (!activeList.length && !fallbackList.length) return null;
 
-      const pairIdKey = String(indiaInstrumentPairId || '').trim().toLowerCase();
-      if (pairIdKey) {
-        const byPairId = activeList.find((t) => {
-          const candidates = [
-            t?.pairid,
-            t?.pairId,
-            t?.instrument_token,
-            t?.instrumentToken,
-            t?.token,
-            t?.id,
-          ];
-          return candidates.some((v) => String(v ?? '').trim().toLowerCase() === pairIdKey);
-        });
-        if (byPairId) return byPairId;
-      }
+      // const pairIdKey = String(indiaInstrumentPairId || '').trim().toLowerCase();
+      // if (pairIdKey) {
+      //   const byPairId = activeList.find((t) => {
+      //     const candidates = [
+      //       t?.pairid,
+      //       t?.pairId,
+      //       t?.instrument_token,
+      //       t?.instrumentToken,
+      //       t?.token,
+      //       t?.id,
+      //     ];
+      //     return candidates.some((v) => String(v ?? '').trim().toLowerCase() === pairIdKey);
+      //   });
+      //   if (byPairId) return byPairId;
+      // }
 
-      const tryFindBySymbol = (list) => {
-        if (!normalizedSymbol || !Array.isArray(list) || !list.length) return null;
-        const symbolKey = normalizeSymbol(normalizedSymbol);
-        return list.find((t) => {
-          const sid = normalizeSymbol(
-            t?.symbol || t?.id || t?.Symbol || t?.instrument || t?.pair || t?.market || ''
-          );
-          return sid && sid === symbolKey;
-        }) ?? null;
-      };
+      // const tryFindBySymbol = (list) => {
+      //   if (!normalizedSymbol || !Array.isArray(list) || !list.length) return null;
+      //   const symbolKey = normalizeSymbol(normalizedSymbol);
+      //   return list.find((t) => {
+      //     const sid = normalizeSymbol(
+      //       t?.symbol || t?.id || t?.Symbol || t?.instrument || t?.pair || t?.market || ''
+      //     );
+      //     return sid && sid === symbolKey;
+      //   }) ?? null;
+      // };
 
-      const bySymbolActive = tryFindBySymbol(activeList);
-      if (bySymbolActive) return bySymbolActive;
+      // const bySymbolActive = tryFindBySymbol(activeList);
+      // if (bySymbolActive) return bySymbolActive;
 
-      const bySymbolFallback = tryFindBySymbol(fallbackList);
-      if (bySymbolFallback) return bySymbolFallback;
+      // const bySymbolFallback = tryFindBySymbol(fallbackList);
+      // if (bySymbolFallback) return bySymbolFallback;
 
-      return activeList[0] ?? fallbackList[0] ?? null;
+      // return activeList[0] ?? fallbackList[0] ?? null;
+
+      const tick = findIndiaMarketTick([activeList, fallbackList], {
+        symbol: normalizedSymbol,
+        pairId: indiaInstrumentPairId,
+      });
+      return tick ?? null;
     }
     if (!normalizedSymbol) return null;
 
@@ -371,6 +501,24 @@ const Dashboard = () => {
 
     return findByNormalizedSymbol(allMarketsTradesData, normalizedSymbol);
   }, [normalizedTradesData, normalizedIndiaAllTradesData, allMarketsTradesData, normalizedSymbol, marketType, indiaInstrumentPairId]);
+
+  const indiaInstrumentExchange = useMemo(() => {
+    const t = String(marketType || '').trim().toLowerCase();
+    if (t !== 'india') return '';
+
+    if (exchangeDisplay) return exchangeDisplay;
+
+    const fromSession = readIndiaExchangeFromSession(normalizedSymbol);
+    if (fromSession) return fromSession;
+
+    const urlExchange = searchParams.get('exchange');
+    if (urlExchange) return String(urlExchange).trim();
+
+    const tickExchange = indiaTickExchange(currentMarketData);
+    if (tickExchange) return tickExchange;
+
+    return '';
+  }, [marketType, exchangeDisplay, normalizedSymbol, searchParams, currentMarketData]);
 
   /**
    * Require `market` + valid `type` in the URL.
@@ -503,13 +651,35 @@ const Dashboard = () => {
     let cancelled = false;
     (async () => {
       try {
+        let exchange = indiaInstrumentExchange;
+        let segment = '';
+        if (exchange) {
+          writeIndiaExchangeToSession(normalizedSymbol, exchange);
+        }
+        if (t === 'india' && !exchange) {
+          const list = await fetchIndiaStockList();
+          const stockItem = findIndiaStockItemInStockList(list, {
+            symbol: normalizedSymbol,
+            pairId: indiaInstrumentPairId,
+          });
+          exchange = String(stockItem?.exchange || '').trim();
+          segment = String(stockItem?.segment || '').trim();
+          if (exchange) {
+            writeIndiaExchangeToSession(normalizedSymbol, exchange);
+          }
+        }
+
         const res = await checkTradingMarket({
           pair: normalizedSymbol,
           marketType: t,
           pairId: t === 'india' ? indiaInstrumentPairId : undefined,
         });
         if (cancelled) return;
-        const { sessionOpen, message } = resolveCheckMarketSessionForDashboard(res, t, marketPair);
+        // const { sessionOpen, message } = resolveCheckMarketSessionForDashboard(res, t, marketPair);
+        const { sessionOpen, message } = resolveCheckMarketSessionForDashboard(res, t, marketPair, {
+          exchange,
+          segment,
+        });
         setMarketSessionOpen(sessionOpen);
         setMarketSessionMessage(message);
       } catch {
@@ -522,7 +692,15 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, marketType, normalizedSymbol, indiaInstrumentPairId, marketPair]);
+    // }, [isAuthenticated, marketType, normalizedSymbol, indiaInstrumentPairId, marketPair]);
+  }, [
+    isAuthenticated,
+    marketType,
+    normalizedSymbol,
+    indiaInstrumentPairId,
+    marketPair,
+    indiaInstrumentExchange,
+  ]);
 
   const tradingSessionClosed = isAuthenticated && !marketSessionOpen;
 
@@ -576,6 +754,8 @@ const Dashboard = () => {
             selectedMarketType={marketType}
             onSelectPair={updateMarketInUrl}
             marketDataList={allMarketsTradesData}
+            indiaMarketDataList={indiaSidebarMarketData}
+            indiaPairIdMap={indiaFavouritesPairIdMap}
             favouritesList={favouritesList}
             favouritesLoading={favouritesLoading}
             isAuthenticated={isAuthenticated}
@@ -601,6 +781,7 @@ const Dashboard = () => {
                     refreshTrigger={ordersRefreshTrigger}
                     tradingSessionClosed={tradingSessionClosed}
                     tradingSessionMessage={marketSessionMessage}
+                    indiaExchange={indiaInstrumentExchange}
                   />
                 </Suspense>
               </div>
@@ -633,6 +814,7 @@ const Dashboard = () => {
               marketData={currentMarketData}
               marketType={marketType}
               pairId={pairIdForOrderApis}
+              indiaExchange={indiaInstrumentExchange}
               onOrderSuccess={handleOrderSuccess}
               walletData={walletData}
               tradingSessionClosed={tradingSessionClosed}
@@ -731,6 +913,7 @@ const Dashboard = () => {
                   marketData={currentMarketData}
                   marketType={marketType}
                   pairId={pairIdForOrderApis}
+                  indiaExchange={indiaInstrumentExchange}
                   onOrderSuccess={handleOrderSuccess}
                   tradingSessionClosed={tradingSessionClosed}
                   tradingSessionMessage={marketSessionMessage}

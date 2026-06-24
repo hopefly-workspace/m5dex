@@ -42,6 +42,8 @@ const normalizeIndiaSymbolVariants = (value) => {
 
 const IndiaMarkets = ({
   searchQuery,
+  favouritesList,
+  watchlistList,
   favoritesSet,
   watchlistSet,
   itemKey: itemKeyProp,
@@ -145,15 +147,24 @@ const IndiaMarkets = ({
     const exchange = exchangeFromPayload || exchangeFromSymbol || '';
 
     const price = toNum(trade.ltp ?? trade.index ?? trade.price ?? trade.lastPrice ?? trade.close ?? trade.p, 0);
-    const ask = toNum(trade.ask ?? trade.a ?? price, price);
-    const bid = toNum(trade.bid ?? trade.b ?? price, price);
+    // const ask = toNum(trade.ask ?? trade.a ?? price, price);
+    // const bid = toNum(trade.bid ?? trade.b ?? price, price);
+    // const high = toNum(trade.high ?? trade.high24h ?? trade.h, 0);
+    // const low = toNum(trade.low ?? trade.low24h ?? trade.l, 0);
+
+    const rawAsk = toNum(trade.ask ?? trade.a ?? trade.askPrice ?? trade.best_ask ?? trade.bestAsk, 0);
+    const rawBid = toNum(trade.bid ?? trade.b ?? trade.bidPrice ?? trade.best_bid ?? trade.bestBid, 0);
+    const ask = rawAsk > 0 ? rawAsk : price > 0 ? price : 0;
+    const bid = rawBid > 0 ? rawBid : price > 0 ? price : 0;
     const volume = toNum(trade.volume ?? trade.vol ?? trade.volume24h, 0);
     const change = toNum(
       trade.change_pct ?? trade.change24h ?? trade.priceChangePercent ?? trade.change,
       0
     );
-    const high = toNum(trade.high ?? trade.high24h ?? trade.h, 0);
-    const low = toNum(trade.low ?? trade.low24h ?? trade.l, 0);
+    const rawHigh = toNum(trade.high ?? trade.high24h ?? trade.h, 0);
+    const rawLow = toNum(trade.low ?? trade.low24h ?? trade.l, 0);
+    const high = rawHigh > 0 ? rawHigh : price > 0 ? price : 0;
+    const low = rawLow > 0 ? rawLow : price > 0 ? price : 0;
 
     const baseCandidate =
       trade.name ||
@@ -276,7 +287,19 @@ const IndiaMarkets = ({
       const key = pid ? `pid:${pid}` : processed.id;
       const existing = map.get(key);
       if (!existing || processed.lastUpdate >= (existing.lastUpdate || 0)) {
-        map.set(key, processed);
+        const merged = existing ? { ...existing, ...processed } : processed;
+        if (existing) {
+          if (existing.symbol && !/^\d+$/.test(existing.symbol) && /^\d+$/.test(processed.symbol)) {
+            merged.symbol = existing.symbol;
+          }
+          if (existing.pairSymbol && !/^\d+$/.test(existing.pairSymbol) && /^\d+$/.test(processed.pairSymbol)) {
+            merged.pairSymbol = existing.pairSymbol;
+          }
+          if (existing.exchange && !processed.exchange) {
+            merged.exchange = existing.exchange;
+          }
+        }
+        map.set(key, merged);
         changed = true;
       }
     }
@@ -345,6 +368,7 @@ const IndiaMarkets = ({
     return out;
   }, [favoritesSet]);
 
+  /*
   const favoriteEntries = useMemo(() => {
     const out = [];
     if (!favoritesSet || typeof favoritesSet.forEach !== 'function') return out;
@@ -370,6 +394,31 @@ const IndiaMarkets = ({
     });
     return out;
   }, [favoritesSet]);
+  */
+
+  const favoriteEntries = useMemo(() => {
+    const out = [];
+    if (!favouritesList || !Array.isArray(favouritesList)) return out;
+    const seenNormalized = new Set();
+    for (const item of favouritesList) {
+      const rawType = String(item.type || '').trim().toLowerCase();
+      if (rawType !== 'india') continue;
+      const rawName = String(item.name || '').trim();
+      if (!rawName) continue;
+      const parsed = parseIndiaFavouriteName(rawName);
+      const { withExchange, noExchange } = normalizeIndiaSymbolVariants(parsed.symbol || rawName);
+      if (!withExchange) continue;
+      if (seenNormalized.has(withExchange)) continue;
+      seenNormalized.add(withExchange);
+      out.push({
+        rawName: parsed.symbol || rawName,
+        normalized: withExchange,
+        normalizedNoExchange: noExchange,
+        pairId: String(parsed.pairId || '').trim(),
+      });
+    }
+    return out;
+  }, [favouritesList]);
 
   const marketsToDisplay = useMemo(() => {
     const q = (searchQuery || '').trim().toLowerCase();
@@ -429,6 +478,8 @@ const IndiaMarkets = ({
           description: readableBase || rawName,
           exchange,
           pairSymbol,
+          pairId: pairId || undefined,
+          pairid: pairId || undefined,
           price: 0,
           index: 0,
           ask: 0,

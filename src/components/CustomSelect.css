@@ -3,9 +3,11 @@
   display: inline-block;
   font-family: inherit;
   user-select: none;
-  min-width: 120px; /* Sensible default */
+  min-width: 120px;
+  /* Sensible default */
   padding: 8px 12px;
-  background-color: var(--bg-secondary, #1e1e2d); /* Fallbacks for dark theme */
+  background-color: var(--bg-secondary, #1e1e2d);
+  /* Fallbacks for dark theme */
   border: 1px solid var(--border-color, #333);
   border-radius: 6px;
   color: var(--text-primary, #fff);
@@ -13,8 +15,10 @@
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
   cursor: pointer;
-  background-image: none !important; /* Prevent double dropdown chevrons from inherited classes */
-  overflow: visible !important; /* Prevent dropdown from being clipped if parent class has overflow: hidden */
+  background-image: none !important;
+  /* Prevent double dropdown chevrons from inherited classes */
+  overflow: visible !important;
+  /* Prevent dropdown from being clipped if parent class has overflow: hidden */
 }
 
 .custom-select-container:hover {
@@ -34,17 +38,16 @@
   width: 100%;
 }
 
-.custom-select-trigger span:first-child {
+.custom-select-selected-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.custom-select-trigger span:first-child {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 20px; /* Buffer to prevent text overlapping arrow if padding is small */
+  padding-right: 20px;
+  /* Buffer to prevent text overlapping arrow if padding is small */
 }
 
 .custom-select-arrow {
@@ -82,12 +85,16 @@
 .custom-select-options::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-select-options::-webkit-scrollbar-thumb {
   background: var(--border-color, #444);
   border-radius: 3px;
 }
 
 .custom-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
   color: var(--text-secondary, #ccc);
@@ -102,7 +109,7 @@
 
 .custom-select-option.selected {
   background-color: var(--bg-active, rgba(255, 255, 255, 0.12));
-  color: var(--brand-primary, #ffd500);
+  color: var(--brand-primary, black);
   font-weight: 600;
 }
 
