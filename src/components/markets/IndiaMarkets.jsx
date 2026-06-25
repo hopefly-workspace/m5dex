@@ -42,6 +42,7 @@ const normalizeIndiaSymbolVariants = (value) => {
 
 const IndiaMarkets = ({
   searchQuery,
+  stockList = [],
   favouritesList,
   watchlistList,
   favoritesSet,
@@ -415,6 +416,7 @@ const IndiaMarkets = ({
         normalized: withExchange,
         normalizedNoExchange: noExchange,
         pairId: String(parsed.pairId || '').trim(),
+        segment: String(item.segment || '').trim(),
       });
     }
     return out;
@@ -458,14 +460,25 @@ const IndiaMarkets = ({
       });
 
       // Always show all favorites: use live row when available, otherwise placeholder.
-      list = favoriteEntries.map(({ rawName, normalized, normalizedNoExchange, pairId }) => {
+      list = favoriteEntries.map(({ rawName, normalized, normalizedNoExchange, pairId, segment }) => {
+        let liveMatch = null;
+
         if (pairId && matchedByPairId.has(pairId)) {
-          return matchedByPairId.get(pairId);
+          // return matchedByPairId.get(pairId);
+          liveMatch = matchedByPairId.get(pairId);
+        } else {
+          liveMatch = matchedByNormalized.get(normalized) ||
+            (normalizedNoExchange ? matchedByNormalized.get(normalizedNoExchange) : null);
         }
-        const live =
-          matchedByNormalized.get(normalized) ||
-          (normalizedNoExchange ? matchedByNormalized.get(normalizedNoExchange) : null);
-        if (live) return live;
+
+        if (liveMatch) {
+          return segment ? { ...liveMatch, segment } : liveMatch;
+        }
+
+        // const live =
+        //   matchedByNormalized.get(normalized) ||
+        //   (normalizedNoExchange ? matchedByNormalized.get(normalizedNoExchange) : null);
+        // if (live) return live;
         const s = String(rawName || '');
         const exchange = s.includes(':') ? s.split(':')[0].trim() : '';
         const pairSymbol = s.includes(':') ? s.split(':').slice(1).join(':').trim() : s;
@@ -490,6 +503,7 @@ const IndiaMarkets = ({
           low24h: 0,
           lastUpdate: 0,
           marketType: 'india',
+          segment,
         };
       });
     } else if (showWatchlist) {
@@ -576,25 +590,108 @@ const IndiaMarkets = ({
     [onToggleWatchlist]
   );
 
+  const segmentMap = useMemo(() => {
+    const map = new Map();
+    if (!Array.isArray(stockList)) return map;
+    for (const item of stockList) {
+      if (item.pairid) map.set(String(item.pairid).trim(), item.segment || 'Unknown Segment');
+      if (item.pairsymbol) map.set(normalizeSymbol(item.pairsymbol), item.segment || 'Unknown Segment');
+    }
+    return map;
+  }, [stockList]);
+
+  const segmentedMarkets = useMemo(() => {
+    const groups = {};
+    for (const m of sortedMarkets) {
+      let seg = '';
+      const pid = String(m.pairid ?? m.pairId ?? m.instrument_token ?? m.instrumentToken ?? '').trim();
+      const sym = String(m.symbol || m.id || m.name || '').trim().toUpperCase();
+      const pairSym = String(m.pairSymbol || '').trim().toUpperCase();
+
+      seg = String(m.segment || '').trim();
+
+      if (!seg || seg === 'Unknown Segment' || seg === 'Other') {
+        if (pid && segmentMap.has(pid)) {
+          seg = segmentMap.get(pid);
+        } else if (sym && segmentMap.has(normalizeSymbol(sym))) {
+          seg = segmentMap.get(normalizeSymbol(sym));
+        } else if (pairSym && segmentMap.has(normalizeSymbol(pairSym))) {
+          seg = segmentMap.get(normalizeSymbol(pairSym));
+        }
+      }
+
+      if (!seg || seg === 'Unknown Segment') {
+        seg = 'Other';
+      }
+
+      if (!groups[seg]) groups[seg] = [];
+      groups[seg].push(m);
+    }
+    return groups;
+  }, [sortedMarkets, segmentMap]);
+
+  const [collapsedSegments, setCollapsedSegments] = useState({});
+
+  const toggleSegment = (seg) => {
+    setCollapsedSegments(prev => ({
+      ...prev,
+      [seg]: !prev[seg]
+    }));
+  };
+
+
   return (
     <div className="marketsList">
       {sortedMarkets.length > 0 ? (
-        <IndiaTable
-          markets={sortedMarkets}
-          onMarketClick={onMarketClick}
-          formatPrice={formatPrice}
-          favoritesSet={favoritesSet}
-          watchlistSet={watchlistSet}
-          itemKey={itemKey}
-          onToggleFavorite={handleToggleFavorite}
-          onToggleWatchlist={handleToggleWatchlist}
-        />
+        Object.entries(segmentedMarkets).sort(([a], [b]) => a.localeCompare(b)).map(([segment, markets]) => {
+          const isCollapsed = collapsedSegments[segment];
+          return (
+            <div key={segment} className="marketSegmentGroup" style={{ marginBottom: '20px', background: 'var(--bg-secondary, rgba(255, 255, 255, 0.02))', borderRadius: '8px', border: '1px solid var(--border-light, rgba(255, 255, 255, 0.05))', overflow: 'hidden' }}>
+              <div
+                onClick={() => toggleSegment(segment)}
+                style={{ margin: 0, padding: '12px 16px', background: 'color-mix(in srgb, var(--bg-primary, #000) 95%, var(--text-primary, #fff))', color: 'var(--text-primary, #f8fafc)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', fontWeight: 600, borderBottom: isCollapsed ? 'none' : '1px solid var(--border-light, rgba(255, 255, 255, 0.05))' }}
+              >
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                {segment}
+              </div>
+              {!isCollapsed && (
+                <div style={{ padding: '0 1px' }}>
+                  <IndiaTable
+                    markets={markets}
+                    onMarketClick={onMarketClick}
+                    formatPrice={formatPrice}
+                    favoritesSet={favoritesSet}
+                    watchlistSet={watchlistSet}
+                    itemKey={itemKey}
+                    onToggleFavorite={handleToggleFavorite}
+                    onToggleWatchlist={handleToggleWatchlist}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })
+        // <IndiaTable
+        //   markets={sortedMarkets}
+        //   onMarketClick={onMarketClick}
+        //   formatPrice={formatPrice}
+        //   favoritesSet={favoritesSet}
+        //   watchlistSet={watchlistSet}
+        //   itemKey={itemKey}
+        //   onToggleFavorite={handleToggleFavorite}
+        //   onToggleWatchlist={handleToggleWatchlist}
+        // />
       ) : (
-        <div className="noMarkets">
+        <div className="noMarkets" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
           {searchQuery && searchQuery.trim() ? (
             <p>No results for "{searchQuery.trim()}"</p>
           ) : indiaConnected ? (
-            <p>Search to show India markets</p>
+            <p>Search  or add instruments to show India markets</p>
           ) : (
             <p>Waiting for India Market WebSocket connection...</p>
           )}

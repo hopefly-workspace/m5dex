@@ -23,6 +23,8 @@ import { formatIndianOrderPairDisplay } from '../utils/helper';
 import { indiaFuzzySymbolMatch } from '../utils/indiaPairResolve';
 import { writeIndiaExchangeToSession, writeIndiaPairIdToSession } from '../services/indiaTicksSubscription';
 import { tokenStorage } from '../utils/storage';
+import { buildCdrtokenValue } from '../utils/authTokens';
+import api from '../services/api';
 
 const sortOptions = [
   { id: 'volume', label: 'Volume' },
@@ -121,8 +123,11 @@ function MarketsSearchCustomSelect({
   menuTall = false,
   className = '',
   ariaLabel,
+  placeholder,
+  searchable = false,
 }) {
   const [open, setOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const rootRef = useRef(null);
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
@@ -130,14 +135,35 @@ function MarketsSearchCustomSelect({
   const listId = useId();
 
   const items = useMemo(() => {
-    if (!withAll) return options;
-    return [{ value: allValue, label: allLabel }, ...options];
-  }, [withAll, allValue, allLabel, options]);
+    //   if (!withAll) return options;
+    //   return [{ value: allValue, label: allLabel }, ...options];
+    // }, [withAll, allValue, allLabel, options]);
+
+    let list = options;
+    if (withAll) list = [{ value: allValue, label: allLabel }, ...options];
+    if (searchable && searchText) {
+      list = list.filter(o => String(o.label).toLowerCase().includes(searchText.toLowerCase()));
+    }
+    return list;
+  }, [withAll, allValue, allLabel, options, searchable, searchText]);
+
+  useEffect(() => {
+    if (!open) {
+      setSearchText('');
+    }
+  }, [open]);
 
   const selectedLabel = useMemo(() => {
-    const f = items.find((o) => String(o.value) === String(value));
+    // const f = items.find((o) => String(o.value) === String(value));
+    if (value === '') return placeholder || 'Select...';
+    // We check against all options to get the correct label, not just the filtered `items`
+    let fullList = options;
+    if (withAll) fullList = [{ value: allValue, label: allLabel }, ...options];
+    const f = fullList.find((o) => String(o.value) === String(value));
     return f ? f.label : String(value);
-  }, [items, value]);
+    // }, [items, value]);
+  }, [withAll, allValue, allLabel, options, value, placeholder]);
+
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) {
@@ -184,13 +210,21 @@ function MarketsSearchCustomSelect({
       if (e.key === 'Escape') setOpen(false);
     };
     const onResize = () => setOpen(false);
+    const onScroll = (e) => {
+      if (menuRef.current && (e.target === menuRef.current || menuRef.current.contains(e.target))) {
+        return;
+      }
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDoc, true);
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mousedown', onDoc, true);
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [open]);
 
@@ -212,6 +246,21 @@ function MarketsSearchCustomSelect({
           zIndex: 11000,
         }}
       >
+        {searchable && (
+          <li style={{ padding: '0 6px 6px 6px', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 2, marginBottom: '4px', borderBottom: '1px solid var(--border-light)' }} role="none">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              autoFocus
+              style={{ width: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-light)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px', padding: '8px 10px', transition: 'border-color 0.2s' }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--brand-primary, #ffd500)'; e.target.style.boxShadow = '0 0 0 2px rgba(255, 213, 0, 0.2)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--border-light)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </li>
+        )}
+
         {items.map((opt) => (
           <li key={`${String(opt.value)}-${opt.label}`} role="none">
             <button
@@ -228,6 +277,9 @@ function MarketsSearchCustomSelect({
             </button>
           </li>
         ))}
+        {items.length === 0 && (
+          <li style={{ padding: '10px 12px', fontSize: '13px', color: 'var(--text-tertiary)' }}>No results found</li>
+        )}
       </ul>
     ) : null;
 
@@ -412,6 +464,14 @@ const IndianMarketsPage = () => {
   const workerRef = useRef(null);
   const searchSeqRef = useRef(0);
 
+  // --- NEW INLINE FILTERS STATE ---
+  const [instrumentsList, setInstrumentsList] = useState([]);
+  const [filterSegment, setFilterSegment] = useState('');
+  const [filterScript, setFilterScript] = useState('');
+  const [filterExpiry, setFilterExpiry] = useState('');
+  const [filterCePe, setFilterCePe] = useState('');
+  const [filterStrike, setFilterStrike] = useState('');
+
   // Keeps track of which pairIds we already asked the backend to subscribe.
   // This ensures `/ws/subscribed` starts streaming ticks for ALL favorites/watchlist rows,
   // not only the one the user navigates to.
@@ -574,6 +634,141 @@ const IndianMarketsPage = () => {
       setStockListLoading(false);
     }
   }, [showError]);
+
+  const [segmentOptions, setSegmentOptions] = useState([]);
+  const [scriptOptions, setScriptOptions] = useState([]);
+  const [expiryOptions, setExpiryOptions] = useState([]);
+  const [cePeOptions, setCePeOptions] = useState([]);
+  const [strikeOptions, setStrikeOptions] = useState([]);
+
+  const [fetchingSegments, setFetchingSegments] = useState(true);
+  const [fetchingScripts, setFetchingScripts] = useState(false);
+  const [fetchingExpiries, setFetchingExpiries] = useState(false);
+  const [fetchingCePes, setFetchingCePes] = useState(false);
+  const [fetchingStrikes, setFetchingStrikes] = useState(false);
+
+  // State to hold the final ID returned by the API
+  const [selectedInstrumentId, setSelectedInstrumentId] = useState(null);
+
+  // Fetch Segments
+  useEffect(() => {
+    setFetchingSegments(true);
+    api.get(`/trading/instruments?segment=&pairname=&expiry=&option_type=`)
+      .then(res => {
+        if (res?.status && Array.isArray(res.data)) {
+          setSegmentOptions(res.data);
+        }
+      }).catch(console.error).finally(() => setFetchingSegments(false));
+  }, []);
+
+
+  // Fetch Scripts
+  useEffect(() => {
+    if (!filterSegment) {
+      setScriptOptions([]);
+      return;
+    }
+    setScriptOptions([]);
+    setFetchingScripts(true);
+    api.get(`/trading/instruments?segment=${filterSegment}&pairname=&expiry=&option_type=`)
+      .then(res => {
+        if (res?.status && Array.isArray(res.data)) {
+          setScriptOptions(res.data);
+        }
+      }).catch(console.error).finally(() => setFetchingScripts(false));
+  }, [filterSegment]);
+
+  // Fetch Expiry
+  useEffect(() => {
+    if (!filterSegment || !filterScript) {
+      setExpiryOptions([]);
+      return;
+    }
+    setExpiryOptions([]);
+    setFetchingExpiries(true);
+    api.get(`/trading/instruments?segment=${filterSegment}&pairname=${filterScript}&expiry=&option_type=`)
+      .then(res => {
+        if (res?.status && Array.isArray(res.data)) {
+          setExpiryOptions(res.data);
+        }
+      }).catch(console.error).finally(() => setFetchingExpiries(false));
+  }, [filterSegment, filterScript]);
+
+  // Fetch Option Type (CE/PE)
+  useEffect(() => {
+    if (!filterSegment || !filterScript || !filterExpiry) {
+      setCePeOptions([]);
+      return;
+    }
+    setCePeOptions([]);
+    setFetchingCePes(true);
+    api.get(`/trading/instruments?segment=${filterSegment}&pairname=${filterScript}&expiry=${filterExpiry}&option_type=`)
+      .then(res => {
+        if (res?.status && Array.isArray(res.data)) {
+          setCePeOptions(res.data);
+        }
+      }).catch(console.error).finally(() => setFetchingCePes(false));
+  }, [filterSegment, filterScript, filterExpiry]);
+
+  // Fetch Strike
+  useEffect(() => {
+    if (!filterSegment || !filterScript || !filterExpiry) {
+      setStrikeOptions([]);
+      return;
+    }
+    setStrikeOptions([]);
+    setFetchingStrikes(true);
+    // If option_type is available, include it, otherwise leave it blank
+    api.get(`/trading/instruments?segment=${filterSegment}&pairname=${filterScript}&expiry=${filterExpiry}&option_type=${filterCePe || ''}`)
+      .then(res => {
+        if (res?.status && Array.isArray(res.data)) {
+          // If the previous level returned CE/PE, this call (with option_type set) should return strikes.
+          // If the previous level returned strikes directly (e.g. FUT), this will just populate strikeOptions.
+          setStrikeOptions(res.data);
+        }
+      }).catch(console.error).finally(() => setFetchingStrikes(false));
+  }, [filterSegment, filterScript, filterExpiry, filterCePe]);
+
+  // Fetch final ID when all required filters are selected
+  useEffect(() => {
+    if (!filterSegment || !filterScript || !filterExpiry) {
+      setSelectedInstrumentId(null);
+      return;
+    }
+
+    const headers = {};
+    const token = tokenStorage.getToken();
+    if (token) {
+      headers['token'] = token;
+    }
+
+    const params = new URLSearchParams();
+    params.append('segment', filterSegment);
+    params.append('pairname', filterScript);
+    params.append('expiry', filterExpiry);
+    params.append('option_type', filterCePe || '');
+    if (filterStrike) {
+      params.append('strike', filterStrike);
+    }
+
+    api.get(`/trading/instruments?${params.toString()}`, { headers })
+      .then(res => {
+        // The API returns { code: 200, status: true, id: "..." }
+        if (res?.status && res?.id) {
+          setSelectedInstrumentId(res.id);
+        } else if (res?.status && res?.data?.id) {
+          setSelectedInstrumentId(res.data.id);
+        } else if (res?.status && res?.data && !Array.isArray(res.data) && typeof res.data === 'string') {
+          // Fallback if id is returned directly in data
+          setSelectedInstrumentId(res.data);
+        } else {
+          setSelectedInstrumentId(null);
+        }
+      })
+      .catch(console.error);
+  }, [filterSegment, filterScript, filterExpiry, filterCePe, filterStrike]);
+
+  // handleInlineAdd moved to avoid ReferenceError
 
   const openSearchModal = useCallback(() => {
     setIsSearchModalOpen(true);
@@ -1136,7 +1331,7 @@ const IndianMarketsPage = () => {
   }, [isAuthenticated, favouritesList, watchlistList, resolvePairIdForSymbol, callSubscriptionsApi]);
 
   const toggleFavorite = useCallback(
-    async (name, type = 'india') => {
+    async (name, type = 'india', explicitAction = null, additionalData = {}) => {
       const trimmedName = String(name ?? '').trim();
       const trimmedType = String(type || 'india').trim();
       const isIndiaType = trimmedType.toLowerCase() === 'india';
@@ -1162,6 +1357,11 @@ const IndianMarketsPage = () => {
         const isFav = isIndiaType
           ? Boolean(existingIndiaFavorite)
           : favoritesSet.has(key);
+
+        if (explicitAction === 'add' && isFav) {
+          showSuccess('Already in your list');
+          return;
+        }
 
         if (isFav) {
           if (isIndiaType) {
@@ -1217,10 +1417,10 @@ const IndianMarketsPage = () => {
             subscribedPairIdsRef.current.add(pairIdStr);
             const apiFavoriteName = `${symbolForAdd}_${pairIdStr}`;
             await addFavourite({ id: pairIdStr, name: symbolForAdd }, trimmedType);
-            setFavouritesList((prev) => [...prev, { name: apiFavoriteName, type: trimmedType }]);
+            setFavouritesList((prev) => [...prev, { name: apiFavoriteName, type: trimmedType, ...additionalData }]);
           } else {
             await addFavourite(trimmedName, trimmedType);
-            setFavouritesList((prev) => [...prev, { name: trimmedName, type: trimmedType }]);
+            setFavouritesList((prev) => [...prev, { name: trimmedName, type: trimmedType, ...additionalData }]);
           }
           showSuccess('Added to script');
         }
@@ -1578,6 +1778,33 @@ const IndianMarketsPage = () => {
     [resolvePairIdForSymbol]
   );
 
+  const handleInlineAdd = useCallback(async () => {
+    if (!filterSegment && !filterScript) {
+      showError('Please select a segment or script');
+      return;
+    }
+
+    if (!selectedInstrumentId) {
+      showError('No instrument ID found for the selected options.');
+      return;
+    }
+
+    try {
+      const symbol = String(filterScript || '').toUpperCase();
+      const toggleName = `${symbol}_${selectedInstrumentId}`;
+      await toggleFavorite(toggleName, 'india', 'add', { segment: filterSegment });
+
+      setFilterSegment('');
+      setFilterScript('');
+      setFilterExpiry('');
+      setFilterCePe('');
+      setFilterStrike('');
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+      showError('Failed to add instrument to list');
+    }
+  }, [filterSegment, filterScript, selectedInstrumentId, toggleFavorite, showError]);
+
   const hasAdvancedFilters =
     searchProductKind !== 'all' ||
     searchSegment !== 'all' ||
@@ -1717,7 +1944,7 @@ const IndianMarketsPage = () => {
         </div>
 
         <div className="marketsFilters">
-          <div className="searchBox">
+          {/* <div className="searchBox">
             <svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29" fill="none">
               <path fill-rule="evenodd" clip-rule="evenodd" d="M23.75 13.75C23.75 18.7206 19.7206 22.75 14.75 22.75C12.7238 22.75 10.854 22.0804 9.34976 20.9505C9.32881 20.9783 9.30566 21.005 9.28033 21.0303L7.03033 23.2803C6.73744 23.5732 6.26256 23.5732 5.96967 23.2803C5.67678 22.9874 5.67678 22.5126 5.96967 22.2197L8.21967 19.9697C8.22399 19.9654 8.22835 19.9611 8.23275 19.9569C6.69439 18.3421 5.75 16.1563 5.75 13.75C5.75 8.77944 9.77944 4.75 14.75 4.75C19.7206 4.75 23.75 8.77944 23.75 13.75ZM22.25 13.75C22.25 17.8921 18.8921 21.25 14.75 21.25C10.6079 21.25 7.25 17.8921 7.25 13.75C7.25 9.60786 10.6079 6.25 14.75 6.25C18.8921 6.25 22.25 9.60786 22.25 13.75Z" fill="#73757A" />
             </svg>
@@ -1729,35 +1956,118 @@ const IndianMarketsPage = () => {
               readOnly
               className="searchInput"
             />
-          </div>
+          </div> */}
 
-          <div className="marketsFilterActions">
-            <button
-              className={`filterBtn ${showFavorites ? 'active' : ''}`}
-            // onClick={() => setShowFavorites(!showFavorites)}
-            >
-              {/* <svg width="18" height="18" viewBox="0 0 24 24" fill={showFavorites ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg> */}
-              My List ({indiaFavouritesCount})
-            </button>
-            {/* <div className="sortFilter">
-              <label className="sortLabel">Sort by:</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sortSelect">
-                {sortOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+          <div className="inlineFiltersContainer">
+            <div className="filterGroup">
+              <label style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: 600, letterSpacing: '0.5px' }}>SEGMENT</label>
+              <MarketsSearchCustomSelect
+                disabled={fetchingSegments}
+                value={filterSegment}
+                onChange={(val) => { setFilterSegment(val); setFilterScript(''); setFilterExpiry(''); setFilterCePe(''); setFilterStrike(''); }}
+                className="inlineCustomSelect"
+                placeholder={fetchingSegments ? 'Loading...' : 'Select Segment'}
+                options={segmentOptions.map(opt => ({ value: opt, label: opt }))}
+                withAll={false}
+                searchable={true}
+              />
+            </div>
+
+            {/* <div className="marketsFilterActions">
+              <button
+                className={`filterBtn ${showFavorites ? 'active' : ''}`}
+              // onClick={() => setShowFavorites(!showFavorites)}
+              >
+                
+                My List ({indiaFavouritesCount})
+              </button>
+              
             </div> */}
-          </div>
 
+            <div className="filterGroup">
+              <label style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: 600, letterSpacing: '0.5px' }}>SCRIPT</label>
+              <MarketsSearchCustomSelect
+                disabled={!filterSegment || fetchingScripts}
+                value={filterScript}
+                onChange={(val) => { setFilterScript(val); setFilterExpiry(''); setFilterCePe(''); setFilterStrike(''); }}
+                className="inlineCustomSelect"
+                placeholder={fetchingScripts ? 'Loading...' : 'Select Script'}
+                options={scriptOptions.map(opt => ({ value: opt, label: opt }))}
+                withAll={false}
+                searchable={true}
+              />
+            </div>
+
+            <div className="filterGroup">
+              <label style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: 600, letterSpacing: '0.5px' }}>EXPIRY</label>
+              <MarketsSearchCustomSelect
+                disabled={!filterScript || fetchingExpiries}
+                value={filterExpiry}
+                onChange={(val) => { setFilterExpiry(val); setFilterCePe(''); setFilterStrike(''); }}
+                className="inlineCustomSelect"
+                placeholder={fetchingExpiries ? 'Loading...' : 'Select Expiry'}
+                options={expiryOptions.map(opt => ({ value: opt, label: formatExpiryLabel(opt) }))}
+                withAll={false}
+                searchable={true}
+              />
+            </div>
+
+            <div className="filterGroup">
+              <label style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: 600, letterSpacing: '0.5px' }}>CE / PE</label>
+              <MarketsSearchCustomSelect
+                disabled={!filterExpiry || String(filterSegment || '').toUpperCase().endsWith('FUT') || fetchingCePes}
+                value={filterCePe}
+                onChange={(val) => setFilterCePe(val)}
+                className="inlineCustomSelect"
+                placeholder={String(filterSegment || '').toUpperCase().endsWith('FUT') ? 'Select...' : (fetchingCePes ? 'Loading...' : 'Select...')}
+                options={cePeOptions.map(opt => ({ value: opt, label: opt }))}
+                withAll={false}
+                searchable={true}
+              />
+            </div>
+
+            <div className="filterGroup">
+              <label style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: 600, letterSpacing: '0.5px' }}>STRIKE</label>
+              <MarketsSearchCustomSelect
+                disabled={!filterExpiry || String(filterSegment || '').toUpperCase().endsWith('FUT') || fetchingStrikes}
+                value={filterStrike}
+                onChange={(val) => setFilterStrike(val)}
+                className="inlineCustomSelect"
+                placeholder={String(filterSegment || '').toUpperCase().endsWith('FUT') ? 'Select...' : (fetchingStrikes ? 'Loading...' : 'Select...')}
+                options={strikeOptions.map(opt => ({ value: opt, label: opt }))}
+                withAll={false}
+                searchable={true}
+              />
+            </div>
+
+            <div className="addBtnGroup">
+              <button type="button" onClick={handleInlineAdd} disabled={bulkFavBusy || togglingKey} style={{ padding: '0 20px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--brand-primary, #ffd500) 0%, var(--brand-primary-light, #ffe033) 100%)', color: 'var(--btn-primary-text, black)', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', height: '40px', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(255, 213, 0, 0.2)', transition: 'transform 0.1s, box-shadow 0.2s', whiteSpace: 'nowrap' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add
+              </button>
+            </div>
+
+            <div className="searchGroup">
+              <div style={{ position: 'relative' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary, #64748b)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '12px' }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search market..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
 
         </div>
 
         <IndiaMarkets
           searchQuery={searchQuery}
+          stockList={stockList}
           favouritesList={favouritesList}
           watchlistList={watchlistList}
           favoritesSet={favoritesSet}
@@ -1774,7 +2084,7 @@ const IndianMarketsPage = () => {
 
       {isSearchModalOpen && (
         <div className="marketsSearchModalOverlay marketsSearchModalOverlay--fullscreen" onClick={closeSearchModal}>
-          <div className="marketsSearchModal marketsSearchModal--simple" onClick={(e) => e.stopPropagation()}>
+          {/* <div className="marketsSearchModal marketsSearchModal--simple" onClick={(e) => e.stopPropagation()}>
             <div className="indiaSearchHeader">
               <div className="indiaSearchInputWrap">
                 <svg className="indiaSearchInputIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1937,7 +2247,7 @@ const IndianMarketsPage = () => {
                 </>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
       )}
     </div>

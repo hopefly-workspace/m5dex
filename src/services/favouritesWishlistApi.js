@@ -44,7 +44,9 @@ const normalizeItem = (item) => {
   if (!name) return null;
   const type = item.type ?? item.marketType ?? item.market_type ?? 'crypto';
   const fullName = item.fullname ?? item.pairSymbol ?? item.pairid ?? item.pairId ?? '';
-  return { name, type: String(type).trim().toLowerCase(), fullName };
+  // return { name, type: String(type).trim().toLowerCase(), fullName };
+  const segment = item.segment || '';
+  return { name, type: String(type).trim().toLowerCase(), fullName, segment };
 };
 
 /**
